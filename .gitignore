@@ -12,3 +12,4 @@ Thumbs.db
 .env
 .env.*
 /tmp/
+dist-e2e/

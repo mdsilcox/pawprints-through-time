@@ -1,0 +1,246 @@
+import { h, clear } from './dom';
+
+/**
+ * DOM overlay UI. All menus, dialogue, HUD and puzzles are HTML on top of the Phaser canvas:
+ * crisp text at any DPI, responsive layout, and easy to drive from Playwright.
+ *
+ * Screens form a stack; the top screen owns input. `Nav` gives keyboard/gamepad users spatial focus.
+ */
+export interface Screen {
+  id: string;
+  el: HTMLElement;
+  /** Called when the player presses Back/Cancel. Return false to ignore. */
+  onBack?: () => boolean | void;
+  /** Directional input not consumed by focus navigation (e.g. for custom widgets). */
+  onDir?: (dir: Dir) => boolean | void;
+  onConfirm?: () => boolean | void;
+  onClose?: () => void;
+  /** Screens that should not block world input (e.g. toasts) set this. */
+  passive?: boolean;
+  /** Keep the world visible but dimmed? default true */
+  dim?: boolean;
+}
+
+export type Dir = 'up' | 'down' | 'left' | 'right';
+
+class UIManager {
+  root!: HTMLElement;
+  hud!: HTMLElement;
+  screensLayer!: HTMLElement;
+  toastLayer!: HTMLElement;
+  topLayer!: HTMLElement;
+  touchLayer!: HTMLElement;
+  private stack: Screen[] = [];
+  private listeners = new Set<() => void>();
+  /** True once the player has used keyboard/gamepad for menus — shows focus rings. */
+  keyboardNav = false;
+
+  mount(root: HTMLElement): void {
+    this.root = root;
+    clear(root);
+    this.hud = h('div', { class: 'layer hud-layer', attrs: { 'aria-live': 'polite' } });
+    this.touchLayer = h('div', { class: 'layer touch-layer' });
+    this.screensLayer = h('div', { class: 'layer screens-layer' });
+    this.toastLayer = h('div', { class: 'layer toast-layer' });
+    this.topLayer = h('div', { class: 'layer top-layer' });
+    root.append(this.hud, this.touchLayer, this.screensLayer, this.toastLayer, this.topLayer);
+    root.addEventListener('pointerdown', () => this.setKeyboardNav(false), true);
+  }
+
+  setKeyboardNav(on: boolean): void {
+    if (this.keyboardNav === on) return;
+    this.keyboardNav = on;
+    this.root.classList.toggle('kbd-nav', on);
+  }
+
+  get top(): Screen | undefined {
+    return this.stack[this.stack.length - 1];
+  }
+
+  /** True while any blocking screen is open (world input should pause). */
+  get blocking(): boolean {
+    return this.stack.some((s) => !s.passive);
+  }
+
+  has(id: string): boolean {
+    return this.stack.some((s) => s.id === id);
+  }
+
+  get ids(): string[] {
+    return this.stack.map((s) => s.id);
+  }
+
+  push(screen: Screen, layer: HTMLElement = this.screensLayer): Screen {
+    this.stack.push(screen);
+    screen.el.classList.add('screen');
+    screen.el.dataset.screen = screen.id;
+    layer.appendChild(screen.el);
+    this.syncDim();
+    requestAnimationFrame(() => this.focusFirst(screen));
+    this.changed();
+    return screen;
+  }
+
+  /** Remove a screen (by id or the top one). */
+  pop(id?: string): void {
+    const idx = id ? this.stack.findIndex((s) => s.id === id) : this.stack.length - 1;
+    if (idx < 0) return;
+    const [s] = this.stack.splice(idx, 1);
+    s.el.remove();
+    s.onClose?.();
+    this.syncDim();
+    if (this.top) this.focusFirst(this.top, true);
+    this.changed();
+  }
+
+  /** Replace everything with nothing (e.g. when returning to the title). */
+  closeAll(): void {
+    while (this.stack.length) this.pop();
+  }
+
+  onChange(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private changed() {
+    for (const fn of this.listeners) fn();
+  }
+
+  private syncDim() {
+    const dim = this.stack.some((s) => !s.passive && s.dim !== false);
+    this.root.classList.toggle('dimmed', dim);
+  }
+
+  // ------------------------------------------------------------ navigation
+  focusables(screen = this.top): HTMLElement[] {
+    if (!screen) return [];
+    return [...screen.el.querySelectorAll<HTMLElement>('[data-nav]:not([disabled]):not(.hidden)')].filter(
+      (el) => el.offsetParent !== null,
+    );
+  }
+
+  focusFirst(screen: Screen, restore = false): void {
+    const els = this.focusables(screen);
+    if (!els.length) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (restore && active && screen.el.contains(active)) return;
+    const pref = els.find((e) => e.dataset.autofocus !== undefined) ?? els[0];
+    pref.focus({ preventScroll: true });
+  }
+
+  /** Directional navigation: move focus to the nearest focusable in that direction. */
+  nav(dir: Dir): void {
+    const screen = this.top;
+    if (!screen) return;
+    this.setKeyboardNav(true);
+    const active = document.activeElement as HTMLElement | null;
+    // Let custom widgets (sliders, grids) consume directions first.
+    if (active?.dataset.navDir && screen.el.contains(active)) {
+      active.dispatchEvent(new CustomEvent('navdir', { detail: dir }));
+      if (active.dataset.navDir === 'consume') return;
+    }
+    if (screen.onDir?.(dir) === true) return;
+    const els = this.focusables(screen);
+    if (!els.length) return;
+    if (!active || !screen.el.contains(active) || !els.includes(active)) {
+      els[0].focus();
+      return;
+    }
+    const a = active.getBoundingClientRect();
+    const ax = a.left + a.width / 2;
+    const ay = a.top + a.height / 2;
+    let best: HTMLElement | null = null;
+    let bestScore = Infinity;
+    for (const el of els) {
+      if (el === active) continue;
+      const b = el.getBoundingClientRect();
+      const bx = b.left + b.width / 2;
+      const by = b.top + b.height / 2;
+      const dx = bx - ax;
+      const dy = by - ay;
+      let primary: number;
+      let secondary: number;
+      if (dir === 'up') {
+        primary = -dy;
+        secondary = Math.abs(dx);
+      } else if (dir === 'down') {
+        primary = dy;
+        secondary = Math.abs(dx);
+      } else if (dir === 'left') {
+        primary = -dx;
+        secondary = Math.abs(dy);
+      } else {
+        primary = dx;
+        secondary = Math.abs(dy);
+      }
+      if (primary <= 4) continue;
+      const score = primary + secondary * 2.2;
+      if (score < bestScore) {
+        bestScore = score;
+        best = el;
+      }
+    }
+    if (best) {
+      best.focus({ preventScroll: false });
+      best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }
+
+  confirm(): void {
+    const screen = this.top;
+    if (!screen) return;
+    this.setKeyboardNav(true);
+    if (screen.onConfirm?.() === true) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && screen.el.contains(active)) active.click();
+  }
+
+  back(): void {
+    const screen = this.top;
+    if (!screen) return;
+    if (screen.onBack) {
+      screen.onBack();
+    }
+  }
+}
+
+export const ui = new UIManager();
+
+/** A chunky friendly button. */
+export function button(
+  label: string | Node,
+  onClick: () => void,
+  opts: { cls?: string; icon?: string; autofocus?: boolean; disabled?: boolean; testid?: string } = {},
+): HTMLButtonElement {
+  const b = h(
+    'button',
+    {
+      class: `btn ${opts.cls ?? ''}`,
+      dataset: { nav: '' },
+      attrs: { type: 'button', ...(opts.testid ? { 'data-testid': opts.testid } : {}) },
+      onclick: (e: Event) => {
+        e.stopPropagation();
+        if (b.disabled) return;
+        onClick();
+      },
+    },
+    opts.icon ? h('span', { class: 'btn-icon', attrs: { 'aria-hidden': 'true' } }, opts.icon) : null,
+    typeof label === 'string' ? h('span', { class: 'btn-label' }, label) : label,
+  );
+  if (opts.autofocus) b.dataset.autofocus = '';
+  if (opts.disabled) b.disabled = true;
+  return b;
+}
+
+/** Transient message bubble ("Saved!", "Got 3 carrots"). */
+export function toast(text: string, opts: { icon?: string; ms?: number; cls?: string } = {}): void {
+  if (!ui.toastLayer) return;
+  const el = h('div', { class: `toast ${opts.cls ?? ''}` }, opts.icon ? h('span', { class: 'toast-icon' }, opts.icon) : null, text);
+  ui.toastLayer.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 400);
+  }, opts.ms ?? 2200);
+}
