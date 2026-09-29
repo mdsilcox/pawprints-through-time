@@ -1,6 +1,7 @@
 import { PAL, shade } from './palette';
 import { makeCanvas, rrPath, circlePath, ellipsePath, paint, softShade, OUTLINE, rng, sparkle, type Cv } from './draw';
 import { crateJam, gearLockbox, knittingBasket, mosaicFloor, riddleStone, toyBoat, cloverPatch, caveMouth, lookoutRock, chestClosed, chestOpen } from './puzzleProps';
+import { barrelJam, cargoHatch, fruitStall, galleyStove, mapTable, messageBottle, rowboat, saltPan, shipHull, shipMast, shipWheel, stoneDoorClosed, stoneDoorOpen, wallTorch } from './pirateProps';
 
 /**
  * Props and buildings. Each drawer returns a canvas plus its anchor (the point that sits on the
@@ -843,6 +844,20 @@ export const PROP_ART: Record<string, () => PropArt> = {
   'prop-ledge': () => lookoutRock(),
   'prop-chest': () => chestClosed(),
   'prop-chest-open': () => chestOpen(),
+  'prop-hull': () => shipHull(),
+  'prop-mast': () => shipMast(),
+  'prop-wheel': () => shipWheel(),
+  'prop-galley': () => galleyStove(),
+  'prop-maptable': () => mapTable(),
+  'prop-hatch': () => cargoHatch(),
+  'prop-saltpan': () => saltPan(),
+  'prop-bottle': () => messageBottle(),
+  'prop-barrels': () => barrelJam(),
+  'prop-rowboat': () => rowboat(),
+  'prop-stonedoor': () => stoneDoorClosed(),
+  'prop-stonedoor-open': () => stoneDoorOpen(),
+  'prop-fruitstall': () => fruitStall(),
+  'prop-torch': () => wallTorch(),
   'prop-fence-h': () => fenceH(),
   'prop-burrow-hole': () => burrowHole(),
   'bld-cottage': () => cottage(),

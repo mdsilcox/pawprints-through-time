@@ -155,6 +155,31 @@ S.burrow = () => {
   };
 };
 
+// ---------------------------------------------------------------- Sandy Cove: a jolly sea jig in D (6/8)
+S.pirate = () => {
+  const bars = ['D', 'G', 'D', 'A', 'D', 'G', 'A', 'D'];
+  return {
+    id: 'pirate',
+    bpm: 116,
+    spb: 3,
+    beatsPerBar: 2,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'fiddle',
+        vol: 0.8,
+        lead: true,
+        notes: mel(`
+          D5 - F#5 A5 - F#5 | G5 - B5 D6 - B5 | A5 - F#5 D5 - F#5 | E5 - - A4 - . |
+          D5 - F#5 A5 - D6 | B5 - G5 E5 - G5 | A5 - G5 F#5 - E5 | D5 - - - . . `),
+      },
+      { inst: 'accordion', vol: 0.4, notes: comp(bars, 6, 'offbeat', 4, 0.5) },
+      { inst: 'bass', vol: 0.65, notes: bassline(bars, 6, 'rootfifth', 2) },
+      { vol: 0.4, drums: [...beat('x..x..', 'kick', 0.5, 8), ...beat('..x..x', 'shaker', 0.55, 8)] },
+    ],
+  };
+};
+
 void loop;
 
 const cache = new Map<string, Song>();

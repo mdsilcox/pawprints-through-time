@@ -31,7 +31,7 @@ export function judge(errMs: number, slow: boolean): 'perfect' | 'good' | 'splas
   return 'splash';
 }
 
-export function openCauldron(): Promise<BrewOutcome | null> {
+export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome | null> {
   const d = app.data;
   if (!d || ui.has('cauldron')) return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -39,7 +39,7 @@ export function openCauldron(): Promise<BrewOutcome | null> {
     let outcome: BrewOutcome | null = null;
     let raf = 0;
     const body = h('div', { class: 'cd-body' });
-    const panel = h('div', { class: 'panel cd-panel', attrs: { 'data-testid': 'cauldron' } }, h('h2', null, '🍲 Grandma’s Cauldron'), body);
+    const panel = h('div', { class: 'panel cd-panel', attrs: { 'data-testid': 'cauldron' } }, h('h2', null, opts.title ?? '🍲 Grandma’s Cauldron'), body);
     let bottled = false;
     const bottle = (soupId: string) => {
       bottled = true;

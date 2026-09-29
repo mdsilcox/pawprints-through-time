@@ -1,0 +1,52 @@
+/**
+ * Pip's History Notes: short, true, kid-friendly facts collected in each era. They fill the
+ * Museum of Time's notice board and the History Notes page in the pause menu.
+ */
+export interface HistoryNote {
+  id: string;
+  era: 'pirate' | 'egypt' | 'fifties' | 'florence';
+  title: string;
+  text: string;
+}
+
+export const NOTES: HistoryNote[] = [
+  // ---------------------------------------------------------------- the Golden Age of Piracy (~1715)
+  {
+    id: 'pirate-golden-age',
+    era: 'pirate',
+    title: 'The Golden Age of Piracy',
+    text: 'Historians call the years from about the 1650s to the 1720s the “Golden Age of Piracy”. Many pirate ships sailed the warm Caribbean Sea.',
+  },
+  {
+    id: 'pirate-articles',
+    era: 'pirate',
+    title: 'Pirate rules',
+    text: 'Many pirate crews wrote their own rules, called “articles”. Crews often voted to choose their captain — and could vote a new one in!',
+  },
+  {
+    id: 'pirate-eight',
+    era: 'pirate',
+    title: 'Pieces of eight',
+    text: '“Pieces of eight” were silver coins from Spain. Each one was worth eight smaller coins called reales.',
+  },
+  {
+    id: 'pirate-hardtack',
+    era: 'pirate',
+    title: 'Ship’s biscuits',
+    text: 'Sailors ate “hardtack”, a hard, dry biscuit that lasted for months at sea. It was so hard that people dunked it in soup or tea to soften it.',
+  },
+  {
+    id: 'pirate-treasure',
+    era: 'pirate',
+    title: 'Buried treasure?',
+    text: 'Real pirates hardly ever buried their treasure — they usually shared it out and spent it! Treasure maps with an X are mostly from storybooks.',
+  },
+];
+
+export const NOTE_BY_ID = new Map(NOTES.map((n) => [n.id, n]));
+export const ERA_TITLE: Record<HistoryNote['era'], string> = {
+  pirate: '🏴 The Golden Age of Piracy',
+  egypt: '🔺 Ancient Egypt',
+  fifties: '🎳 1950s America',
+  florence: '🎨 Renaissance Florence',
+};

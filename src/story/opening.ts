@@ -6,6 +6,7 @@ import { storybook } from '../ui/storybook';
 import { toast } from '../ui/ui';
 import { TILE } from '../world/collision';
 import { TW } from '../world/maps/tockwood';
+import { placeSands, useTimePortal } from './pirateChapter';
 import { registerQuest, type QuestDef } from './quests';
 import { cutscene, flag, onEnterMap, onTalk, onUse, setFlag, wait, give, background } from './hooks';
 import type { WorldScene } from '../scenes/WorldScene';
@@ -194,6 +195,7 @@ function metNeighboursDone(): boolean {
 }
 
 onUse('hourglass', async () => {
+  if (await placeSands()) return;
   const n = app.data?.sands.length ?? 0;
   await talk('narrator', [
     n === 0
@@ -207,8 +209,8 @@ onUse('portal', async ({ world }) => {
     await talk('narrator', 'A great stone ring covered in little stars. It hums very quietly... but it isn’t awake yet.');
     return;
   }
-  // The portal opens the world map (the eras arrive in later chapters)
-  app.events.emit('open-portal-map', world);
+  // The portal opens the Map of Time
+  await useTimePortal(world);
 });
 
 // Pip's first gift: a welcome snack for Biscuit

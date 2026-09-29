@@ -15,7 +15,7 @@ function roomGrid(w: number, h: number, wallRows: number, door: { x: number; w: 
   return g;
 }
 
-function fur(id: string, key: string, x: number, y: number, foot?: MapObject['foot'], p?: Record<string, unknown>): MapObject {
+export function fur(id: string, key: string, x: number, y: number, foot?: MapObject['foot'], p?: Record<string, unknown>): MapObject {
   return { id, kind: 'furniture', x, y, texture: `fur-${key}`, foot, p };
 }
 
@@ -28,14 +28,18 @@ interface RoomDef {
   outSpawn: string;
   /** caves are dark: only glowing players light them up */
   lighting?: 'indoor' | 'dark';
+  /** rooms in other eras */
+  region?: 'tockwood' | 'pirate' | 'egypt' | 'fifties' | 'florence';
+  /** the outside map the doorway leads to (default Tockwood) */
+  exitTo?: string;
 }
 
-function defineRoom(r: RoomDef) {
+export function defineRoom(r: RoomDef) {
   const { w, h, wallRows, door } = r.spec;
   registerMap({
     id: r.id,
     name: r.name,
-    region: 'tockwood',
+    region: r.region ?? 'tockwood',
     indoor: true,
     lighting: r.lighting ?? 'indoor',
     timeOfDay: 'day',
@@ -44,7 +48,7 @@ function defineRoom(r: RoomDef) {
     layers: [],
     backdrop: () => drawRoom(r.spec, TILE),
     spawns: { in: { x: door.x + door.w / 2, y: h - 1.7, facing: 'up' } },
-    exits: [{ x: door.x, y: h - 0.55, w: door.w, h: 1, to: 'tockwood', spawn: r.outSpawn }],
+    exits: [{ x: door.x, y: h - 0.55, w: door.w, h: 1, to: r.exitTo ?? 'tockwood', spawn: r.outSpawn }],
     build: () => ({ grid: roomGrid(w, h, wallRows, door), objects: r.objects() }),
   });
 }

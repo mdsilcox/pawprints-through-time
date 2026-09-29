@@ -382,6 +382,124 @@ const SCENARIOS = [
     },
   },
   { name: 'lookout', players: [1], run: async (page) => { await play(page, 1, [42.5, 8.6]); await g(page, 'drink', 'hopscotch-chowder', 2); await wait(1200); } },
+  // ---------------------------------------------------------------- M6: the Golden Age of Piracy
+  {
+    name: 'worldmap',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'portal:ready', true);
+      await g(page, 'goTo', 'clocktower', 'in');
+      await wait(1500);
+      await g(page, 'openWorldMap');
+      await wait(700);
+    },
+  },
+  {
+    name: 'cove-arrival',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'setFlag', 'pip:companion', true);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(2600);
+    },
+  },
+  {
+    name: 'cove-ship',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'cove:arrived', 'met:marigold', 'map:search']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'from-isle');
+      await wait(2200);
+    },
+  },
+  {
+    name: 'cove-market',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 16.5, 11, 0);
+      await wait(900);
+    },
+  },
+  {
+    name: 'hold',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived', 'found:skipper']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'hold', 'in');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'isle',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'cove:arrived', 'isle:landed']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'isle', 'landing');
+      await wait(2000);
+      await g(page, 'teleport', 21, 10.5, 0);
+      if (players === 2) await g(page, 'teleport', 22.5, 10.8, 1);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'cave',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived', 'isle:landed', 'isle:door']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cave', 'in');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'pz-jigsaw',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'marigold-map', 'medium');
+      await wait(600);
+      await page.click('[data-testid="jig-0"]');
+      await wait(400);
+    },
+  },
+  {
+    name: 'pz-chart',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'drink', 'pirates-gumbo', 2);
+      await g(page, 'openPuzzle', 'marigold-chart', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'pz-barrels',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'bosun-barrels', 'easy');
+      await wait(900);
+    },
+  },
+  {
+    name: 'notes',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const n of ['pirate-golden-age', 'pirate-articles', 'pirate-eight']) await page.evaluate((id) => window.__game.state() && window.__game.learnNoteDebug?.(id), n);
+      await g(page, 'openNotes');
+      await wait(700);
+    },
+  },
   {
     name: 'sell',
     players: [1],

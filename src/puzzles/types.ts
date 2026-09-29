@@ -17,6 +17,9 @@ export interface SlideVariant {
   rows: string[];
   /** fewest moves (checked by tests) — used for stars */
   best: number;
+  /** what the key block and the other blocks are called (default: the wheelbarrow / crates) */
+  keyName?: string;
+  blockName?: string;
 }
 export interface CodeVariant {
   slots: number;
@@ -27,6 +30,8 @@ export interface SailVariant {
   chart: Chart;
   /** moves allowed (checked by tests to be >= the fewest possible) */
   moves: number;
+  /** impassable unless the seas are calm (Pirate's Gumbo) — proven by tests */
+  needsCalm?: boolean;
 }
 
 export interface JigsawVariant {

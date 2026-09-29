@@ -18,11 +18,13 @@ for (const s of SOUPS) {
   }
 }
 
-export function learnClue(soupId: string, _from?: string): boolean {
+export function learnClue(soupId: string, from?: string): boolean {
   const d = app.data;
   const s = SOUP_BY_ID[soupId];
   if (!d || !s || d.clues.includes(soupId)) return false;
   d.clues.push(soupId);
+  // the Recipe Book credits whoever actually told you (some clues have two sources)
+  if (from) d.flags[`cluefrom:${soupId}`] = from;
   audio.sfx('sparkle');
   toast(`New recipe clue: ${d.recipes.includes(soupId) ? s.name : 'a mystery soup'}! See your Recipe Book.`, { icon: '📜', cls: 'quest', ms: 3200 });
   app.autosave.request();

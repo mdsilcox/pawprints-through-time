@@ -8,6 +8,7 @@ import './styles/world.css';
 import './styles/wardrobe.css';
 import './styles/puzzles.css';
 import './styles/soup.css';
+import './styles/eras.css';
 
 import { app } from './app';
 import { installCancelGuard } from './core/session';
@@ -61,6 +62,11 @@ import './puzzles/ui/codeView';
 import './puzzles/ui/sailView';
 import './story/brainBuilders';
 import './story/soupStory';
+import './puzzles/content/pirates';
+import './puzzles/ui/jigsawView';
+import './story/pirateChapter';
+import { learnNote, openNotes } from './ui/notesScreen';
+import { openWorldMap } from './ui/worldMap';
 import { openRecipeBook } from './ui/recipeBook';
 import { openPuzzleJournal } from './ui/puzzleJournal';
 import { openPuzzle } from './puzzles/ui/screen';
@@ -96,7 +102,6 @@ registerPortraitSource((id) => {
 });
 // each Hopkins cousin talks as themselves (name tag + portrait)
 for (const hb of HOPKINS) registerCharacter({ id: `hop-${hb.id}`, name: hb.name, title: 'Hopkins cousin', art: 'doll', voice: { midi: 81, kind: 'squeak' }, color: hb.look.accent ?? '#f4a3b4' });
-app.events.on('open-portal-map', () => toast('The first Time Sand is calling from the Golden Age of Piracy... (the voyage opens in the next chapter!)', { icon: '🏴', ms: 4000 }));
 
 const world = () => app.phaser.scene.getScene('world') as WorldScene;
 registerDebug({
@@ -215,6 +220,10 @@ registerDebug({
   puzzleSecret: () => codeDebug.secret.slice(),
   puzzles: () => (app.data ? { records: structuredClone(app.data.puzzles), skill: app.data.skill } : null),
   openJournal: () => openPuzzleJournal(),
+  openNotes: () => openNotes(),
+  openWorldMap: () => void openWorldMap(),
+  learnNoteDebug: (id: string) => learnNote(id),
+  sands: () => app.data?.sands.slice() ?? [],
   openRecipeBook: () => openRecipeBook(),
   openCauldron: () => void openCauldron(),
   drink: (soupId: string, stars = 2) => drinkSoup(soupId, stars),

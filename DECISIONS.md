@@ -24,6 +24,17 @@ One line each: decision — reason.
 - Colorblind option swaps rhythm/puzzle colors to the Okabe–Ito set and every color cue also has a distinct shape/icon.
 
 ## Gameplay
+- The pirate chapter's four map pieces each use a different verb (talk, trade, find, sniff+dig) — the vertical slice exercises every core system, not just one.
+- The Swirling Shoals chart is authored so that it is only solvable with calm seas (a unit test proves it) and Marigold won't sail without gumbo — the soup is a real key, and there's no failing, just "not yet".
+- Torn map = a new seventh puzzle kind (jigsaw: swap, and from Medium also turn pieces) — "put the torn map together" should feel like handling a map, not like an abstract puzzle.
+- The stone door's riddle comes from a pool of five pirate riddles picked by day — replays stay fresh; adaptive difficulty decides pick-from-3 / pick-from-5 / type-it.
+- One currency across time: Coco takes Tockens ("how strange and shiny!") and a History Note explains pieces of eight — kids juggle one number, history still gets taught.
+- Real pirates rarely buried treasure: Pip says so when the chest opens (the time-tangle hid this one) — the adventure keeps its treasure hunt without teaching a myth as fact.
+- Map objects' `when` conditions are applied when a map loads; objects picked up mid-visit are removed live (`removeObject`) — keeps map definitions declarative.
+- The Map of Time shows all four eras from the start (locked ones as "???"); eras whose chapters aren't built yet say "Coming soon" — the goal is visible, nothing breaks.
+- Lost-bunny placement per era: one hidden (needs Biscuit's sniff), one behind a puzzle, one out in the open — varied, and always reachable in the era's own maps.
+- The Recipe Book credits whoever told you a clue (Finnegan and Cookie both know the gumbo) — stored per clue.
+- The full chapter playthrough runs solo on desktop and as a pair on the phone — covers 1P/2P and both screen sizes without doubling a 2-minute test.
 - World unit = texture pixel, one tile = 96 units; camera zoom is derived from the CSS height (≈7 tiles tall on a phone, ≈11.5 on desktop) — characters stay big and readable on a 375px-tall phone.
 - Players are human kids (customisable skin/hair later); neighbours are animal-folk built on the same paper-doll body, so every outfit fits everyone.
 - In 1-player mode the arrow keys and / . also control Player 1 — kids use whichever keys they find first; they switch to Player 2 when P2 joins.

@@ -1030,3 +1030,15 @@
     --piece: min(9rem, calc((100vh - 11.5rem) / var(--rows) * 1.5), calc((70vw - 6rem) / var(--cols)));
   }
 }
+
+/* barrels instead of crates (Bosun's barrel jam) */
+.sl-board.barrels .sl-block:not(.key)::before {
+  border-radius: 1.2rem;
+  background: repeating-linear-gradient(90deg, #b57a4e 0 18px, #6d6a74 18px 22px);
+}
+.sl-board.barrels .sl-block.v:not(.key)::before {
+  background: repeating-linear-gradient(0deg, #b57a4e 0 18px, #6d6a74 18px 22px);
+}
+.sl-board.barrels .sl-block.key::before {
+  background: linear-gradient(#9fcff0, #6fb3e0);
+}

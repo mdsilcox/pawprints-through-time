@@ -35,9 +35,11 @@ registerView('slide', (ctx) => {
   let finished = false;
   const label = new Map<string, [string, string]>();
   level.blocks.filter((b) => !b.key).forEach((b, i) => label.set(b.id, CRATE_LABELS[i % CRATE_LABELS.length]));
-  const nameOf = (id: string) => (level.blocks.find((b) => b.id === id)?.key ? 'the wheelbarrow' : `the ${label.get(id)?.[1]} crate`);
+  const keyName = ctx.variant.keyName ?? 'the wheelbarrow';
+  const blockName = ctx.variant.blockName ?? 'crate';
+  const nameOf = (id: string) => (level.blocks.find((b) => b.id === id)?.key ? keyName : `the ${label.get(id)?.[1]} ${blockName}`);
 
-  const board = h('div', { class: 'sl-board', style: `--w:${level.w}; --h:${level.h}`, attrs: { 'data-testid': 'slide-board' } });
+  const board = h('div', { class: `sl-board ${ctx.variant.blockName === 'barrel' ? 'barrels' : ''}`, style: `--w:${level.w}; --h:${level.h}`, attrs: { 'data-testid': 'slide-board' } });
   const keyRow = level.blocks.find((b) => b.key)!.y;
   board.append(h('div', { class: 'sl-exit', style: `top: ${(keyRow / level.h) * 100}%; height: ${100 / level.h}%`, attrs: { 'aria-hidden': 'true' } }, '➜'));
   const counter = h('div', { class: 'sl-count', attrs: { 'data-testid': 'slide-moves' } });
@@ -189,7 +191,7 @@ registerView('slide', (ctx) => {
     hint: (level3) => {
       if (level3 < 3) return null;
       const sol = solve(level, blocks);
-      if (!sol || !sol.length) return 'Almost there — the wheelbarrow can roll right out!';
+      if (!sol || !sol.length) return `Almost there — ${keyName} can roll right out!`;
       const m = sol[0];
       const b = blocks.find((x) => x.id === m.id)!;
       const dir = b.dir === 'h' ? (m.d > 0 ? 'right' : 'left') : m.d > 0 ? 'down' : 'up';

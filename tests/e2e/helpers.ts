@@ -144,6 +144,8 @@ export async function talkTo(page: Page, npc: string): Promise<void> {
     .poll(async () => {
       const cur = (await hook<{ id: string; x: number; y: number }[]>(page, 'npcs')).find((x) => x.id === npc)!;
       await hook(page, 'teleport', cur.x, cur.y + 0.9, 0);
+      // a second player tags along right behind
+      if ((await hook<unknown[]>(page, 'players')).length === 2) await hook(page, 'teleport', cur.x + 1, cur.y + 1.4, 1);
       await page.waitForTimeout(120);
       return hook(page, 'prompt');
     }, { timeout: 12000 })

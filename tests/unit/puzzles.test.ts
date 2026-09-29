@@ -10,6 +10,7 @@ import { isSolved as jigSolved, nextFix, placedCount, scramble, swap, turn } fro
 import { allPuzzles, recordAttempt, starsFor } from '../../src/puzzles/registry';
 import { TOCKWOOD_RIDDLES } from '../../src/puzzles/content/riddles';
 import '../../src/puzzles/content/tockwood';
+import { PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
 import { defaultSave, type Difficulty } from '../../src/core/state';
 import type { LogicGrid } from '../../src/puzzles/logic/logicGrid';
 import type { SailVariant, SlideVariant, CodeVariant } from '../../src/puzzles/types';
@@ -59,8 +60,9 @@ describe('riddles', () => {
 
   it('every riddle is complete: answers, 4+ decoys that are not answers, three hints, unique ids', () => {
     expect(TOCKWOOD_RIDDLES.length).toBeGreaterThanOrEqual(15);
-    expect(new Set(TOCKWOOD_RIDDLES.map((r) => r.id)).size).toBe(TOCKWOOD_RIDDLES.length);
-    for (const r of TOCKWOOD_RIDDLES) {
+    const all = [...TOCKWOOD_RIDDLES, ...PIRATE_RIDDLES];
+    expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
+    for (const r of all) {
       expect(r.answers.length).toBeGreaterThan(0);
       expect(r.decoys.length).toBeGreaterThanOrEqual(4);
       for (const d of r.decoys) expect(checkAnswer(r, d), `${r.id}: decoy ${d}`).toBe(false);
@@ -174,7 +176,16 @@ describe('sailing charts', () => {
     .filter((p) => p.kind === 'sail')
     .flatMap((p) => LEVELS.map((l) => ({ name: `${p.id}/${l}`, v: p.variants[l] as SailVariant })));
 
-  it.each(charts)('$name reaches the buoy within its move limit (and calm seas never make it harder)', ({ v }) => {
+  it.each(charts.filter((c) => c.v.needsCalm))('$name is impassable in rough seas but solvable with calm seas (Pirate’s Gumbo)', ({ v }) => {
+    const rough = sailSolve(v.chart);
+    expect(rough === null || rough.length > v.moves).toBe(true);
+    const calm = sailSolve(v.chart, true)!;
+    expect(calm).not.toBeNull();
+    expect(calm.length).toBeLessThanOrEqual(v.moves);
+    expect(calm.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it.each(charts.filter((c) => !c.v.needsCalm))('$name reaches the buoy within its move limit (and calm seas never make it harder)', ({ v }) => {
     const sol = sailSolve(v.chart)!;
     expect(sol).not.toBeNull();
     expect(sol.length).toBeLessThanOrEqual(v.moves);
@@ -226,6 +237,9 @@ describe('puzzle catalogue', () => {
   it('Tockwood has one puzzle of every kind, each with three variants and three hints per variant', () => {
     const kinds = new Set(allPuzzles().filter((p) => p.era === 'tockwood').map((p) => p.kind));
     expect([...kinds].sort()).toEqual(['code', 'grid', 'riddle', 'sail', 'sequence', 'slide']);
+    // the pirate chapter adds the torn map (jigsaw) and needs calm seas for its chart
+    const pirates = allPuzzles().filter((p) => p.era === 'pirates');
+    expect(pirates.map((p) => p.kind).sort()).toEqual(['code', 'jigsaw', 'riddle', 'sail', 'slide']);
     for (const p of allPuzzles()) for (const l of LEVELS) expect(p.variants[l], `${p.id}/${l}`).toBeTruthy();
   });
 });

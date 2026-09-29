@@ -36,7 +36,7 @@ export function openRecipeBook(): void {
         h('div', { class: 'rb-name' }, found ? s.name : '???', s.twoPlayer ? h('span', { class: 'rb-two', attrs: { title: 'needs two players stirring together' } }, ' 🥄🥄') : null),
         found ? h('div', { class: 'small' }, s.desc) : null,
         found && combo ? h('div', { class: 'rb-combo' }, combo.split('+').map((id) => h('img', { attrs: { src: iconUrl(id), alt: id, title: id } }))) : null,
-        !found && clue ? h('div', { class: 'rb-clue' }, `“${s.clue}”`, h('span', { class: 'small rb-from' }, ` — ${who(s.clueFrom)}`)) : null,
+        !found && clue ? h('div', { class: 'rb-clue' }, `“${s.clue}”`, h('span', { class: 'small rb-from' }, ` — ${who(String(d.flags[`cluefrom:${s.id}`] ?? s.clueFrom ?? ''))}`)) : null,
         !found && !clue ? h('div', { class: 'small rb-mystery' }, 'A mystery soup… keep helping your neighbours to hear a clue!') : null,
         lovers.length ? h('div', { class: 'small rb-fav' }, `❤ Favourite of ${lovers.join(', ')}`) : null,
       ),

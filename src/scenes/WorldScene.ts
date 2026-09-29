@@ -28,6 +28,7 @@ import { iconCanvas } from '../art/icons';
 import { hasEffect } from '../soup/effects';
 import '../world/maps/tockwood';
 import '../world/maps/interiors';
+import '../world/maps/pirate';
 
 export interface WorldInit {
   map?: string;
@@ -113,6 +114,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.lamps = [];
     this.fireflies = [];
     this.overlay = null;
+    this.fixedTint = null;
     this.prompts = [];
     this.occluders = [];
     this.transitioning = false;
@@ -360,6 +362,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         case 'wildbunnies':
           this.spawnWildBunnies(o);
           break;
+        case 'lostbunny':
+          this.spawnLostBunny(o);
+          break;
         case 'warren':
           this.spawnWarren(o);
           break;
@@ -495,6 +500,61 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     });
   }
   private bunnyInteract: { it: Interactable; b: BunnyActor }[] = [];
+  private lostBunnies: { id: string; b: BunnyActor; it: Interactable; hidden: boolean }[] = [];
+
+  /** A lost Hopkins cousin in an era. Some hide until Biscuit sniffs them out. */
+  spawnLostBunny(o: MapObject): void {
+    const id = String(o.p?.id ?? '');
+    const hb = HOPKINS_BY_ID.get(id);
+    if (!hb) return;
+    const key = ensureBunnyTexture(this, `bunny-${id}`, hb.look);
+    const x = o.x * TILE;
+    const y = o.y * TILE;
+    const b = new BunnyActor(this, x, y, key, 'lost', { x: x - TILE * 0.6, y: y - TILE * 0.4, w: TILE * 1.2, h: TILE * 0.8 });
+    this.actors.push(b);
+    this.bunnies.push(b);
+    const entry = { id, b, it: null as unknown as Interactable, hidden: !!o.p?.needsSniff && !app.data?.flags[`found:${id}`] };
+    entry.it = {
+      id: `lost:${id}`,
+      x,
+      y,
+      radius: TILE * 1.1,
+      label: 'Talk',
+      enabled: () => !entry.hidden,
+      run: (player) => triggerTalk(`lost:${id}`, { world: this, player }),
+    };
+    if (entry.hidden) b.container.setAlpha(0);
+    this.interactables.push(entry.it);
+    this.bunnyInteract.push({ it: entry.it, b });
+    this.lostBunnies.push(entry);
+  }
+
+  /** Biscuit's nose finds cousins hiding nearby. */
+  revealLostBunniesNear(x: number, y: number, r: number): string[] {
+    const found: string[] = [];
+    for (const e of this.lostBunnies) {
+      if (!e.hidden || Math.hypot(e.b.x - x, e.b.y - y) > r) continue;
+      e.hidden = false;
+      app.setFlag(`found:${e.id}`);
+      this.tweens.add({ targets: e.b.container, alpha: 1, duration: 500 });
+      e.b.emote('exclaim', 1400);
+      found.push(e.id);
+    }
+    return found;
+  }
+
+  /** A rescued cousin hops off home through time (sparkles, then gone). */
+  sendBunnyHome(id: string): void {
+    const e = this.lostBunnies.find((x) => x.id === id);
+    if (!e) return;
+    this.interactables = this.interactables.filter((i) => i !== e.it);
+    const burst = this.add.particles(e.b.x, e.b.y - TILE * 0.4, 'fx-sparkle', { speed: { min: 40, max: 160 }, lifespan: 900, scale: { start: 0.7, end: 0 }, tint: [0xf7c65a, 0xffffff, 0xa58bd6], emitting: false });
+    burst.setDepth(1e5 + 5);
+    burst.explode(24);
+    this.time.delayedCall(1100, () => burst.destroy());
+    this.tweens.add({ targets: e.b.container, alpha: 0, y: e.b.container.y - 40, duration: 600, onComplete: () => (e.b.destroyed = true) });
+    this.lostBunnies = this.lostBunnies.filter((x) => x !== e);
+  }
 
   /** Biscuit (and later Pip) come along wherever the players go. */
   private spawnCompanions(): void {
@@ -535,7 +595,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         });
       }
     }
-    if (d.flags['pip:companion'] && !this.pip) {
+    if (d.flags['pip:companion'] && !this.pip && this.def.region !== 'tockwood') {
       const pip = new PipActor(this, this.players[0].x, this.players[0].y, () => {
         const p = this.players[0];
         return p ? { x: p.x - TILE * 0.9, y: p.y - TILE * 0.2 } : null;
@@ -575,6 +635,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     const spots = availableSpots(spotsForDay(this.def.id, d.day, zones, this.grid, this.coll), d.dug);
     // a guaranteed easy first dig right by the plaza path
     if (this.def.id === 'tockwood' && !d.flags['dug:first']) spots.push({ id: 'tockwood:tutorial', zone: 'plaza', cx: 32, cy: 27, item: 'clock-gear', hidden: false });
+    // story treasure: a map piece buried on Sandy Cove's beach (Biscuit's nose finds it)
+    if (this.def.id === 'cove' && !d.flags['map:dug'])
+      spots.push({ id: 'cove:mappiece', zone: 'cove-beach', cx: 21, cy: 18, item: 'map-piece', hidden: true, flag: 'map:dug' } as (typeof spots)[number]);
     for (const spot of spots) {
       const sx = (spot.cx + 0.5) * TILE;
       const sy = (spot.cy + 0.6) * TILE;
@@ -647,6 +710,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.spots = this.spots.filter((s) => s !== sv);
     give(sv.spot.item, 1, { from: 'Biscuit dug up...' });
     setFlag('dug:first');
+    const storyFlag = (sv.spot as { flag?: string }).flag;
+    if (storyFlag) setFlag(storyFlag);
     d.flags['dug:count'] = ((d.flags['dug:count'] as number) ?? 0) + 1;
     b.bark();
   }
@@ -658,6 +723,12 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     audio.sfx('sniff');
     const nearHidden = this.spots.filter((s) => !s.revealed && Math.hypot((s.spot.cx + 0.5) * TILE - b.x, (s.spot.cy + 0.5) * TILE - b.y) < TILE * 6);
     await b.sniff();
+    const foundBunnies = this.revealLostBunniesNear(b.x, b.y, TILE * 6);
+    if (foundBunnies.length) {
+      b.emote('exclaim', 1200);
+      b.bark();
+      toast('Biscuit sniffed out someone hiding!', { icon: '🐰' });
+    }
     const says = this.soupFx?.biscuitSays(nearHidden.length);
     if (says) this.floatText(b.x, b.y - TILE * 1.1, says, 3200);
     if (nearHidden.length) {
@@ -791,6 +862,17 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     await Promise.all(moves);
   }
 
+  /** A picked-up map object disappears (conditional objects are only checked when a map loads). */
+  removeObject(id: string): void {
+    const img = this.propImages.get(id);
+    if (img) {
+      this.propImages.delete(id);
+      this.occluders = this.occluders.filter((o) => o.img !== img);
+      this.tweens.add({ targets: img, alpha: 0, scale: img.scale * 0.6, duration: 300, onComplete: () => img.destroy() });
+    }
+    this.interactables = this.interactables.filter((i) => i.id !== `use:${id}` && i.id !== `door:${id}` && i.id !== `sign:${id}`);
+  }
+
   /** Swap a closed chest prop for an open one. */
   openChestProp(id: string): void {
     const img = this.propImages.get(id);
@@ -849,8 +931,19 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   }
 
   // ------------------------------------------------------------------ lighting (day/night)
+  private fixedTint: number | null = null;
+
   private buildLighting(): void {
-    if (!this.usesClock) return;
+    if (!this.usesClock) {
+      const tints: Partial<Record<string, number>> = { golden: 0xffe9c8, evening: 0xd9c8f0 };
+      const t = tints[this.def.lighting];
+      if (t) {
+        this.fixedTint = t;
+        this.overlay = this.add.rectangle(0, 0, 10, 10, t).setOrigin(0).setDepth(1e5).setBlendMode(Phaser.BlendModes.MULTIPLY);
+        this.updateLighting();
+      }
+      return;
+    }
     this.overlay = this.add.rectangle(0, 0, 10, 10, 0xffffff).setOrigin(0).setDepth(1e5).setBlendMode(Phaser.BlendModes.MULTIPLY);
     for (const o of this.objects) {
       if (o.kind !== 'lamp') continue;
@@ -879,6 +972,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     const m = app.data.minutes;
     const v = this.cameras.main.worldView;
     this.overlay.setPosition(v.x - 50, v.y - 50).setSize(v.width + 100, v.height + 100);
+    if (this.fixedTint !== null) return;
     this.overlay.setFillStyle(tint(m));
     const n = nightAmount(m);
     const t = this.time.now / 1000;

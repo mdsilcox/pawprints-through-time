@@ -1,0 +1,120 @@
+/* ================================================================ the Map of Time */
+.worldmap-panel {
+  width: min(96vw, 44rem);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(165, 139, 214, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(111, 179, 224, 0.14), transparent 45%),
+    var(--paper);
+}
+.wm-home {
+  font-weight: 700;
+  background: #d5f1c9;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+  display: inline-block;
+  margin-bottom: 0.4rem;
+}
+.wm-river {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-left: 1.4rem;
+}
+.wm-river::before {
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  top: 0;
+  bottom: 0;
+  width: 0.35rem;
+  border-radius: 999px;
+  background: repeating-linear-gradient(180deg, #6fb3e0 0 0.7rem, #a58bd6 0.7rem 1.4rem);
+  opacity: 0.7;
+}
+.wm-stop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fffaf0;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.4rem 0.6rem;
+}
+.wm-stop::before {
+  content: '';
+  position: absolute;
+  left: -1.15rem;
+  top: 50%;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-top: -0.4rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--paper-2);
+}
+.wm-stop.open::before {
+  background: var(--gold);
+}
+.wm-stop.done::before {
+  background: var(--green);
+}
+.wm-stop.locked {
+  opacity: 0.6;
+}
+.wm-icon {
+  font-size: 1.8rem;
+  width: 2.4rem;
+  text-align: center;
+  flex: none;
+}
+.wm-text {
+  flex: 1;
+  min-width: 0;
+}
+.wm-name {
+  font-weight: 700;
+}
+.wm-status {
+  font-weight: 600;
+  color: #7a5fb3;
+}
+.wm-stop.done .wm-status {
+  color: #3f8a44;
+}
+@media (max-height: 460px) {
+  .worldmap-panel {
+    padding: 0.5rem 0.8rem;
+  }
+  .wm-stop {
+    padding: 0.25rem 0.5rem;
+  }
+  .wm-icon {
+    font-size: 1.4rem;
+  }
+}
+
+/* ================================================================ Pip's History Notes */
+.notes-panel {
+  width: min(96vw, 46rem);
+}
+.nt-era h3 {
+  margin: 0.5rem 0 0.3rem;
+}
+.nt-card {
+  background: #fdf3e0;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.45rem 0.7rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.35;
+}
+.nt-card.locked {
+  background: var(--paper-2);
+  opacity: 0.65;
+}
+.nt-title {
+  font-weight: 700;
+}
