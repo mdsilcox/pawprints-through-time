@@ -1165,3 +1165,38 @@
 .colorblind .cb-star.gold {
   color: #e69f00;
 }
+
+/* the rules card (small phones): floats over the puzzle instead of pushing the board down */
+.pz-panel {
+  position: relative;
+}
+.pz-rules-card {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 0.6rem;
+  transform: translateX(-50%);
+  width: min(30rem, calc(100% - 1.4rem));
+  background: #f3ecff;
+  border: var(--border) solid var(--ink);
+  border-radius: 1rem;
+  box-shadow: 0 0.3rem 0 var(--shadow);
+  padding: 0.6rem 0.9rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  text-align: center;
+  animation: bubble-in 0.3s cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+.pz-rules-card.hidden {
+  display: none;
+}
+.pz-rules-card p {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.pz-rules-title {
+  font-weight: 700;
+}

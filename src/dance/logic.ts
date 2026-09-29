@@ -40,6 +40,15 @@ export const DANCE_STYLES: Record<string, DanceStyleDef> = {
     moves: { left: 'Haul the rope!', down: 'Climb the rigging!', up: 'Look out to sea!', right: 'Heel and toe!' },
     stage: 'deck',
   },
+  sockhop: {
+    id: 'sockhop',
+    name: 'The Sock Hop',
+    era: 'fifties',
+    song: 'sockhop',
+    loops: 2,
+    moves: { left: 'Twist!', down: 'Hand jive!', up: 'Jump for joy!', right: 'Stroll!' },
+    stage: 'diner',
+  },
   jig: {
     id: 'jig',
     name: 'The Tockwood Jig',

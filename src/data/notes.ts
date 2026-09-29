@@ -10,6 +10,37 @@ export interface HistoryNote {
 }
 
 export const NOTES: HistoryNote[] = [
+  // ---------------------------------------------------------------- 1950s America
+  {
+    id: 'fifties-rock',
+    era: 'fifties',
+    title: 'Rock and roll',
+    text: 'Rock and roll music became hugely popular in the 1950s. Teenagers listened on the radio and on records — and danced to it everywhere.',
+  },
+  {
+    id: 'fifties-pinsetter',
+    era: 'fifties',
+    title: 'Machines that set up the pins',
+    text: 'In the 1950s, bowling alleys began using machines to set up the pins. Before that, workers called “pinboys” reset every pin by hand!',
+  },
+  {
+    id: 'fifties-diner',
+    era: 'fifties',
+    title: 'Shiny diners',
+    text: 'Many American diners were built long and shiny, to look like the dining cars on trains. They were famous for burgers, pie and milkshakes.',
+  },
+  {
+    id: 'fifties-records',
+    era: 'fifties',
+    title: 'Jukeboxes and 45s',
+    text: 'Jukeboxes played small records called “45s”, because they spun around 45 times a minute. Each side held just one song.',
+  },
+  {
+    id: 'fifties-sockhop',
+    era: 'fifties',
+    title: 'Sock hops',
+    text: 'Sock hops were school dances where kids danced in their socks — so their hard shoes wouldn’t scratch the gym floor!',
+  },
   // ---------------------------------------------------------------- the Golden Age of Piracy (~1715)
   {
     id: 'pirate-golden-age',

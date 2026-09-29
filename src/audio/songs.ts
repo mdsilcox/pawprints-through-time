@@ -230,6 +230,84 @@ S['plaza-dance'] = () => {
   };
 };
 
+// ---------------------------------------------------------------- Maple Street, 1957: a swinging doo-wop stroll in C
+S.fifties = () => {
+  const bars = ['C', 'Am', 'F', 'G', 'C', 'Am', 'F', 'G'];
+  return {
+    id: 'fifties',
+    bpm: 96,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    swing: 0.28,
+    tracks: [
+      {
+        inst: 'piano',
+        vol: 0.8,
+        lead: true,
+        notes: mel(`
+          E5 - G5 - C6 - B5 A5 | A5 - - - E5 - G5 - | F5 - A5 - C6 - A5 F5 | G5 - - - D5 - . . |
+          E5 - G5 - C6 - D6 E6 | C6 - A5 - E5 - A5 - | F5 G5 A5 C6 B5 - A5 G5 | G5 - - - . . . . `),
+      },
+      { inst: 'organ', vol: 0.32, notes: comp(bars, 8, 'pad', 4, 0.45) },
+      { inst: 'bass', vol: 0.7, notes: bassline(bars, 8, 'walk', 2) },
+      { vol: 0.4, drums: [...beat('.x.x.x.x', 'hat', 0.4, 8), ...beat('..x...x.', 'snare', 0.35, 8), ...beat('x...x...', 'kick', 0.5, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- the Starlight Lanes: boogie-woogie piano in G
+S.bowling = () => {
+  const bars = ['G', 'G', 'C', 'G', 'D', 'C', 'G', 'D'];
+  return {
+    id: 'bowling',
+    bpm: 126,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    swing: 0.25,
+    tracks: [
+      {
+        inst: 'piano',
+        vol: 0.75,
+        lead: true,
+        notes: mel(`
+          G4 B4 D5 E5 F5 E5 D5 B4 | G4 B4 D5 E5 F5 E5 D5 B4 | C5 E5 G5 A5 Bb5 A5 G5 E5 | G4 B4 D5 E5 F5 E5 D5 B4 |
+          D5 F#5 A5 B5 C6 B5 A5 F#5 | C5 E5 G5 A5 Bb5 A5 G5 E5 | G4 - B4 - D5 - G5 - | D5 - F#5 - A5 - . . `),
+      },
+      { inst: 'piano', vol: 0.35, notes: comp(bars, 8, 'boogie', 3, 0.5) },
+      { inst: 'bass', vol: 0.7, notes: bassline(bars, 8, 'walk', 2) },
+      { vol: 0.42, drums: [...beat('x.x.x.x.', 'hat', 0.35, 8), ...beat('..x...x.', 'snare', 0.4, 8), ...beat('x...x...', 'kick', 0.5, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- the sock hop: twelve-bar rock and roll in A (sax lead)
+S.sockhop = () => {
+  const bars = ['A', 'A', 'A', 'A', 'D', 'D', 'A', 'A', 'E', 'D', 'A', 'E'];
+  return {
+    id: 'sockhop',
+    bpm: 140,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 12,
+    tracks: [
+      {
+        inst: 'sax',
+        vol: 0.8,
+        lead: true,
+        notes: mel(`
+          A4 - C#5 E5 A5 - E5 C#5 | A4 - C#5 E5 F#5 - E5 C#5 | A4 - C#5 E5 A5 - B5 A5 | G5 - E5 - C#5 - . . |
+          D5 - F#5 A5 D6 - A5 F#5 | D5 - F#5 A5 B5 - A5 F#5 | A4 - C#5 E5 A5 - E5 C#5 | A5 - - - . . . . |
+          E5 - G#5 B5 E6 - B5 G#5 | D5 - F#5 A5 D6 - A5 F#5 | A4 - C#5 E5 A5 - E5 C#5 | E5 - B4 - E5! - . . `),
+      },
+      { inst: 'piano', vol: 0.36, notes: comp(bars, 8, 'boogie', 3, 0.5) },
+      { inst: 'bass', vol: 0.72, notes: bassline(bars, 8, 'walk', 2) },
+      { vol: 0.45, drums: [...beat('x...x...', 'kick', 0.55, 12), ...beat('..x...x.', 'snare', 0.45, 12), ...beat('xxxxxxxx', 'hat', 0.28, 12), ...beat('..x...x.', 'clap', 0.3, 12)] },
+    ],
+  };
+};
+
 void loop;
 
 const cache = new Map<string, Song>();

@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { advanceDialogue, hook, playThrough, press, pressUntil, startGame, talkTo, watchErrors } from './helpers';
-import { solve as solveSail } from '../../src/puzzles/logic/navigation';
 import { parseLevel, solve as solveSlide } from '../../src/puzzles/logic/sliding';
-import { MARIGOLD_CHART, BOSUN_BARRELS, PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
+import { BOSUN_BARRELS } from '../../src/puzzles/content/pirates';
+import { pirateChapter } from './flows';
 
 const ARROW: Record<string, string> = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
 const inv = async (page: Page, id: string) => (await hook<Record<string, number>>(page, 'inventory'))[id] ?? 0;
@@ -75,163 +75,7 @@ test.describe('the Golden Age of Piracy', () => {
     await startGame(page, [30.5, 24]);
     if (two) await hook(page, 'joinP2');
     await hook(page, 'setFlag', 'portal:ready', true);
-    const tockens0 = (await hook<any>(page, 'state')).tockens;
-
-    // ---- the portal in the clocktower opens the Map of Time
-    await hook(page, 'goTo', 'clocktower', 'in');
-    await toMap(page, 'clocktower');
-    await useAt(page, 10.5, 7.6, 'Portal');
-    await expect(page.getByTestId('world-map')).toBeVisible();
-    await press(page, '[data-testid="wm-go-pirate"]');
-    await playThrough(page);
-    await toMap(page, 'cove');
-    // (the arrival scene may already be playing: playThrough just carries on through it)
-    await expect.poll(() => flag(page, 'cove:arrived'), { timeout: 10000 }).toBe(true);
-    await playThrough(page, 60_000);
-
-    // ---- crew only! borrow sailor clothes from the washing line, dress the part, board
-    await useAt(page, 24.8, 15.0, 'Washing line');
-    await playThrough(page); // "Yes, dress up!"
-    const st = await hook<any>(page, 'state');
-    expect(st.players[0].outfit.hat.id).toBe('deckhand-bandana');
-    if (two) expect(st.players[1].outfit.top.id).toBe('sailor-shirt');
-    await useAt(page, 28.5, 22.6, 'Board ship');
-    await playThrough(page);
-    expect(await flag(page, 'crew:aboard')).toBe(true);
-
-    // ---- Captain Marigold, then the four pieces
-    await talkTo(page, 'marigold');
-    expect(await flag(page, 'map:search')).toBe(true);
-    await talkTo(page, 'saltwhistle');
-    expect(await inv(page, 'map-piece')).toBe(1);
-    await talkTo(page, 'coco'); // Coco's stall
-    await expect(page.locator('[data-screen="stall"]')).toBeVisible();
-    await press(page, '[data-testid="stall-buy-coconut"]');
-    await press(page, '[data-testid="stall-buy-coconut"]');
-    await press(page, '[data-testid="stall-buy-island-pepper"]');
-    await press(page, '[data-testid="stall-done"]');
-    await talkTo(page, 'pepper'); // trades a piece for a coconut
-    expect(await inv(page, 'map-piece')).toBe(2);
-    await useAt(page, 3.6, 14.3, 'Bottle');
-    await playThrough(page);
-    expect(await inv(page, 'map-piece')).toBe(3);
-    // Biscuit sniffs out the last one on the beach
-    await tp(page, 21.5, 19.3);
-    await page.waitForTimeout(1200);
-    await pressUntil(page, 'KeyQ', async () => (await hook<any[]>(page, 'digSpots')).some((s) => s.id === 'cove:mappiece' && s.revealed));
-    await page.waitForTimeout(900);
-    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Dig');
-    await pressUntil(page, 'KeyE', async () => (await inv(page, 'map-piece')) >= 4);
-
-    // ---- the torn map at the captain's table
-    await useAt(page, 33.2, 23.3, 'Map table');
-    await expect(page.getByTestId('puzzle')).toBeVisible();
-    await page.waitForTimeout(400);
-    await solveJigsaw(page);
-    await celebrate(page);
-    await playThrough(page);
-    expect(await flag(page, 'map:whole')).toBe(true);
-    expect((await hook<any>(page, 'state')).wardrobe).toContain('tricorn');
-
-    // ---- the crew's respect: a hornpipe dance-off with Cookie (then her gumbo secret)
-    await talkTo(page, 'cookie'); // "Let's dance!"
-    await expect(page.getByTestId('dance-setup')).toBeVisible();
-    await hook(page, 'danceAuto', true);
-    await press(page, '[data-testid="dance-start"]');
-    await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 90_000 });
-    await hook(page, 'danceAuto', false);
-    await expect(page.getByTestId('dance-results')).toHaveAttribute('data-won', 'true');
-    if (two) await expect(page.getByTestId('dance-result-p2')).toBeVisible();
-    await press(page, '[data-testid="dance-done"]');
-    await playThrough(page, 60_000);
-    expect(await flag(page, 'crew:respect')).toBe(true);
-    expect((await hook<any>(page, 'soupBook')).clues).toContain('pirates-gumbo');
-    await useAt(page, 12, 20.5, 'Gather salt');
-    await playThrough(page);
-    expect(await inv(page, 'sea-salt')).toBe(1);
-    await useAt(page, 37.3, 25.4, 'Cook');
-    await expect(page.getByTestId('cauldron')).toBeVisible();
-    for (const id of ['island-pepper', 'sea-salt', 'coconut']) await page.getByTestId(`cd-ing-${id}`).click();
-    await press(page, '[data-testid="cd-stir"]');
-    for (const k of two ? ['KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash'] : ['KeyE', 'KeyE', 'KeyE', 'KeyE']) {
-      await page.waitForTimeout(420);
-      await page.keyboard.press(k);
-    }
-    await expect(page.getByTestId('cd-result')).toHaveAttribute('data-soup', 'pirates-gumbo');
-    await page.waitForTimeout(350);
-    await press(page, '[data-testid="cd-drink"]');
-    await playThrough(page);
-    expect((await hook<any[]>(page, 'effects')).map((e) => e.effect)).toContain('calm');
-
-    // ---- the Swirling Shoals
-    await useAt(page, 40.9, 24.3, 'Set sail');
-    await advanceDialogue(page);
-    await expect(page.getByTestId('puzzle')).toBeVisible();
-    await expect(page.getByTestId('sail-board')).toHaveClass(/calm/);
-    await page.waitForTimeout(400);
-    const diff = (await page.getByTestId('pz-difficulty').textContent())!.trim();
-    const variant = diff === 'Easy' ? 'easy' : diff === 'Medium' ? 'medium' : 'hard';
-    for (const [i, d] of solveSail(MARIGOLD_CHART.variants[variant].chart, true)!.entries()) {
-      await page.keyboard.press(ARROW[d]);
-      await expect(page.getByTestId('sail-moves')).toContainText(`Moves: ${i + 1}`);
-      await expect(page.getByTestId('sail-board')).not.toHaveAttribute('data-busy', 'true', { timeout: 15000 });
-      await page.waitForTimeout(250);
-    }
-    await celebrate(page);
-    await playThrough(page);
-    await toMap(page, 'isle');
-    await expect.poll(() => flag(page, 'isle:landed'), { timeout: 10000 }).toBe(true);
-    await playThrough(page);
-
-    // ---- the stone door's pirate riddle
-    await useAt(page, 23.5, 8.5, 'Read the door');
-    await playThrough(page);
-    await expect(page.getByTestId('puzzle')).toBeVisible();
-    await page.waitForTimeout(400);
-    const q = (await page.getByTestId('riddle-text').textContent())!;
-    const riddle = PIRATE_RIDDLES.find((r) => r.q === q)!;
-    expect(riddle).toBeTruthy();
-    const labels = await page.locator('[data-testid^="riddle-choice-"]').allTextContents();
-    const right = labels.findIndex((l) => riddle.answers.some((a) => a.toLowerCase() === l.trim().toLowerCase()));
-    await press(page, `[data-testid="riddle-choice-${right}"]`);
-    await celebrate(page);
-    await playThrough(page);
-    expect(await flag(page, 'isle:door')).toBe(true);
-    await toMap(page, 'isle');
-    await tp(page, 23.5, 8.3);
-    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Enter');
-    await pressUntil(page, 'KeyE', async () => (await hook<string>(page, 'mapId')) === 'cave');
-    await toMap(page, 'cave');
-
-    // ---- the treasure chest's gear lock
-    await useAt(page, 5.5, 5.0, 'Treasure!');
-    await expect(page.getByTestId('puzzle')).toBeVisible();
-    await page.waitForTimeout(400);
-    for (const n of await hook<number[]>(page, 'puzzleSecret')) await page.getByTestId(`code-pick-${n}`).click();
-    await page.getByTestId('code-check').click();
-    await celebrate(page);
-    await playThrough(page);
-    expect(await hook<string[]>(page, 'sands')).toContain('pirate');
-
-    // ---- back to Sandy Cove for the party, then home
-    await hook(page, 'goTo', 'isle', 'landing');
-    await toMap(page, 'isle');
-    await useAt(page, 3.8, 14.8, 'Row back');
-    await press(page, '[data-testid="choice-0"]');
-    await toMap(page, 'cove');
-    await expect.poll(() => flag(page, 'pirate:party'), { timeout: 10000 }).toBe(true);
-    await playThrough(page, 60_000);
-    expect(await flag(page, 'marigold:friend')).toBe(true);
-    await useAt(page, 7.5, 19.3, 'Portal home');
-    await press(page, '[data-testid="choice-0"]');
-    await toMap(page, 'clocktower');
-    await useAt(page, 6.5, 5.8, 'Look');
-    await playThrough(page, 60_000);
-    expect(await flag(page, 'sand:pirate:placed')).toBe(true);
-    await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('pirate-sand');
-    expect((await hook<any>(page, 'state')).tockens).toBeGreaterThan(tockens0 + 50);
-    // Pip's history notes from the trip
-    expect((await hook<any>(page, 'state')).notes.length).toBeGreaterThanOrEqual(5);
+    await pirateChapter(page, two);
     expect(errors).toEqual([]);
   });
 
@@ -357,6 +201,30 @@ test.describe('the Golden Age of Piracy', () => {
     await expect.poll(() => inv(page, 'doubloon'), { timeout: 8000 }).toBe(coins + 2);
     expect((await hook<any>(page, 'state')).wardrobe).toContain('eyepatch');
     expect((await hook<any[]>(page, 'digSpots')).some((s) => s.x)).toBe(false);
+  });
+
+  test('rough seas: the first look at the Shoals is just a look — Pip explains why, and leaving costs nothing', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'met:marigold', 'map:search', 'map:whole', 'met:cookie', 'crew:respect']) await hook(page, 'setFlag', f, true);
+    await hook(page, 'goTo', 'cove', 'from-isle');
+    await expect.poll(() => hook<string>(page, 'mapId')).toBe('cove');
+    await page.waitForTimeout(900);
+    const skill = (await hook<any>(page, 'puzzles')).skill;
+    await hook(page, 'teleport', 40.9, 24.3, 0);
+    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Set sail');
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    await advanceDialogue(page); // "Take a look at the chart, shipmate..."
+    await expect(page.getByTestId('puzzle')).toBeVisible();
+    await expect(page.getByTestId('pz-preview')).toBeVisible();
+    await expect(page.getByTestId('pz-bubble')).toContainText('Gumbo');
+    // Pip's "hint" is the honest one: this chart can't be sailed in rough seas
+    await press(page, '[data-testid="pz-hint"]');
+    await expect(page.getByTestId('pz-bubble')).toContainText('Gumbo');
+    await press(page, '[data-testid="pz-leave"]');
+    await playThrough(page); // "Nobody sails the Swirling Shoals without a belly full of Pirate's Gumbo!"
+    const after = await hook<any>(page, 'puzzles');
+    expect(after.skill).toBe(skill);
+    expect(after.records['marigold-chart']).toBeUndefined();
   });
 
   test('an eager extra press after the portal can’t skip the arrival scene', async ({ page }) => {

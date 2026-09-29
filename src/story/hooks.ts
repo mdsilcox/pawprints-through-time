@@ -114,6 +114,10 @@ export function give(id: string, n = 1, opts: { quiet?: boolean; from?: string }
     itemPopup(id, n > 1 ? `${name} ×${n}` : name, opts.from);
     audio.sfx('pickup');
   }
+  if (ITEM_BY_ID.get(id)?.kind === 'furniture' && !data.flags['home:hint']) {
+    data.flags['home:hint'] = true;
+    toast('New furniture! Place it in your cottage: press the action button just inside the door.', { icon: '🏠', ms: 4800 });
+  }
   app.autosave.request();
 }
 

@@ -97,6 +97,25 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     voice: { midi: 52, kind: 'deep' },
     color: '#e46a6a',
   },
+  // ---------------------------------------------------------------- 1950s America
+  duke: {
+    id: 'duke',
+    name: 'Duke',
+    title: 'Captain of the Alley Cats',
+    art: 'doll',
+    spec: doll('owl', '#8a7a9e', { top: P('jacket', '#e0555f', '#fff4e0'), bottom: P('jeans', '#3f5a8a', '#fff4e0'), shoes: P('saddle', '#ffffff', '#4a3b35') }, { fur2: '#d8cfe6' }),
+    voice: { midi: 59, kind: 'deep' },
+    color: '#e0555f',
+  },
+  mabel: {
+    id: 'mabel',
+    name: 'Mabel',
+    title: 'Owner of the Rock-a-Roll Diner',
+    art: 'doll',
+    spec: doll('cat', '#9aa4b1', { hat: P('headscarf', '#f7c9d9', '#e0555f'), top: P('shirt', '#f7c9d9', '#ffffff'), bottom: P('poodle', '#6ec9c0', '#ffffff'), shoes: P('skates', '#ffffff', '#e0555f'), acc: P('cateye', '#e0555f', '#f7c65a') }, { fur2: '#e6e9ee' }),
+    voice: { midi: 74, kind: 'soft' },
+    color: '#6ec9c0',
+  },
   // ---------------------------------------------------------------- the Golden Age of Piracy (~1715)
   marigold: {
     id: 'marigold',

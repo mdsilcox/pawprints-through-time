@@ -5,7 +5,7 @@ import { makeCanvas } from './draw';
  * Painted backdrops for the dance floor, drawn at the screen's size: the Sunny Marigold's deck
  * at sunset (the hornpipe) and Tockwood's plaza under lantern light (home dances).
  */
-export type StageKind = 'deck' | 'plaza';
+export type StageKind = 'deck' | 'plaza' | 'diner';
 
 function bunting(ctx: CanvasRenderingContext2D, w: number, y: number, sag: number, size: number, colors: string[]): void {
   ctx.strokeStyle = PAL.ink;
@@ -50,7 +50,61 @@ export function drawDanceStage(kind: StageKind, w: number, h: number): HTMLCanva
   const { c, ctx } = makeCanvas(Math.max(2, Math.round(w)), Math.max(2, Math.round(h)));
   const u = Math.min(w / 1280, h / 720);
   const horizon = h * 0.5;
-  if (kind === 'deck') {
+  if (kind === 'diner') {
+    // the Rock-a-Roll Diner's dance floor: pink walls, a glowing jukebox, a black-and-white floor
+    ctx.fillStyle = '#f7c9d9';
+    ctx.fillRect(0, 0, w, h * 0.56);
+    ctx.fillStyle = '#fbe0ea';
+    for (let x = 0; x < w; x += 60 * u) ctx.fillRect(x, 0, 30 * u, h * 0.56);
+    ctx.fillStyle = '#6ec9c0';
+    ctx.fillRect(0, h * 0.5, w, h * 0.06);
+    // records on the wall
+    for (const [x, y] of [
+      [0.12, 0.18],
+      [0.3, 0.12],
+      [0.7, 0.12],
+      [0.88, 0.18],
+    ]) {
+      ctx.fillStyle = '#2a2233';
+      ctx.beginPath();
+      ctx.arc(w * x, h * y, 34 * u, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#e0555f';
+      ctx.beginPath();
+      ctx.arc(w * x, h * y, 11 * u, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the jukebox glow in the middle
+    const jg = ctx.createRadialGradient(w / 2, h * 0.34, 10 * u, w / 2, h * 0.34, 170 * u);
+    jg.addColorStop(0, 'rgba(255, 214, 120, 0.8)');
+    jg.addColorStop(1, 'rgba(255, 214, 120, 0)');
+    ctx.fillStyle = jg;
+    ctx.fillRect(0, 0, w, h * 0.6);
+    ctx.fillStyle = '#c98d55';
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineWidth = Math.max(2, 4 * u);
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - 60 * u, h * 0.2, 120 * u, h * 0.34, [60 * u, 60 * u, 8 * u, 8 * u]);
+    ctx.fill();
+    ctx.stroke();
+    const cols = ['#e46a6a', '#f7c65a', '#7cc47f', '#6fb3e0'];
+    cols.forEach((c, i) => {
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 7 * u;
+      ctx.beginPath();
+      ctx.arc(w / 2, h * 0.3, (48 - i * 9) * u, Math.PI, 0);
+      ctx.stroke();
+    });
+    // checkerboard floor
+    const top = h * 0.56;
+    const s = 64 * u;
+    for (let y = top, row = 0; y < h; y += s * 0.55, row++)
+      for (let x = -s, col = 0; x < w + s; x += s, col++) {
+        ctx.fillStyle = (row + col) % 2 ? '#4a4458' : '#fff4e0';
+        ctx.fillRect(x + (row % 2) * 0, y, s, s * 0.55);
+      }
+    bunting(ctx, w, h * 0.04, h * 0.04, 30 * u, ['#e0555f', '#6ec9c0', '#f7c65a', '#fff4e0']);
+  } else if (kind === 'deck') {
     // sunset sky and sea
     const sky = ctx.createLinearGradient(0, 0, 0, horizon);
     sky.addColorStop(0, '#6d5aa6');

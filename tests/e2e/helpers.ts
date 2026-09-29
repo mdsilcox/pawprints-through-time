@@ -147,9 +147,10 @@ export async function talkTo(page: Page, npc: string): Promise<void> {
       // a second player tags along right behind
       if ((await hook<unknown[]>(page, 'players')).length === 2) await hook(page, 'teleport', cur.x + 1, cur.y + 1.4, 1);
       await page.waitForTimeout(120);
-      return hook(page, 'prompt');
+      // (the right neighbour — not a pot or a friend standing close by)
+      return hook(page, 'focusId');
     }, { timeout: 12000 })
-    .toBe('Talk');
+    .toBe(`npc:${npc}`);
   await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
   await advanceDialogue(page);
 }

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { advanceDialogue, hook, playThrough, press, pressUntil, startGame, watchErrors } from './helpers';
+import { advanceDialogue, hook, playThrough, press, pressUntil, startGame, talkTo, watchErrors } from './helpers';
 
 const P1: Record<string, string> = { left: 'KeyA', down: 'KeyS', up: 'KeyW', right: 'KeyD' };
 const P2: Record<string, string> = { left: 'ArrowLeft', down: 'ArrowDown', up: 'ArrowUp', right: 'ArrowRight' };
@@ -107,6 +107,36 @@ test.describe('dancing', () => {
     await press(page, '[data-testid="dance-done"]');
   });
 
+  test('leaving play mid-song or at the results card goes cleanly to the title, and Continue brings back a world you can play', async ({ page }, info) => {
+    test.setTimeout(200_000);
+    const errors = watchErrors(page);
+    await startGame(page, [26.4, 22.4]);
+    for (const at of ['song', 'results'] as const) {
+      await hook(page, 'openDance', 'jig');
+      await press(page, '[data-testid="dance-start"]');
+      await expect.poll(async () => (await state(page))?.pos ?? -9, { timeout: 10_000 }).toBeGreaterThan(0.5);
+      if (at === 'results') await finishWithAutopilot(page);
+      // (what Pip's "Take a break", "Say goodnight" and Save & quit all do)
+      await hook(page, 'toTitle');
+      await expect(page.locator('[data-screen="title"]')).toBeVisible();
+      await expect.poll(() => hook<string[]>(page, 'scenes')).not.toContain('world');
+      expect(await hook<string[]>(page, 'scenes')).not.toContain('dance');
+      await page.waitForTimeout(600);
+      expect(await hook<string[]>(page, 'scenes')).not.toContain('world'); // nothing woke the world up behind the title
+      await press(page, '[data-testid="title-continue"]');
+      await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+      await expect(page.locator('.dancing')).toHaveCount(0);
+      if (info.project.name === 'phone') await expect(page.getByTestId('touch-a-p1')).toBeVisible();
+      // and the players can walk again
+      const before = (await hook<{ x: number; y: number }[]>(page, 'players'))[0];
+      await page.keyboard.down('KeyA');
+      await page.waitForTimeout(600);
+      await page.keyboard.up('KeyA');
+      expect((await hook<{ x: number; y: number }[]>(page, 'players'))[0].x).toBeLessThan(before.x - 0.3);
+    }
+    expect(errors).toEqual([]);
+  });
+
   test('“Just dance”: no scores and nothing to fail — and pausing freezes the song and the arrows', async ({ page }) => {
     test.setTimeout(150_000);
     await startGame(page, [26.4, 22.4]);
@@ -151,11 +181,7 @@ test.describe('dancing', () => {
     await advanceDialogue(page);
     // first try: dance nothing at all — Cookie wins, and you can try again
     const talkCookie = async () => {
-      const cookie = (await hook<{ id: string; x: number; y: number }[]>(page, 'npcs')).find((n) => n.id === 'cookie')!;
-      await hook(page, 'teleport', cookie.x, cookie.y + 0.9, 0);
-      await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Talk');
-      await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
-      await advanceDialogue(page); // "Let's dance!"
+      await talkTo(page, 'cookie'); // "Let's dance!"
       await expect(page.getByTestId('dance-setup')).toBeVisible();
     };
     await talkCookie();

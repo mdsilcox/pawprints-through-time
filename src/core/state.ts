@@ -1,4 +1,5 @@
 /** The persistent save-data model and helpers. Everything that must survive a reload lives here. */
+import { furnish, tidyHome } from './home';
 
 export const SAVE_VERSION = 2;
 
@@ -159,6 +160,13 @@ export function defaultSave(now = Date.now()): SaveData {
   };
 }
 
+/** A brand-new game: the defaults, with the cottage furnished. */
+export function newGameSave(now = Date.now()): SaveData {
+  const d = defaultSave(now);
+  furnish(d);
+  return d;
+}
+
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
@@ -169,7 +177,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  */
 export function migrateSave(raw: unknown): SaveData {
   const base = defaultSave(0);
-  if (!isPlainObject(raw)) return defaultSave();
+  if (!isPlainObject(raw)) return newGameSave();
   const out = deepFill(base, raw) as SaveData;
   const players: unknown[] = Array.isArray(out.players) ? out.players : [];
   out.players = [deepFill(defaultPlayer(0), players[0]), deepFill(defaultPlayer(1), players[1])] as [
@@ -183,6 +191,9 @@ export function migrateSave(raw: unknown): SaveData {
     return { seed: typeof p.seed === 'string' ? p.seed : null, plantedAt: Number(p.plantedAt) || 0, wateredAt: Number(p.wateredAt) || 0 };
   });
   if (!Array.isArray(out.effects)) out.effects = [];
+  if (!Array.isArray(out.home.items)) out.home.items = [];
+  furnish(out); // saves from before decorating get their furnished cottage (once)
+  tidyHome(out);
   out.version = SAVE_VERSION;
   return out;
 }

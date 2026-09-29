@@ -32,6 +32,8 @@ export interface OpenOpts {
   riddle?: Riddle;
   /** replaying from the journal: no story rewards, same stars */
   replay?: boolean;
+  /** just a look (e.g. the Shoals before the gumbo): Pip explains instead of hinting, and it never counts as a try */
+  preview?: string;
 }
 
 export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResult> {
@@ -64,6 +66,10 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       hintBtn.disabled = left <= 0;
     };
     const giveHint = () => {
+      if (opts.preview) {
+        say(opts.preview, 'think');
+        return;
+      }
       if (hintsUsed >= MAX_HINTS || done) return;
       hintsUsed++;
       const level = hintsUsed as 1 | 2 | 3;
@@ -81,7 +87,8 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       closed = true;
       view?.destroy?.();
       ui.pop('puzzle');
-      const firstSolve = recordAttempt(d, id, { solved, hintsUsed, difficulty }) && !opts.replay;
+      // (a look at a chart you can't sail yet isn't a try: it never nudges the difficulty down)
+      const firstSolve = opts.preview && !solved ? false : recordAttempt(d, id, { solved, hintsUsed, difficulty }) && !opts.replay;
       app.autosave.request();
       resolve({ solved, hintsUsed, difficulty, firstSolve, riddleId: riddle?.id });
     };
@@ -121,15 +128,35 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       h(
         'div',
         { class: 'pz-chips' },
-        // short phones hide the how-to paragraph: this brings the rules back into Pip's bubble
-        h('button', { class: 'pz-rules', dataset: { nav: '' }, attrs: { type: 'button', 'data-testid': 'pz-rules' }, onclick: (e: Event) => (e.stopPropagation(), say(def.howTo, 'think')) }, '❔ How to play'),
+        // short phones hide the how-to paragraph: this shows the rules on a card over the puzzle
+        h('button', { class: 'pz-rules', dataset: { nav: '' }, attrs: { type: 'button', 'data-testid': 'pz-rules' }, onclick: (e: Event) => (e.stopPropagation(), showRules()) }, '❔ How to play'),
         h('span', { class: `pz-chip diff-${difficulty}`, attrs: { 'data-testid': 'pz-difficulty' } }, DIFFICULTY_LABEL[difficulty]),
         opts.replay ? h('span', { class: 'pz-chip' }, 'Replay') : null,
+        opts.preview ? h('span', { class: 'pz-chip', attrs: { 'data-testid': 'pz-preview' } }, 'Just looking') : null,
       ),
     );
+    // the rules on a card that floats over the puzzle (never squeezes the board on a small phone)
+    const rulesCard = h(
+      'div',
+      { class: 'pz-rules-card hidden', attrs: { 'data-testid': 'pz-rules-card', role: 'dialog', 'aria-label': 'How to play' } },
+      h('div', { class: 'pz-rules-title' }, '❔ How to play'),
+      h('p', null, def.howTo),
+      button('Got it!', () => hideRules(), { icon: '👍', testid: 'pz-rules-ok' }),
+    );
+    const rulesOpen = () => !rulesCard.classList.contains('hidden');
+    function showRules() {
+      rulesCard.classList.remove('hidden');
+      requestAnimationFrame(() => (rulesCard.querySelector('button') as HTMLElement | null)?.focus({ preventScroll: true }));
+    }
+    function hideRules() {
+      rulesCard.classList.add('hidden');
+      const top = ui.top;
+      if (top) ui.focusFirst(top);
+    }
     const panel = h(
       'div',
       { class: `panel pz-panel kind-${def.kind}`, attrs: { 'data-testid': 'puzzle', 'data-kind': def.kind } },
+      rulesCard,
       head,
       h('p', { class: 'pz-intro' }, def.intro),
       h('p', { class: 'pz-howto small' }, def.howTo),
@@ -142,6 +169,7 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       el: h('div', { class: 'center-wrap backdrop' }, panel),
       onBack: () => {
         if (done) return;
+        if (rulesOpen()) return void hideRules();
         if (view?.onBack?.()) return;
         finish(false);
       },
@@ -149,7 +177,9 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
     });
     audio.sfx('open');
     const short = typeof window.matchMedia === 'function' && window.matchMedia('(max-height: 460px)').matches;
-    if (short && def.kind !== 'riddle') say(def.howTo, 'happy');
+    // (small phones: the rules wait on their card behind ❔ How to play, so the board gets the room)
+    if (opts.preview) say(opts.preview, 'think');
+    else if (short && def.kind !== 'riddle') say('New to this one? Tap ❔ How to play — or ask me for a hint!', 'happy');
     else say(def.kind === 'riddle' ? 'Read it out loud together — riddles love to be heard!' : 'Take your time. Ask me for a hint whenever you like!', 'happy');
   });
 }

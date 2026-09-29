@@ -43,6 +43,15 @@ One line each: decision — reason.
 - Treasure-map scraps (spec §5.6) are their own small collectible system, separate from the story's torn map: each scrap puts a visible X on the ground and the local Map, and stays in the Backpack as a keepsake after digging — reusable in later eras.
 - Coco's crew discount (1 Tocken off) is the first "outfit changes how people treat you" payoff; Bramble remarks once per era piece — reactions are small, positive and never required.
 - A half-stirred pot costs nothing: ingredients are used when the stirring finishes, not when it starts, and returning to the title closes screens before saving — Pip's break can never eat a child's ingredients.
+- Bowling is a small deterministic lane simulation with real lane, ball and pin sizes (not scripted outcomes) — where you stand, aim, power and spin genuinely matter, results look believable, and what's drawn is exactly what's scored.
+- Bumpers are on by default (and remembered): a six-year-old's first game shouldn't be twenty gutter balls; older players switch them off.
+- Keyboard/pad bowling = step, aim, a swinging power meter, then steer the spin while the ball rolls; touch = one swipe (its direction aims, its speed is the power, its curve is the spin) — the spec's own example of good touch spin.
+- Turns go frame by frame (players, then the computer rival); Duke is a moderate computer bowler (~100 points), ties go to the players, a practice game is offered first, and a loss just means "rematch?".
+- Dress the part again in the 1950s: house rules at the Starlight Lanes — no street shoes on the lanes (any 1950s shoes count; the shoe counter lends saddle shoes, Pip can put them on).
+- Roller skates really are fast (×1.45, anywhere) — Zippy, the speedy cousin, can only be caught on wheels (or with Sunbeam Squash): an outfit with a real effect.
+- Asphalt roads and concrete sidewalks are new terrain layers (data-driven), so 1950s streets read as streets.
+- When the 1950s sand is home, Rollo opens Tockwood Lanes and Rosita moves to the plaza — the spec's "the village grows: new neighbors move in, shops open".
+- The M8 checkpoint playthrough is one scripted journey from the title screen through the opening, the pirate chapter and the 1950s chapter (desktop solo, phone as a pair); chapter flows are shared with the chapter tests so they can't drift apart.
 - Dance charts are generated from each song's lead melody (not hand-placed) — the arrows always follow the tune, a new era dance only needs a song, and unit tests check every level of every chart.
 - Dance timing follows the audio clock when sound is running and a performance clock otherwise — the game stays playable (and testable) even when a browser keeps audio suspended.
 - No penalty for pressing without an arrow: your character does the move anyway — dancing is never "wrong", only more or less on the beat.
@@ -96,3 +105,13 @@ One line each: decision — reason.
 - Menu arrow-key navigation prefers items in the same row (left/right) or column (up/down), falling back to the nearest item — predictable movement in forms and grids.
 - Dr. Quill is a hedgehog time historian who runs the "Museum of Time" (not an owl curator lecturing about fossils) — the critic noted the owl-curator-with-fossils combination echoes a famous life-sim character; the spec's museum stays, with its own identity.
 - Colourblind setting is stored and applied as a root class now; the colour cues it changes (soup, dance, bowling, puzzles) arrive with those systems in M5/M7/M8. Reduce motion switches off UI animations now and will also calm world effects as they are added.
+- Home decorating lives in a planner screen (the cottage drawn from above with the real room and furniture art) rather than free placement in the world: it works the same with keys, a gamepad, a mouse and small touchscreens, and the room is rebuilt from the saved layout afterwards.
+- Decorating rules keep every free floor cell reachable from the doorway, and something beside the bed and wardrobe free: a child can never wall themselves in or lose the Sleep/Wardrobe actions. The bed and wardrobe can move but can't be put away.
+- Turning furniture: seats have four drawn views (front, side, back, mirrored side); beds, tables and rugs turn sideways (their footprint swaps); pictures, lamps and plants look the same from every side, so Turn is greyed out for them.
+- Furniture is owned through the inventory (so gifts and Rocco's stall just add items); what's placed lives in the save's home layout; storage is simply owned minus placed.
+- Rocco (the clock tinkerer) builds furniture at his stall — the "Shop" prompt at his counter — rather than adding a dialogue question to his chats, so existing conversations stay short.
+- Trick shots (spec 5.3) are a ladder of five one-ball challenges on special racks; the first unlocks after a whole game, each clear unlocks the next. Racks were chosen by simulating ~10,000 throws each so every one is makeable (splits the real game rarely converts were left out).
+- Each era gives a keepsake for the cottage (spec examples: a pirate chest, a jukebox; the Egyptian lamp and Renaissance globe come with M9).
+- On small phones the puzzle rules show on a card behind "❔ How to play" (Pip's first line points at it) instead of in Pip's bubble, so the board always gets the room (the M6 re-review found the Shoals chart cut off).
+- Leaving play stops every scene that is running, paused or asleep, and mini-game cards settle their promises when closed from outside — so a break or a quit mid-dance/mid-bowling can never leave a frozen world or a dance-mode HUD behind (M7 review).
+

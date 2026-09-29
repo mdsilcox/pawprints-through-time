@@ -29,7 +29,7 @@ const hasSand = (id: string) => !!app.data?.sands.includes(id);
 export const ERAS: EraStop[] = [
   { id: 'pirate', name: 'The Golden Age of Piracy', when: 'The Caribbean, around 1715', icon: '🏴', map: 'cove', spawn: 'portal', open: () => f('portal:ready'), done: () => hasSand('pirate'), built: true },
   { id: 'egypt', name: 'Ancient Egypt', when: 'Giza, around 2500 BCE', icon: '🔺', map: 'egypt', spawn: 'portal', open: () => hasSand('pirate'), done: () => hasSand('egypt'), built: false },
-  { id: 'fifties', name: '1950s America', when: 'A little town, the 1950s', icon: '🎳', map: 'fifties', spawn: 'portal', open: () => hasSand('pirate'), done: () => hasSand('fifties'), built: false },
+  { id: 'fifties', name: '1950s America', when: 'A little town, the 1950s', icon: '🎳', map: 'fifties', spawn: 'portal', open: () => hasSand('pirate'), done: () => hasSand('fifties'), built: true },
   { id: 'florence', name: 'Renaissance Florence', when: 'Italy, around 1500', icon: '🎨', map: 'florence', spawn: 'portal', open: () => hasSand('egypt') && hasSand('fifties'), done: () => hasSand('florence'), built: false },
 ];
 

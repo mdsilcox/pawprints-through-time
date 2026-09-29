@@ -12,6 +12,9 @@ import { cookWithClover, juniperStall, offerSoupGift } from './soupStory';
 import { grandmaPuzzle, juniperPuzzle, puzzleSolved } from './brainBuilders';
 import { CLOTHES_BY_ID } from '../data/clothes';
 import { input } from '../input/input';
+import { openPlanner } from '../ui/planner';
+import { openStall } from '../ui/stallShop';
+import { ROCCO_GOODS } from '../data/furniture';
 
 /**
  * Tockwood's neighbours: first meetings, daily chatter that changes with the day, the time
@@ -244,6 +247,7 @@ onTalk('rocco', async () => {
       'Backwards clocks mean I’m getting younger, right? ...Right?',
       'Tick, tock! Tock, tick! Ugh.',
       'I built a clock that tells jokes. It’s always a little late with the punchline.',
+      'I build furniture too, you know! Have a look at my stall — every piece handmade. Mostly paw-made.',
     ],
   );
   if (!first && !puzzleSolved('rocco-lock') && oncePerDay('hint:rocco-lock')) await talk('rocco', 'Oh, and if you’re good at codes... I locked my toolbox and forgot the gear code. It’s right there by my stall. Sigh.');
@@ -361,6 +365,16 @@ onUse('mirror', async () => {
 });
 onUse('wardrobe', async () => {
   openWardrobe();
+});
+onUse('planner', async ({ world }) => {
+  await openPlanner(() => world.reloadRoom());
+});
+onUse('rocco-shop', async () => {
+  await openStall(
+    '🔨 Rocco’s Workshop',
+    ROCCO_GOODS.map((f) => ({ id: f.id, price: f.price! })),
+    'Handmade furniture for your cottage! Arrange it with the planner by your cottage door.',
+  );
 });
 onUse('exhibit', async () => {
   const n = app.data?.museum.length ?? 0;

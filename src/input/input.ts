@@ -17,6 +17,8 @@ export interface PadState {
   bPressed: boolean;
   /** discrete direction pressed this frame (keys, d-pad, stick flick, swipe) */
   dir: Dir | null;
+  /** that direction is a held d-pad/stick repeating (menus want it; a rhythm game must not) */
+  dirRepeat: boolean;
   /** last device that produced input for this player */
   source: 'kb' | 'pad' | 'touch' | 'none';
 }
@@ -55,7 +57,7 @@ export interface TouchSource {
 }
 
 function emptyPad(): PadState {
-  return { x: 0, y: 0, a: false, b: false, aPressed: false, bPressed: false, dir: null, source: 'none' };
+  return { x: 0, y: 0, a: false, b: false, aPressed: false, bPressed: false, dir: null, dirRepeat: false, source: 'none' };
 }
 
 const DEAD = 0.28;
@@ -232,14 +234,19 @@ export class InputManager {
       // The direction *this pad* produced this frame (never the merged player state, which may
       // already hold a keyboard or other-pad direction — that caused double menu steps).
       let padDir: Dir | null = null;
+      let repeat = false;
       if (d && d !== mem.heldDir) {
         padDir = d;
         mem.repeatAt = now + 380;
       } else if (d && now >= mem.repeatAt) {
         padDir = d;
+        repeat = true;
         mem.repeatAt = now + 115;
       }
-      if (padDir) p.dir = padDir;
+      if (padDir) {
+        p.dir = padDir;
+        p.dirRepeat = repeat;
+      }
       mem.heldDir = d;
       if (this.menuMode) {
         if (padDir) this.events.emit('nav', padDir);

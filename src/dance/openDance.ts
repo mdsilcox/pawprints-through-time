@@ -1,4 +1,5 @@
 import { app } from '../app';
+import { sessionEpoch } from '../core/session';
 import { audio } from '../audio/audio';
 import { input } from '../input/input';
 import { h } from '../ui/dom';
@@ -34,7 +35,10 @@ export function openDanceSetup(inv: DanceInvite): Promise<{ level: DanceLevel; r
   let level: DanceLevel = saved === 'medium' || saved === 'hard' ? saved : 'easy';
   let relaxed = !!d.flags['dance:relaxed'];
   return new Promise((resolve) => {
+    let settled = false;
     const finish = (v: { level: DanceLevel; relaxed: boolean } | null) => {
+      if (settled) return;
+      settled = true;
       audio.sfx(v ? 'select' : 'close');
       ui.pop('dance-setup');
       resolve(v);
@@ -95,7 +99,7 @@ export function openDanceSetup(inv: DanceInvite): Promise<{ level: DanceLevel; r
         finish({ level, relaxed });
       }, { icon: '💃', autofocus: true, testid: 'dance-start' })),
     );
-    ui.push({ id: 'dance-setup', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), () => finish(null)), onBack: () => finish(null) });
+    ui.push({ id: 'dance-setup', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), () => finish(null)), onBack: () => finish(null), onClose: () => finish(null) });
     audio.sfx('open');
   });
 }
@@ -103,7 +107,10 @@ export function openDanceSetup(inv: DanceInvite): Promise<{ level: DanceLevel; r
 /** The results card after a dance. */
 function openDanceResults(setup: DanceSetup, o: DanceOutcome, canRetry: boolean): Promise<'again' | 'done'> {
   return new Promise((resolve) => {
+    let settled = false;
     const finish = (v: 'again' | 'done') => {
+      if (settled) return;
+      settled = true;
       audio.sfx('select');
       ui.pop('dance-results');
       resolve(v);
@@ -129,7 +136,9 @@ function openDanceResults(setup: DanceSetup, o: DanceOutcome, canRetry: boolean)
       : rivalName && o.rival !== null
         ? o.won
           ? `You out-danced ${rivalName} (${o.rival.toLocaleString()} points)!`
-          : `So close! ${rivalName} scored ${o.rival.toLocaleString()} — want another go?`
+          : Math.max(...o.scores.map((s) => s.points)) >= o.rival * 0.7
+            ? `So close! ${rivalName} scored ${o.rival.toLocaleString()} — want another go?`
+            : `${rivalName} scored ${o.rival.toLocaleString()}. Every dancer starts somewhere — try Easy, or “Just dance” for fun!`
         : o.won
           ? 'Brilliant dancing!'
           : 'Good dancing! Practice makes perfect.';
@@ -141,7 +150,7 @@ function openDanceResults(setup: DanceSetup, o: DanceOutcome, canRetry: boolean)
       h('div', { class: 'dr-cards' }, cards),
       h('div', { class: 'row end sticky-foot' }, canRetry ? button('Dance again', () => finish('again'), { cls: 'secondary', icon: '🔁', testid: 'dance-again' }) : null, button('Done', () => finish('done'), { icon: '✔', autofocus: true, testid: 'dance-done' })),
     );
-    ui.push({ id: 'dance-results', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: () => finish('done') });
+    ui.push({ id: 'dance-results', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: () => finish('done'), onClose: () => finish('done') });
     ui.lock(700);
   });
 }
@@ -175,12 +184,14 @@ export async function dance(inv: DanceInvite, opts: { retry?: boolean } = {}): P
   const worldActive = !!world && game.scene.isActive('world');
   if (worldActive) game.scene.pause('world');
   hud.setDancing(true);
+  const session = sessionEpoch();
   try {
     return await danceLoop(inv, pick, opts);
   } finally {
     if (game.scene.isActive(DanceScene.KEY) || game.scene.isPaused(DanceScene.KEY)) game.scene.stop(DanceScene.KEY);
     hud.setDancing(false);
-    if (worldActive && world && game.scene.isPaused('world')) {
+    // (if play ended mid-dance — a break, or quitting — the world stays stopped behind the title)
+    if (session === sessionEpoch() && worldActive && world && game.scene.isPaused('world')) {
       game.scene.resume('world');
       world.playMusic();
     }

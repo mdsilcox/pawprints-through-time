@@ -648,6 +648,289 @@ const SCENARIOS = [
       await wait(900);
     },
   },
+  // ---------------------------------------------------------------- M8: 1950s America and bowling
+  {
+    name: 'maple',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'maple:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'fifties', 'lanes-out');
+      await wait(1800);
+      await g(page, 'teleport', 27, 12, 0);
+      if (players === 2) await g(page, 'teleport', 28.2, 12.3, 1);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'maple-park',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'maple:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'fifties', 'portal');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'lanes-in',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'maple:arrived', 'met:rollo']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'lanes', 'in');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'diner-in',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'maple:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'diner', 'in');
+      await wait(2400);
+    },
+  },
+  {
+    name: 'bowl-aim',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'openBowl', players === 2 ? null : 'duke', 0.25);
+      await wait(600);
+      await page.click('[data-testid="bowl-start"]');
+      await wait(1200);
+      await page.keyboard.down('KeyD');
+      await wait(300);
+      await page.keyboard.up('KeyD');
+      await page.keyboard.press('KeyE');
+      await wait(400);
+      await page.keyboard.down('KeyA');
+      await wait(250);
+      await page.keyboard.up('KeyA');
+      await page.keyboard.press('KeyE');
+      await wait(700);
+    },
+  },
+  {
+    name: 'bowl-pins',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openBowl', 'duke', 0.25);
+      await wait(600);
+      await page.click('[data-testid="bowl-start"]');
+      await wait(900);
+      await g(page, 'bowlThrow', 2, 0, 260, 0);
+      await wait(3300);
+    },
+  },
+  {
+    name: 'bowl-card',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'bowlSpeed', 8);
+      await g(page, 'bowlAuto', true);
+      await g(page, 'openBowl', 'duke', 0.25);
+      await wait(600);
+      await page.click('[data-testid="bowl-start"]');
+      await wait(players === 2 ? 26000 : 18000);
+      await g(page, 'bowlSpeed', 1);
+      await wait(900);
+    },
+  },
+  {
+    name: 'bowl-results',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'bowlSpeed', 10);
+      await g(page, 'bowlAuto', true);
+      await g(page, 'openBowl', 'duke', 0.25);
+      await wait(600);
+      await page.click('[data-testid="bowl-start"]');
+      await page.waitForSelector('[data-testid="bowl-results"]', { timeout: 180000 });
+      await wait(900);
+    },
+  },
+  {
+    name: 'dance-sockhop',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'openDance', 'sockhop', null, ['mabel', 'duke', 'rollo']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(7400);
+    },
+  },
+  {
+    name: 'tockwood-lanes',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['bowling:open', 'rosita:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'tockwood', 'bowling-out');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'tockwood-lanes-in',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'bowling:open', true);
+      await g(page, 'goTo', 'bowling', 'in');
+      await wait(2000);
+    },
+  },
+  // ---------------------------------------------------------------- M8 checkpoint: home decorating, trick shots, review fixes
+  {
+    name: 'cottage-door',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'goTo', 'cottage', 'in');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'planner',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const id of ['pirate-chest', 'jukebox', 'sofa', 'painting-sea', 'rug-round', 'starlight-cup']) await g(page, 'give', id, 1);
+      await g(page, 'goTo', 'cottage', 'in');
+      await wait(1800);
+      await g(page, 'openPlanner');
+      await wait(700);
+    },
+  },
+  {
+    name: 'planner-carry',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'give', 'sofa', 1);
+      await g(page, 'goTo', 'cottage', 'in');
+      await wait(1800);
+      await g(page, 'openPlanner');
+      await wait(600);
+      await page.click('[data-testid="planner-take-sofa"]');
+      await wait(250);
+      for (const k of ['ArrowRight', 'ArrowUp', 'ArrowUp']) {
+        await page.keyboard.press(k);
+        await wait(120);
+      }
+      await wait(500);
+    },
+  },
+  {
+    name: 'cottage-decorated',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const id of ['pirate-chest', 'jukebox', 'sofa', 'painting-sea', 'ship-wheel', 'rug-round', 'starlight-cup', 'fishbowl', 'bunnyplush']) await g(page, 'give', id, 1);
+      await g(page, 'goTo', 'cottage', 'in');
+      await wait(1600);
+      // lay the new things out with the planner, the way a player would (tap-to-take, keys to move)
+      await g(page, 'openPlanner');
+      await wait(500);
+      const place = async (id, moves) => {
+        await page.click(`[data-testid="planner-take-${id}"]`);
+        await wait(200);
+        for (const k of moves) {
+          await page.keyboard.press(k);
+          await wait(60);
+        }
+        await page.keyboard.press('KeyE');
+        await wait(200);
+      };
+      await place('ship-wheel', []);
+      await place('painting-sea', []);
+      await place('jukebox', []);
+      await place('bunnyplush', []);
+      await place('fishbowl', []);
+      await place('starlight-cup', []);
+      await page.click('[data-testid="planner-done"]');
+      await wait(1600);
+      if (players === 2) await g(page, 'teleport', 6.6, 7.2, 1);
+      await wait(400);
+    },
+  },
+  {
+    name: 'rocco-shop',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [35.5, 18.45]);
+      await g(page, 'setTockens', 120);
+      await wait(400);
+      await page.keyboard.press('KeyE');
+      await wait(900);
+    },
+  },
+  {
+    name: 'bowl-tricks',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['bowled', 'trick:head-pin', 'trick:corner']) await g(page, 'setFlag', f, true);
+      await g(page, 'openBowl', null, 0.3, true);
+      await wait(600);
+      await page.click('[data-testid="bowl-tricks"]');
+      await wait(600);
+    },
+  },
+  {
+    name: 'bowl-trick',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['bowled', 'trick:head-pin', 'trick:corner']) await g(page, 'setFlag', f, true);
+      await g(page, 'openBowl', null, 0.3, true);
+      await wait(600);
+      await page.click('[data-testid="bowl-tricks"]');
+      await wait(400);
+      await page.click('[data-testid="bowl-trick-baby-split"]');
+      await wait(1500);
+    },
+  },
+  {
+    name: 'pz-shoals',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'marigold-chart', 'hard');
+      await wait(900);
+    },
+  },
+  {
+    name: 'pz-rules-card',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'marigold-chart', 'easy');
+      await wait(700);
+      await page.click('[data-testid="pz-rules"]');
+      await wait(600);
+    },
+  },
+  {
+    name: 'worldmap2',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'portal:ready', true);
+      await g(page, 'addSand', 'pirate');
+      await g(page, 'goTo', 'clocktower', 'in');
+      await wait(1500);
+      await g(page, 'openWorldMap');
+      await wait(700);
+    },
+  },
   {
     name: 'notes',
     players: [1],

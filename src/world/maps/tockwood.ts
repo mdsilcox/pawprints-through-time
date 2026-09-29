@@ -103,7 +103,7 @@ function objects(grid: TerrainGrid): MapObject[] {
   add('flowerbed', 25.5, 17.2, { texture: 'prop-flowerbed' });
   add('flowerbed', 35.5, 17.2, { texture: 'prop-flowerbed' });
   o.push({ id: 'plaza-sign', kind: 'sign', x: 28.6, y: 26.4, texture: 'prop-sign', p: { text: ['Welcome to TOCKWOOD PLAZA!', 'North: the old clocktower. South: the beach and the dock. West: the meadow and the bunny warren. East: the museum and the lanes.'] } });
-  add('stall', TW.rocco.x, TW.rocco.y, { texture: 'prop-stall', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
+  o.push({ id: 'rocco-stall', kind: 'use', x: TW.rocco.x, y: TW.rocco.y, texture: 'prop-stall', foot: { dx: -1, dy: -1, w: 2, h: 1 }, p: { action: 'rocco-shop', label: 'Shop', range: 0.85 } });
   add('stall-garden', TW.juniper.x, TW.juniper.y, { texture: 'prop-stall-green', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
 
   // --- brain-builders: every neighbour has a puzzle waiting
@@ -123,7 +123,8 @@ function objects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'finnegan', kind: 'npc', x: 31.2, y: 41.8, p: { id: 'finnegan', wander: 0.5 } });
   o.push({ id: 'marigold-visit', kind: 'npc', x: 30.8, y: 39.6, p: { id: 'marigold', wander: 0.4 }, when: 'marigold:friend' });
   o.push({ id: 'juniper', kind: 'npc', x: 22.5, y: 13.3, p: { id: 'juniper', wander: 1.2 } });
-  o.push({ id: 'rocco', kind: 'npc', x: 35.5, y: 18.9, p: { id: 'rocco', wander: 1 } });
+  // (beside his stall, not in front of the counter — so the Shop is always in reach)
+  o.push({ id: 'rocco', kind: 'npc', x: 33.2, y: 18.9, p: { id: 'rocco', wander: 0.6 } });
   o.push({ id: 'rosita', kind: 'npc', x: 28.5, y: 22.8, p: { id: 'rosita', wander: 2 }, when: 'rosita:arrived' });
   o.push({ id: 'rollo', kind: 'npc', x: 47.5, y: 23.4, p: { id: 'rollo', wander: 1 }, when: 'bowling:open' });
   // --- meadow: wild bunnies, the Hopkins warren and Grandma Hopkins

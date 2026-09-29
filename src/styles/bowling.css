@@ -1,0 +1,137 @@
+/* ================================================================ bowling: the scorecard over the lane */
+.bowl-card {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  pointer-events: none;
+  background: rgba(255, 248, 236, 0.94);
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  padding: 0.2rem 0.35rem;
+  box-shadow: 0 0.2rem 0 var(--shadow);
+  max-width: calc(100vw - 7rem);
+  overflow: hidden;
+}
+.bowl-card table {
+  border-collapse: collapse;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.bowl-card th {
+  text-align: left;
+  padding: 0 0.4rem 0 0.2rem;
+  max-width: 6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bowl-card tr.on th {
+  color: #c25a2a;
+}
+.bowl-card tr.p1 th::before {
+  content: '●  ';
+  color: #f29e4c;
+}
+.bowl-card tr.p2 th::before {
+  content: '●  ';
+  color: #6fb3e0;
+}
+.bowl-card tr.npc th::before {
+  content: '●  ';
+  color: #a58bd6;
+}
+.bc-f {
+  border: 1.5px solid rgba(74, 59, 53, 0.5);
+  min-width: 1.9rem;
+  text-align: center;
+  padding: 0;
+}
+.bc-f.tenth {
+  min-width: 2.6rem;
+}
+.bc-f.now {
+  background: #fff1b8;
+}
+.bc-marks {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.1rem;
+  font-size: 0.7rem;
+  min-height: 0.9rem;
+  padding: 0 0.1rem;
+}
+.bc-marks span {
+  min-width: 0.6rem;
+}
+.bc-tot {
+  min-height: 0.95rem;
+  font-size: 0.78rem;
+}
+.bc-total {
+  padding: 0 0.3rem;
+  font-size: 0.95rem;
+}
+@media (max-height: 460px) {
+  .bowl-card table {
+    font-size: 0.66rem;
+  }
+  .bc-f {
+    min-width: 1.45rem;
+  }
+  .bc-f.tenth {
+    min-width: 2rem;
+  }
+  .bc-marks {
+    font-size: 0.6rem;
+  }
+}
+
+/* ---------- trick shots ---------- */
+.bowl-trick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem 0.8rem;
+  text-align: center;
+}
+.bowl-trick .bt-name {
+  font-weight: 700;
+}
+.bowl-trick .bt-goal {
+  font-size: 0.85rem;
+}
+.bowl-trick .bt-tries span {
+  color: var(--gold);
+  margin: 0 0.12rem;
+}
+.bowl-trick .bt-tries span.used {
+  color: rgba(74, 59, 53, 0.3);
+}
+.bt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0.6rem;
+}
+.btn.bt-pick {
+  justify-content: flex-start;
+  text-align: left;
+}
+.bt-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+.bt-row-name {
+  font-weight: 700;
+}
+.bt-row-goal {
+  opacity: 0.85;
+}
+.btn.bt-pick.done {
+  background: #e8f6e4;
+}

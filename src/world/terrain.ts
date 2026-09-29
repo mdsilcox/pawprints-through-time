@@ -21,6 +21,7 @@ export type Terrain =
   | 'dune'
   | 'deck'
   | 'tile'
+  | 'road'
   | 'dark'
   | 'void';
 
@@ -38,6 +39,7 @@ export const TERRAINS: Terrain[] = [
   'dune',
   'deck',
   'tile',
+  'road',
   'dark',
   'void',
 ];

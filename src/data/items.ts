@@ -1,4 +1,5 @@
 import { SCRAPS } from './scraps';
+import { FURNITURE } from './furniture';
 
 /**
  * Every collectable thing: beach finds, fossils, trinkets, soup ingredients, seeds and era
@@ -83,8 +84,8 @@ export const ITEMS: ItemDef[] = [
   { id: 'map-piece', name: 'Treasure Map Piece', kind: 'quest', icon: 'mappiece', origin: 'pirate', desc: 'A torn corner of a pirate map.' },
   // ---------------- treasure-map scraps (each marks an X to dig)
   ...SCRAPS.map((s): ItemDef => ({ id: s.id, name: s.name, kind: 'quest', icon: 'mapscrap', origin: s.era, desc: s.hint })),
-  // ---------------- furniture (for decorating your cottage)
-  { id: 'pirate-chest', name: 'Pirate Sea Chest', kind: 'furniture', icon: 'seachest', origin: 'pirate', desc: 'A sturdy sea chest with brass corners, dug up on Treasure Island.' },
+  // ---------------- furniture (for decorating your cottage) — see data/furniture.ts
+  ...FURNITURE.map((f): ItemDef => ({ id: f.id, name: f.name, kind: 'furniture', icon: `fur:${f.views[0].art}`, origin: f.origin, desc: f.desc })),
 ];
 
 export const ITEM_BY_ID = new Map(ITEMS.map((i) => [i.id, i]));

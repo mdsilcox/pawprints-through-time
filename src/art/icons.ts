@@ -1,6 +1,7 @@
 import { PAL, shade } from './palette';
 import { makeCanvas, sparkle } from './draw';
 import { ITEM_BY_ID } from '../data/items';
+import { FURNITURE_ART } from './furniture';
 
 /** Item icons: 64x64 procedural drawings, cached as data URLs for the DOM UI. */
 const S = 64;
@@ -777,6 +778,17 @@ const DRAW: Record<string, (ctx: Ctx) => void> = {
 
 const cache = new Map<string, string>();
 
+/** A piece of furniture, shrunk to fit an icon. */
+function furnitureIcon(c: Ctx, art: string): void {
+  const make = FURNITURE_ART[art];
+  if (!make) return DRAW.marble(c);
+  const img = make().cv.c;
+  const k = Math.min((S - 6) / img.width, (S - 6) / img.height);
+  const w = img.width * k;
+  const h = img.height * k;
+  c.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+}
+
 export function iconCanvas(key: string, size = S): HTMLCanvasElement {
   const { c, ctx } = makeCanvas(size, size);
   ctx.lineJoin = 'round';
@@ -787,7 +799,9 @@ export function iconCanvas(key: string, size = S): HTMLCanvasElement {
       ? (c: Ctx) => soupBowl(c, key.slice(5))
       : key.startsWith('codegear:')
         ? (c: Ctx) => codeGear(c, Number(key.slice(9)))
-        : null;
+        : key.startsWith('fur:')
+          ? (c: Ctx) => furnitureIcon(c, key.slice(4))
+          : null;
   (DRAW[key] ?? dyn ?? DRAW.marble)(ctx);
   return c;
 }

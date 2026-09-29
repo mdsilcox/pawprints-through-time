@@ -14,6 +14,7 @@ const TERRAIN_COLORS: Record<string, string> = {
   water: '#8fd3e6',
   sand: '#f3dca2',
   grass: '#9fd67f',
+  road: '#8a8793',
   path: '#e9c89a',
   plaza: '#e8dcc6',
   dock: '#c99a62',

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { Emitter } from './core/emitter';
 import { loadSettings, sanitizeSettings, storeSettings, type Settings } from './core/settings';
 import { AutoSaver, SaveManager } from './core/save';
-import { defaultSave, type SaveData } from './core/state';
+import { defaultSave, newGameSave, type SaveData } from './core/state';
 import { initialScaleConfig, installResizeHandling } from './core/display';
 
 export interface AppEvents extends Record<string, unknown> {
@@ -87,7 +87,7 @@ export class GameApp {
 
   // ---------------------------------------------------------------- saves
   async newGame(slot: number, init?: (d: SaveData) => void): Promise<SaveData> {
-    const data = defaultSave();
+    const data = newGameSave();
     init?.(data);
     this.data = data;
     this.slot = slot;

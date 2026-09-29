@@ -446,6 +446,8 @@ export class BunnyActor extends Actor {
   private waved = 0;
   area: { x: number; y: number; w: number; h: number };
   textureKey: string;
+  /** moved by the world (a roller-skating cousin), not by its own hopping */
+  skating = false;
   biscuitPos: () => { x: number; y: number; moving: boolean } | null = () => null;
 
   constructor(
@@ -472,6 +474,7 @@ export class BunnyActor extends Actor {
   }
 
   frame(f: BunnyFrame): void {
+    if (this.destroyed) return;
     this.sprite.setTexture(this.textureKey, f);
     this.sprite.setFlipX(this.facing === 'left' && (f === 'sit' || f === 'hopA' || f === 'hopB' || f === 'sleep'));
   }
@@ -511,7 +514,7 @@ export class BunnyActor extends Actor {
   }
 
   update(): void {
-    if (this.destroyed) return;
+    if (this.destroyed || this.skating) return;
     const now = performance.now();
     const threats = [...this.host.playerPositions()];
     const b = this.biscuitPos();

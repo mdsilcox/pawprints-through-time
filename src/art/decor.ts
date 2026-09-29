@@ -9,7 +9,7 @@ export interface TerrainLayer extends LayerStyle {
   opaque: boolean;
 }
 
-const LAND: Terrain[] = ['sand', 'grass', 'path', 'plaza', 'dune', 'stone', 'tile'];
+const LAND: Terrain[] = ['sand', 'grass', 'path', 'plaza', 'dune', 'stone', 'tile', 'road'];
 
 function speckles(color: string, count: number, size: number, seed: number) {
   return (ctx: CanvasRenderingContext2D, ox: number, oy: number, T: number) => {
@@ -59,11 +59,12 @@ function grassBlades(ctx: CanvasRenderingContext2D, ox: number, oy: number, T: n
 export const TERRAIN_LAYERS: Record<string, TerrainLayer> = {
   foam: { key: 'foam', members: LAND, fill: PAL.foam, alpha: 0.85, half: 0.8, radius: 0.42, opaque: false },
   sand: { key: 'sand', members: LAND, fill: PAL.sand, lip: PAL.sandDark, lipH: 8, opaque: true, texture: speckles(shade(PAL.sand, -0.12), 6, 2.2, 5) },
-  grass: { key: 'grass', members: ['grass', 'path', 'plaza'], fill: PAL.grass, lip: PAL.grassDark, lipH: 10, opaque: true, texture: grassBlades },
+  grass: { key: 'grass', members: ['grass', 'path', 'plaza', 'road', 'tile'], fill: PAL.grass, lip: PAL.grassDark, lipH: 10, opaque: true, texture: grassBlades },
   path: { key: 'path', members: ['path'], fill: PAL.path, lip: PAL.pathDark, lipH: 4, half: 0.6, radius: 0.28, opaque: true, texture: speckles(shade(PAL.path, -0.14), 4, 2.6, 11) },
   plaza: { key: 'plaza', members: ['plaza'], fill: '#e8dcc6', lip: PAL.stoneDark, lipH: 6, half: 0.6, radius: 0.2, opaque: true, texture: cobbles },
   dune: { key: 'dune', members: ['dune'], fill: '#efcf8f', lip: '#d9b06a', lipH: 8, opaque: true, texture: speckles('#d9b06a', 5, 2.4, 21) },
   stone: { key: 'stone', members: ['stone'], fill: '#e3d3b0', lip: '#bfa77e', lipH: 6, half: 0.6, radius: 0.18, opaque: true, texture: cobbles },
+  road: { key: 'road', members: ['road'], fill: '#7d7a86', lip: '#5f5c68', lipH: 5, half: 0.6, radius: 0.12, opaque: true, texture: speckles('#6d6a76', 4, 2.2, 31) },
   tile: { key: 'tile', members: ['tile'], fill: '#f0e6d8', lip: '#c9b8a0', lipH: 5, half: 0.6, radius: 0.16, opaque: true },
 };
 

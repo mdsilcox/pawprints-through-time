@@ -31,6 +31,7 @@ import { digScrapLoot } from '../story/treasureScraps';
 import '../world/maps/tockwood';
 import '../world/maps/interiors';
 import '../world/maps/pirate';
+import '../world/maps/fifties';
 
 export interface WorldInit {
   map?: string;
@@ -112,6 +113,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.biscuit = null;
     this.pip = null;
     this.bunnies = [];
+    this.bunnyInteract = [];
+    this.lostBunnies = [];
+    this.focusTarget = null;
     this.spots = [];
     this.lamps = [];
     this.fireflies = [];
@@ -308,7 +312,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         this.propImages.set(o.id, img);
         if (o.p?.scale) img.setScale(o.p.scale);
         if (o.p?.floor) img.setDepth(-7000);
-        if (o.kind === 'building' || o.kind === 'tree' || o.kind === 'palm' || (o.kind === 'use' && img.displayHeight > TILE * 2.5) || (o.kind === 'furniture' && img.displayHeight > TILE * 2.2))
+        if (o.p?.flip) img.setFlipX(true);
+        if (!o.p?.floor && (o.kind === 'building' || o.kind === 'tree' || o.kind === 'palm' || (o.kind === 'use' && img.displayHeight > TILE * 2.5) || (o.kind === 'furniture' && img.displayHeight > TILE * 2.2)))
           this.occluders.push({ img, baseY: o.y * TILE });
         if (o.kind === 'tree' || o.kind === 'palm') {
           this.tweens.add({ targets: img, angle: { from: -0.8, to: 0.8 }, duration: 2600 + ((o.x * 131) % 1400), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
@@ -503,7 +508,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     });
   }
   private bunnyInteract: { it: Interactable; b: BunnyActor }[] = [];
-  private lostBunnies: { id: string; b: BunnyActor; it: Interactable; hidden: boolean }[] = [];
+  private lostBunnies: { id: string; b: BunnyActor; it: Interactable; hidden: boolean; skate: { cx: number; cy: number; r: number; a: number } | null }[] = [];
 
   /** A lost Hopkins cousin in an era. Some hide until Biscuit sniffs them out. */
   spawnLostBunny(o: MapObject): void {
@@ -516,7 +521,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     const b = new BunnyActor(this, x, y, key, 'lost', { x: x - TILE * 0.6, y: y - TILE * 0.4, w: TILE * 1.2, h: TILE * 0.8 });
     this.actors.push(b);
     this.bunnies.push(b);
-    const entry = { id, b, it: null as unknown as Interactable, hidden: !!o.p?.needsSniff && !app.data?.flags[`found:${id}`] };
+    const skate = Number(o.p?.skate ?? 0);
+    const entry = { id, b, it: null as unknown as Interactable, hidden: !!o.p?.needsSniff && !app.data?.flags[`found:${id}`], skate: skate ? { cx: x, cy: y, r: skate * TILE, a: 0 } : null };
+    b.skating = !!skate;
     entry.it = {
       id: `lost:${id}`,
       x,
@@ -530,6 +537,38 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.interactables.push(entry.it);
     this.bunnyInteract.push({ it: entry.it, b });
     this.lostBunnies.push(entry);
+  }
+
+  /** A skating cousin stops (caught!). */
+  stopSkating(id: string): void {
+    const e = this.lostBunnies.find((x) => x.id === id);
+    if (!e) return;
+    e.skate = null;
+    e.b.skating = false;
+  }
+
+  /** Swap a prop's picture mid-visit (a trophy case emptied, a door opened...). */
+  setPropTexture(id: string, key: string): void {
+    const img = this.propImages.get(id);
+    if (img && this.textures.exists(key)) img.setTexture(key);
+  }
+
+  /** Skaters glide round their loop (and their talk spot goes with them). */
+  private updateSkaters(dt: number): void {
+    for (const e of this.lostBunnies) {
+      if (!e.skate || ui.blocking || e.b.destroyed) continue;
+      const s = e.skate;
+      s.a += dt * 1.25;
+      const nx = s.cx + Math.cos(s.a) * s.r;
+      const ny = s.cy + Math.sin(s.a) * s.r * 0.55;
+      e.b.faceVec(nx - e.b.x, ny - e.b.y);
+      e.b.x = nx;
+      e.b.y = ny;
+      e.b.frame(Math.sin(s.a * 6) > 0 ? 'hopA' : 'front');
+      e.b.sync();
+      e.it.x = nx;
+      e.it.y = ny;
+    }
   }
 
   /** Biscuit's nose finds cousins hiding nearby. */
@@ -599,16 +638,29 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       }
     }
     if (d.flags['pip:companion'] && !this.pip && this.def.region !== 'tockwood') {
+      // Pip hovers beside player 1 — on whichever side (or above) is clearest of player 2 and Biscuit
       let side = -1;
       const pip = new PipActor(this, this.players[0].x, this.players[0].y, () => {
         const p = this.players[0];
         if (!p) return null;
-        const b = this.biscuit;
-        if (b) {
-          if (b.x < p.x - TILE * 0.3) side = 1;
-          else if (b.x > p.x + TILE * 0.3) side = -1;
+        const spot = (s: number) => ({ x: p.x + s * TILE * 0.95, y: p.y - TILE * (s === 0 ? 1.75 : 0.35) });
+        const others = [this.players[1], this.biscuit].filter((o): o is NonNullable<typeof o> => !!o);
+        const room = (s: number) => {
+          const at = spot(s);
+          return others.length ? Math.min(...others.map((o) => Math.hypot(o.x - at.x, o.y - at.y))) : Infinity;
+        };
+        let best = side;
+        let bestRoom = room(side);
+        for (const s of [-1, 1, 0]) {
+          const r = room(s);
+          // (a clear margin before switching, so she doesn't flit back and forth)
+          if (r > bestRoom + TILE * 0.4) {
+            best = s;
+            bestRoom = r;
+          }
         }
-        return { x: p.x + side * TILE * 0.95, y: p.y - TILE * 0.35 };
+        side = best;
+        return spot(side);
       });
       this.pip = pip;
       this.actors.push(pip);
@@ -923,7 +975,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   /** A Time Sand rises glowing out of a chest (or a cup), then floats to the players. */
   raiseTimeSand(fromX: number, fromY: number): Promise<void> {
     return new Promise((resolve) => {
-      if (!this.textures.exists('fx-sand')) {
+      if (!this.textures.exists('fx-timesand')) {
         const cv = document.createElement('canvas');
         cv.width = cv.height = 96;
         const ctx = cv.getContext('2d')!;
@@ -933,11 +985,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         g.addColorStop(1, 'rgba(178,140,240,0)');
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, 96, 96);
-        addCanvasTexture(this, 'fx-sand', cv);
+        addCanvasTexture(this, 'fx-timesand', cv);
       }
       const x = fromX * TILE;
       const y = fromY * TILE;
-      const orb = this.add.image(x, y, 'fx-sand').setDepth(1e5 + 4).setScale(0.2).setBlendMode(Phaser.BlendModes.ADD);
+      const orb = this.add.image(x, y, 'fx-timesand').setDepth(1e5 + 4).setScale(0.2).setBlendMode(Phaser.BlendModes.ADD);
       const trail = this.add.particles(0, 0, 'fx-sparkle', { follow: orb, speed: { min: 10, max: 60 }, lifespan: 700, scale: { start: 0.5, end: 0 }, tint: [0xb28cf0, 0xffffff], frequency: 40 });
       trail.setDepth(1e5 + 3);
       audio.sfx('sparkle');
@@ -1129,6 +1181,16 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.goTo(door.replace(/-in$/, ''), 'in');
   }
 
+  /** Rebuild this room in place (after decorating): everyone stays where they stand if there's still room. */
+  reloadRoom(): void {
+    if (this.transitioning) return;
+    const p1 = this.players[0];
+    this.transitioning = true;
+    const at = { map: this.def.id, x: p1.x / TILE, y: p1.y / TILE, facing: p1.facing };
+    this.cameras.main.fadeOut(220, 255, 244, 224);
+    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart(at));
+  }
+
   /** Move the whole party to another map (fade, save, rebuild). */
   goTo(mapId: string, spawn: string): void {
     if (this.transitioning) return;
@@ -1182,7 +1244,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     const t = this.grid.get(Math.floor(x / TILE), Math.floor(y / TILE));
     if (t === 'sand' || t === 'dune' || t === 'path') return 'step-sand';
     if (t === 'dock' || t === 'deck' || t === 'floor') return 'step-wood';
-    if (t === 'plaza' || t === 'stone' || t === 'tile') return 'step-stone';
+    if (t === 'plaza' || t === 'stone' || t === 'tile' || t === 'road') return 'step-stone';
     return 'step-grass';
   }
 
@@ -1193,7 +1255,10 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
 
   private startPosition(): { x: number; y: number; facing: Facing4 } {
     const d = this.initData;
-    if (d.x !== undefined && d.y !== undefined) return { x: d.x * TILE, y: d.y * TILE, facing: d.facing ?? 'down' };
+    // (after decorating, stay put — unless furniture now stands exactly there)
+    if (d.x !== undefined && d.y !== undefined && !this.coll.overlaps({ x: d.x * TILE, y: d.y * TILE, ...PlayerEntity.FEET }))
+      return { x: d.x * TILE, y: d.y * TILE, facing: d.facing ?? 'down' };
+    if (d.x !== undefined && this.def.spawns.in) return { x: this.def.spawns.in.x * TILE, y: this.def.spawns.in.y * TILE, facing: 'up' };
     const sp = d.spawn ? this.def.spawns[d.spawn] : undefined;
     if (sp) return { x: sp.x * TILE, y: sp.y * TILE, facing: sp.facing ?? 'down' };
     const loc = app.data?.location;
@@ -1435,6 +1500,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       p.tick(deltaMs, moved);
     });
     for (const a of this.actors) a.update(dt);
+    this.updateSkaters(dt);
     for (const it of this.interactables) {
       if (it.id.startsWith('npc:')) {
         const n = this.npcs.get(it.id.slice(4));

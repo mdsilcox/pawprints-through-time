@@ -163,7 +163,8 @@ export class SoupFx {
     const glowColor = hex(SOUP_BY_ID[activeEffects().find((e) => e.effect === 'glow')?.soup ?? 'glowbroth']?.color ?? '#b8f28a');
 
     sc.players.forEach((p, i) => {
-      p.speedMult = (zoom ? 1.7 : 1) * (close ? 1.35 : 1);
+      const skates = app.data?.players[p.index]?.outfit.shoes?.id === 'roller-skates';
+      p.speedMult = (zoom ? 1.7 : 1) * (close ? 1.35 : 1) * (skates ? 1.45 : 1);
       // bouncy steps (Hopscotch Chowder) and wobbly legs (Wibble-Wobble Soup)
       if (!p.jumping) {
         if (hop && p.moving) p.hop = Math.abs(Math.sin(this.t * 9 + i)) * 16;

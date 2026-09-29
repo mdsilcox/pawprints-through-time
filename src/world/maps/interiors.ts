@@ -3,6 +3,7 @@ import { registerMap, type MapObject } from '../mapdef';
 import { drawRoom, type RoomSpec } from '../../art/rooms';
 import { TILE } from '../collision';
 import { PAL } from '../../art/palette';
+import { homeMapObjects } from '../../core/home';
 
 /**
  * Tockwood interiors. Each is a painted backdrop + a collision grid: walls around the edge,
@@ -85,34 +86,31 @@ defineRoom({
 });
 
 // ------------------------------------------------------------------ your cottage
+/** Your cottage (its furniture is yours to arrange — see core/home.ts and the planner). */
+export const COTTAGE_SPEC: RoomSpec = {
+  w: 11,
+  h: 9,
+  wallRows: 2,
+  wall: '#fbe7c6',
+  wallTrim: '#c98f5e',
+  pattern: 'stripes',
+  floor: 'wood',
+  floorA: '#d9a877',
+  floorB: '#b57a4e',
+  windows: [3, 7],
+  door: { x: 5, w: 1 },
+};
+
 defineRoom({
   id: 'cottage',
   name: 'Your Cottage',
   music: 'interior',
   outSpawn: 'cottage-out',
-  spec: {
-    w: 11,
-    h: 9,
-    wallRows: 2,
-    wall: '#fbe7c6',
-    wallTrim: '#c98f5e',
-    pattern: 'stripes',
-    floor: 'wood',
-    floorA: '#d9a877',
-    floorB: '#b57a4e',
-    windows: [3, 7],
-    door: { x: 5, w: 1 },
-    rugs: [{ x: 3.5, y: 4.2, w: 4, h: 2.6, a: '#e46a6a', b: '#fff4e0' }],
-  },
+  spec: COTTAGE_SPEC,
   objects: () => [
-    { id: 'bed', kind: 'use', x: 2.1, y: 5, texture: 'fur-bed', foot: { dx: -1, dy: -3, w: 2, h: 3 }, p: { action: 'bed', label: 'Sleep', range: 1.5 } },
-    { id: 'wardrobe', kind: 'use', x: 8.5, y: 4, texture: 'fur-wardrobe', foot: { dx: -1, dy: -2, w: 2, h: 2 }, p: { action: 'wardrobe', label: 'Wardrobe', range: 1.4 } },
-    fur('table', 'table', 5.5, 5.4, { dx: -1, dy: -1, w: 2, h: 1 }),
-    fur('chair1', 'chair', 4.1, 5.5),
-    fur('chair2', 'chair', 6.9, 5.5),
-    fur('shelf', 'bookshelf', 5, 2.9, { dx: -1, dy: -1, w: 2, h: 1 }),
-    fur('plant', 'plant', 9.3, 7.3, { dx: 0, dy: -1, w: 1, h: 1 }),
-    fur('lamp', 'lampfloor', 1.5, 7.4),
+    ...homeMapObjects(),
+    // the home planner, by the door (it never has furniture in front of it)
+    { id: 'planner', kind: 'use', x: 5.5, y: 7.35, p: { action: 'planner', label: 'Decorate', range: 0.8 } },
   ],
 });
 

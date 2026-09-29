@@ -1,0 +1,139 @@
+/* ---------- the home planner (decorating your cottage) ---------- */
+.planner {
+  width: min(96vw, 64rem);
+  max-width: min(96vw, 64rem);
+  height: min(94%, 44rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem 0.9rem;
+  overflow: hidden;
+}
+.pl-head {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.pl-head h2 {
+  margin: 0;
+  white-space: nowrap;
+}
+.pl-help {
+  flex: 1;
+  color: var(--ink-soft);
+  line-height: 1.25;
+}
+.pl-body {
+  flex: 1;
+  display: flex;
+  gap: 0.7rem;
+  min-height: 0;
+}
+.pl-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 0;
+}
+.pl-stage {
+  flex: 1;
+  min-height: 8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: #3d2f2a;
+  outline: none;
+  touch-action: none;
+  overflow: hidden;
+}
+.kbd-nav .pl-stage:focus,
+.pl-stage:focus-visible {
+  box-shadow: 0 0 0 0.25rem var(--gold);
+}
+.pl-canvas {
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.pl-stage[data-held]:not([data-held='']) .pl-canvas {
+  cursor: grabbing;
+}
+.pl-status {
+  min-height: 1.3em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.pl-status.bad {
+  color: #b23c34;
+}
+.pl-tools {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.pl-tray {
+  width: 15rem;
+  flex: none;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.2rem;
+}
+.pl-tray-title {
+  font-weight: 700;
+}
+.pl-empty {
+  color: var(--ink-soft);
+}
+.pl-take {
+  justify-content: flex-start;
+  text-align: left;
+}
+.pl-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.pl-item img {
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: none;
+}
+
+/* a small phone held sideways: every pixel goes to the room */
+@media (max-height: 520px) {
+  .planner {
+    height: 100%;
+    padding: 0.4rem 0.6rem;
+    gap: 0.25rem;
+  }
+  .pl-help {
+    display: none;
+  }
+  .pl-head {
+    justify-content: space-between;
+  }
+  .pl-head h2 {
+    font-size: 1.1rem;
+  }
+  .pl-tray {
+    width: 10.5rem;
+  }
+  .pl-tools .btn,
+  .pl-head .btn {
+    min-height: 2.2rem;
+    font-size: 0.85rem;
+    padding: 0.25em 0.8em;
+  }
+  .pl-status {
+    font-size: 0.8rem;
+  }
+  .pl-item img {
+    width: 1.7rem;
+    height: 1.7rem;
+  }
+}

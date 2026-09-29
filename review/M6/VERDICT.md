@@ -1,173 +1,137 @@
-# M6 Review — 21f88d9 (code at cc0d5b2)
+# M6 Re-review — d311889
 
 **Verdict:** REVISE
 
-The pirate chapter is complete, and every step can be reached by walking and talking. I played it on desktop by keyboard (1P), and on a 667×375 phone as a pair using touch. The writing is warm and funny, and each of the four map pieces is found a different way. Dressing the part works in 1P and 2P, including the Wardrobe route. Every puzzle works by keyboard, mouse and touch, and the tests are real.
+Both earlier blockers are properly fixed, and the chapter is much better than at 21f88d9:
+- The Shoals now have real wind, currents and whirlpools.
+- The crew party feels like a party, the Great Hourglass fills up, and the cave is a cave.
+- Pip no longer sits on Biscuit.
 
-Two bugs block a PASS:
-- A likely input pattern loses the chapter's opening and its quests.
-- One Puzzle Journal replay is impossible.
+Two new problems stop a PASS, and both are cheap to fix:
+- This commit hides part of the Shoals chart on a phone.
+- `npm test` is not reliably green.
 
-Both are small fixes.
+## Previous blockers
+
+1. **Lost arrival: fixed.**
+   - **Desktop:** one extra E press, 0 to 1100 ms after Pip's last travel line, always gets the arrival (8/8). Steady mashing at 350, 500 and 700 ms also gets it (6/6); before the fix both failed almost every time.
+   - **Phone, 2P:** tapping the A-button spot every 500 ms reaches the arrival with no "portal home?" question. The new spawn (9.2/19.3) has no prompt.
+   - **The queue works:** I pressed E on the portal ring before the 420 ms arrival timer. The arrival waited under Pip's question (it did not start underneath), then played after "Not yet".
+   - The new e2e test passes on both viewports, and would fail on the old code.
+2. **Shoals replay: fixed.**
+   - With no gumbo, Pause → Puzzle Journal → Swirling Shoals → Tricky opens with calm seas.
+   - I sailed it by keyboard in 6 moves; it solved, and the Journal came back.
+   - The new test passes on both viewports.
 
 ## Blockers
 
-1. **Pressing the action button once more after Pip's travel lines loses the pirate arrival scene and all three pirate quests.**
-   - **Why it happens:**
-     - The `portal` spawn (`src/world/maps/pirate.ts:115`, 7.5/19.3) is inside the "Portal home" ring's range (ring at 7.5/17.9, range 1.3). The prompt reads "Portal home" the moment you land.
-     - `triggerEnter` runs 420 ms after the map is created (`WorldScene.ts:197`).
-     - `run()` in `src/story/hooks.ts:45-47` silently drops a handler if another story script is busy.
-     - So an extra press starts the portal-home script, and `onEnterMap('cove')` is discarded.
-   - **Desktop timing:** I pressed E once, 0/150/300/450/600/750/900 ms after dismissing Pip's "Next stop: The Golden Age of Piracy!". Every one of those lost the arrival; only 1100 ms was safe.
-   - **Steady mashing:** steady E presses at 350, 500 and 700 ms cadence lost it in 6 of 6 runs. In 2 of those runs the player ended up back in the clocktower.
-   - **Phone (2P):** the same happens with steady 500 ms taps on the dialogue box. The box (y 259–364) covers P1's A button (197–260 × 300–363), so the next tap lands on "A: Portal home".
-   - **What the player sees:** "Shall I open the portal home to Tockwood?" with **"Yes, home we go!"** focused. One more press sends them home.
-   - **What is lost:**
-     - The arrival scene and the first History Note are skipped.
-     - `cove:arrived` is never set, so "The Lost Map of the Sunny Marigold", "Cousins Lost at Sea" and "X Marks the Spot" never start. There is no HUD objective and no quest stars on the Map; the HUD keeps showing a Tockwood objective.
-     - The arrival scene then plays on the *next* entry into Sandy Cove. On the main path (no visit to the hold) that is rowing back from Treasure Island with the treasure. "We made it!… I can feel the Time Sand somewhere nearby…" plays **instead of the crew party**.
-     - So `pirate:party` and `marigold:friend` stay unset: no Captain's Coat, and Marigold doesn't visit Tockwood until the family returns to the cove again. I verified this.
+1. **On a phone, the Shoals chart now hides its bottom row: the island on Easy, the ship itself on Medium.**
+   - **Cause:** on short screens Pip's first bubble shows the puzzle rules. The new rules text is 5 lines long, so the puzzle body shrinks.
+   - **Measurements** (667×375): the scroll area ends at y 254, but the board ends at y 294 (311 in calm seas).
+   - **What is hidden at the start:**
+     - **Easy** (where adaptive difficulty starts): the Treasure Island goal.
+     - **Medium:** the Sunny Marigold herself.
+     - **All levels:** "Start over" is half cut off.
+   - **The builder's own screenshots show it:** `review/M6/pz-chart-1p-phone.png` and `pz-chart-rough-1p-phone.png` show no ship and only a sliver of row 5.
+   - **Scrolling doesn't really help:** only a swipe *beside* the board scrolls it; a swipe on the board sails (I lost a move that way).
+   - Finnegan's Medium boat is also half hidden.
    - **Fix:**
-     - Spawn about 2 tiles clear of the ring, or shrink its range.
-     - Queue enter scripts instead of dropping them when busy, or block world interactions until they have run.
-     - Add an e2e test that presses E once about 500 ms after the travel lines.
-     - The current test only passes because `playThrough` never presses while no dialogue is open.
-
-2. **Replaying "Through the Swirling Shoals" from the Puzzle Journal is impossible.**
-   - **Why it happens:** `src/puzzles/ui/screen.ts:113` passes `calm: hasEffect('calm')` for journal replays too. All three variants are unsolvable in rough seas: the unit test asserts this, and `solve(chart, false)` returns `null` for easy, medium and hard.
-   - **Repro:** Pause → Puzzle Journal → Swirling Shoals → Easy, with no gumbo active.
-     - The intro still says "With calm seas from the gumbo…".
-     - The board shows "wind: up" and live currents.
-     - Pip's third hint can only say "Let's start fresh from the dock!", then "No hints left".
-   - **Result:** a child replaying a favourite is stuck forever. Spec §5.5 requires the Journal to "let players replay favorites".
-   - **Fix:** run replays of `needsCalm` charts with calm seas, and add a test.
+     - Keep Pip's first line short on phones, or cap the bubble at 2 lines with "How to play" for the rest.
+     - Or size the cells so all 6 rows fit, and scroll the ship into view.
+     - Add a phone test that the boat and goal are visible.
+2. **`npm test` is red: the hornpipe dance-off test fails about half the time.**
+   - **My full run:** 2 failed, 169 passed, 4 skipped; exit 1.
+   - **Isolated reruns** (1 worker, repeat 2):
+     - The opening-story failure passed 2/2, so it was load.
+     - `dance.spec.ts:138` failed again on 1 of 2 runs with `Expected "Talk", Received "Cook"`.
+   - **Why:** Cookie wanders ±0.3 tiles about 1 tile from her galley pot (use range 1.3). When she steps left, the test's single teleport spot below her is nearer the pot.
+   - **It happens in play too:**
+     - Left of Cookie, which is the way you come from, the prompt was "Cook" in 40 of 40 samples.
+     - I pressed E on "Talk" and got the pot instead, because she moved in between.
+     - The pot never mentions the dance-off, and the dance-off gates the chapter.
+   - **Fix:** make the galley pot hand over to Cookie's dance-off until `crew:respect` is set. Make the test re-teleport while polling, as `talkTo` does.
 
 ## Top improvements
 
-1. **Make the first Time Sand a moment.**
-   - **At the chest:**
-     - The chest opens behind the player.
-     - The sand exists only in narration.
-     - "Time Sand 1 of 8!" arrives in a pile of 4–5 other toasts: History Note, Map Scrap, "Gold Doubloon ×5", "+40 Tockens", and the step tick. On the phone they cover both players and the chest completely.
-   - **At home:** the Great Hourglass always draws 8 empty sockets and the crack (`art/furniture.ts` `greathourglass`). "Swirls into the first socket with a bright TING!" changes nothing on screen.
+1. **The Time Sand still can't be seen.**
+   - **The orb:** `raiseTimeSand` (WorldScene) only draws its glowing orb if no `fx-sand` texture exists. `fx-sand` is the M0 title-screen grain (`art/textures.ts:52`, a 12×12 gold dot), so the "sand rising out of the chest" is a ~10 px speck.
+     - I checked the live object: texture 12×12, scale 1.17, zoom 0.65.
+     - On the light cave wall it is practically invisible (see my frames at 150–1700 ms).
+   - **The toasts:** after the chest, 6 still stack over both players on the phone: Time Sand, "+40 Tockens", "From the chest: … and 40 Tockens" (said twice), History Note, Map Scrap, and the step tick.
+   - **The player** stands in front of the open chest.
+   - **PROGRESS.md claims both are fixed.**
    - **Fix:**
-     - An item-get pose showing the glowing sand, with Biscuit's bark-jump and a fanfare.
-     - Queue toasts one at a time, above the players.
-     - Light one socket per `sands.length`.
-2. **Stage the chapter's big places.**
-   - **The treasure cave** is the plain interior template: flat floor, brick wall, two torches and a potted houseplant (`pirate.ts:242`, `fur('cave-rock','plant',…)`). Make it a cave, with rock walls, gold piles and pools of torchlight.
-   - **The Sunny Marigold's deck** is a square 12×5 plank rectangle with the hull drawn separately below it. Give it a bow, a stern and rails.
-   - **The "party"** is dialogue only. Saltwhistle speaks from his camp, far off-screen. Gather the crew on deck with bunting; this is also the natural stage for M7's hornpipe.
-   - **Pip covers Biscuit.** She hovers on top of him during most digs and sniffs in my screenshots (the X, the map-piece sniff, the cave, the aboard shots). Offset her above or behind the player.
-3. **Keep wind and currents in the Swirling Shoals.**
-   - **The problem:**
-     - With the gumbo, `sail(…, calm=true)` ignores currents and wind, and Marigold won't sail without it.
-     - So the chapter's only chart is a slide-until-you-hit-a-rock puzzle, with faded current arrows that do nothing.
-     - Spec §4 names "wind and currents" as this challenge; DECISIONS ("only solvable with calm seas") quietly drops that.
+     - Use a unique texture key.
+     - Make `giveTockens` quiet here.
+     - Hold the note and scrap toasts until the sand has flown.
+     - Step the players beside the chest.
+2. **Make the rough-chart preview explain itself.**
+   - The forced, unsolvable first look counts as a failed puzzle: adaptive skill dropped 0.50 → 0.45 when I pressed Leave.
+   - The first two hints ("Where will this one send you?", "Plan two moves ahead") suggest the chart can be solved, and the third just resets the board.
    - **Fix:**
-     - Let the gumbo calm only the *swirls*, for example a whirlpool tile that spins you back to the dock, while currents still turn the ship.
-     - Let players try the Shoals before drinking it, so the soup visibly changes the puzzle.
+     - Don't record the preview.
+     - Have Pip say "the whirlpools won't let anyone through — we need Cookie's gumbo".
+     - Offer a "We need gumbo!" button.
+3. **Fix 2P staging.**
+   - Pip picks her side by Biscuit only, so in 2P she hovers over Player 2. In the party (`party-2p-phone.png`) Player 2 is hidden behind her.
+   - Coco is brought to 38.2/23.9, right beside the from-isle spawn, so Pip covers her in 1P too.
 
 **Smaller notes:**
-- **2P crew gate:** with only P1 dressed, Pepper tells a player wearing the bandana "No crew clothes, no boarding!". Say instead that one of them still looks like a landlubber.
-- **Jigsaw text:** the intro says "Four soggy pieces", but the Medium and Tricky boards have 6 and 9.
-- **Riddle hints:** riddle `pr-eight`'s *first* hint ("a number between seven and nine") is the answer. Move it last.
-- **Phone sailing chart:** every Shoals chart has 6 rows, and the bottom row of rocks is half hidden (board bottom 294 px, scroll area 284 px). The calm-seas note is clipped, and the arrow buttons are only 36×39 px.
-- **Text that doesn't match the art:**
-  - The camp scrap mentions tents; there are none.
-  - Pip says the X is "by that rocky hill", but the door sits on a paved patio.
-  - The Stone door's map icon is a moai 🗿.
-- **Cousins:**
-  - Skipper fades in on an empty floor; he could pop out of a barrel.
-  - Shelly is tiny and sits under the player when "Talk" appears.
-  - Bosun's "cart" shows a carrot and a pumpkin rather than Bosun.
-  - Clover has no homecoming beat for her first cousins; it's one random daily line.
-- **Map of Time:** it is a list of cards. Make it feel like a map with glowing destinations (§5.6).
-- **Test gaps:** nothing covers the arrival race, replaying calm-only charts, or (in e2e) the wheel refusing to sail without gumbo.
+- **Arrival edge case:** if the arrival is waiting and the player picks "Yes, home we go!", the cove arrival plays in the clocktower. `here()` in `hooks.ts` doesn't check `world.transitioning`. This is unlikely now that the spawn is clear of the ring.
+- **Marigold's gumbo line:** after leaving the rough chart she says "Ask Cookie… she knows the recipe", although Cookie has just told you. The check is "brewed", not "heard".
+- **Hourglass:**
+  - The "Look" prompt covers the new sand in the bulb.
+  - On phones the glowing sockets are above the screen; a short camera pan up would show them.
+- **Test gap:** no test checks that the phone Shoals board shows the ship and the goal.
 
 ## Fun score
 
-7/10. The chapter's loop is a real adventure: talk, trade, find, sniff, jigsaw, cook, sail, riddle, lock, three bunny rescues and X-marks side digs. The characters (Marigold, Pepper, Cookie, grumpy-kind Saltwhistle) are charming.
+8/10 on desktop, less on a phone. The Shoals are now a real strategy puzzle:
+- You see the whirlpools spin you back and learn why you need the gumbo.
+- The calm route still needs the wind and a current (Medium: right, up, right, down, right).
+- The hornpipe gate, the confetti party and the filling Hourglass give the chapter a proper shape.
 
-Biggest thing holding it back: the payoffs are text-only. You never see the Time Sand, the Hourglass looks the same afterwards, and the celebrations are stacks of toasts over the players, in a bare room with a houseplant.
+Biggest thing holding it back: on the phone the ship or the island is hidden at the start of the Shoals, and the first Time Sand is still never seen.
 
 ## Required features tally
 
-Working 9 · partial 3 · missing 2.
+Working 10 · partial 3 · missing 1.
 
-1. **Adventure story** — partial. The opening plus one complete chapter; no ending yet.
-2. **Village life** — partial.
-   - There are neighbours, collecting, the garden and Marigold's visit.
-   - Home decorating is missing, and the museum cases stay visually empty.
-3. **Time travel** — partial. One era is playable; the Map of Time shows three locked or "Coming soon".
-4. **Outfits** — working.
-   - Era clothes, with reactions from Coco (sailor's prices), Saltwhistle, Marigold and Bramble.
-   - The dress-the-part gangplank works in 1P and 2P.
-   - Biscuit's Tiny Pirate Hat.
-   - Outfits in the mini-games still need checking in M7/M8.
+1. **Adventure story** — partial. The opening plus a complete pirate chapter; no ending yet.
+2. **Village life** — partial. Home decorating is still missing.
+3. **Time travel** — partial. One era of four.
+4. **Outfits** — working. Dress-the-part, era reactions, Biscuit's pirate hat.
 5. **Bowling** — missing.
-6. **Corgi** — working. Biscuit sniffs out the buried map piece and Skipper, and digs the X's. His dance role comes in M7.
-7. **Dancing** — missing. The hornpipe is M7.
-8. **Riddles, logic, strategy** — working: jigsaw, chart, riddle door (typed answers accepted), gear lock and barrel jam at every difficulty. See blocker 2 for the Journal.
-9. **Playtime reminder** — working. I fast-forwarded in Sandy Cove: the gentle card appeared, "Take a break" led to the goodbye, and Continue returned me to the cove.
-10. **Map and pirates** — working apart from blocker 1: the Map of Time, local era maps with quest stars and X marks, map scraps, and the pirate chapter.
-11. **Fairy** — working. Pip opens the portal, follows you in eras, gives hints and History Notes, and gives the break reminder.
-12. **1 or 2 players** — working. I played the whole chapter as a pair on the phone:
-    - both players dressed as crew;
-    - two Stir buttons;
-    - "Player 1 and Player 2" in dialogue;
-    - P2 talks with `/`.
-13. **Bunnies** — working. The three cousins are found by sniff, sliding puzzle and exploration, then move into the warren; the headbands come at three rescues.
-14. **Magic soup** — working. Pirate's Gumbo is brewed in the galley (two spoons in 2P) and is required for the Shoals.
+6. **Corgi** — working. Sniffing, digging and rescues.
+7. **Dancing** — working. The hornpipe dance-off is in the chapter ("Just dance" also wins the crew's respect). The dance itself is under M7 review.
+8. **Riddles, logic, strategy** — working. The Shoals now have wind, currents and whirlpools.
+9. **Playtime reminder** — working. Fast-forwarded on the phone in 2P on deck: the card appeared, "Five more minutes" snoozed.
+10. **Map and pirates** — working. Blocker 1 from the first review is fixed.
+11. **Fairy** — working.
+12. **1 or 2 players** — working. The whole chapter played as a pair on the phone: crew gate, two-spoon gumbo, Tricky jigsaw and chart by touch, party.
+13. **Bunnies** — working.
+14. **Magic soup** — working. The gumbo now calms whirlpools and is still the key to the Shoals.
 
 ## Verified
 
-- **Tests:** `npm test` (PW_WORKERS=2) exited 0 in 41 min.
-  - Unit: 122/122.
-  - e2e: 159 passed and 4 skipped (the same viewport-specific skips as before).
-  - All five pirate tests pass on desktop and phone.
-  - There is no `.only` or `fixme`, and no assertion was loosened.
-  - The unit tests prove each chart impassable in rough seas and solvable in calm, and every slide level solvable.
-- **Desktop, walking with the keyboard** (in order):
-  1. Map of Time (keyboard focus lands on Travel)
-  2. Washing line
-  3. Gangplank
-  4. Marigold
-  5. Saltwhistle
-  6. Coco (1/2 Tockens)
-  7. Pepper (coconut → map piece, Parrot Pal, and a map scrap)
-  8. The bottle
-  9. The X (eye patch and doubloons)
-  10. Biscuit sniffs and digs the last piece
-  11. Jigsaw, solved by keyboard
-  12. The wheel refuses to sail before the gumbo
-  13. Gumbo (1 star, 228 s of calm)
-  14. Medium chart in 7 moves
-  15. Riddle door, using a hint
-  16. Gear lock (its star feedback checked against the secret)
-  17. Treasure
-  18. Shelly
-  19. Sea chest from the north X
-  20. The hold: sniff out Skipper
-  21. Barrel Jam, Medium, 11 moves
-  22. Bosun
-  23. The camp X
-  24. The party
-  25. Portal home and the Hourglass
-  - Result: all three quests complete, Marigold is on Tockwood's dock, and the three cousins are in the warren.
-- **Phone, 2P, by touch:**
-  - Tricky jigsaw by taps, with ✓ badges.
-  - Tricky chart with the on-screen arrows, 8 of 9 moves.
-  - "a Telescope!" accepted by the typed riddle.
-  - Easy Barrel Jam by touch-drag.
-  - Two-spoon stirring.
-  - Bramble's remark about the bandana.
-  - The isle map.
-- **Console:** no errors.
-- **Tone, originality, history:** no borrowed names, and the tone is gentle. The history facts check out:
-  - the Golden Age dates;
-  - pirate articles and voting for captains;
-  - pieces of eight = 8 reales;
-  - hardtack;
-  - pirates rarely buried treasure;
-  - doubloons were gold.
+- **Unit tests:** 139/139.
+- **e2e tests:** all pirate tests pass on both viewports, including the two new ones.
+- **Desktop, keyboard:**
+  1. Arrival
+  2. Crew gate
+  3. Four map pieces
+  4. Jigsaw
+  5. The wheel refuses to sail before the dance
+  6. Dance-off (Just dance → won)
+  7. Cookie's clue
+  8. Rough chart (whirlpool spin and Pip's line)
+  9. Gumbo
+  10. Calm Medium chart in 5 of 8 moves
+  11. Riddle with a hint
+  12. Gear lock
+  13. Treasure
+  14. Row back to the party
+  15. Portal home
+  16. The Hourglass shows 1 glowing socket and sand in the bottom bulb
+- **No console errors.**
+- **The new History Notes are accurate:** the Golden Age is about the 1650s–1730s, and the sailor's hornpipe includes steps that copy sailors' jobs.

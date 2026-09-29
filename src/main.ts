@@ -10,6 +10,8 @@ import './styles/puzzles.css';
 import './styles/soup.css';
 import './styles/eras.css';
 import './styles/dance.css';
+import './styles/bowling.css';
+import './styles/planner.css';
 
 import { app } from './app';
 import { installCancelGuard } from './core/session';
@@ -22,6 +24,8 @@ import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { WorldScene } from './scenes/WorldScene';
 import { DanceScene, danceDebug } from './scenes/DanceScene';
+import { BowlScene, bowlDebug } from './scenes/BowlScene';
+import { bowl } from './bowling/openBowling';
 import { dance } from './dance/openDance';
 import { ui } from './ui/ui';
 import { installControls } from './input/controls';
@@ -39,6 +43,7 @@ import { currentObjective, questLog } from './story/quests';
 import { TILE } from './world/collision';
 import './story/sideQuests';
 import './story/dancing';
+import './story/fiftiesChapter';
 import './art/species';
 import './art/items';
 import { showGallery } from './art/gallery';
@@ -83,14 +88,17 @@ import { TOCKWOOD_RIDDLES } from './puzzles/content/riddles';
 import { riddleOfTheDay } from './story/brainBuilders';
 import { gameNow, plotInfo } from './soup/garden';
 import type { Difficulty } from './core/state';
+import { setHomeSource } from './core/home';
+import { openPlanner, plannerState } from './ui/planner';
 
 installCancelGuard();
+setHomeSource(() => app.data?.home.items ?? []);
 
 ui.mount(document.getElementById('ui-root')!);
 audio.installUnlock();
 audio.apply(app.settings);
 app.events.on('settings', (s) => audio.apply(s));
-app.boot([BootScene, TitleScene, WorldScene, DanceScene]);
+app.boot([BootScene, TitleScene, WorldScene, DanceScene, BowlScene]);
 installControls();
 hud.onObjective = () => openQuestLog();
 reminder.install();
@@ -149,6 +157,8 @@ registerDebug({
   ui: () => ui.ids,
   input: (i: 0 | 1) => ({ ...input.p[i] }),
   prompt: () => world().focusTarget?.label ?? null,
+  /** which thing the prompt is for (e.g. 'npc:cookie', 'use:galley') */
+  focusId: () => world().focusTarget?.id ?? null,
   // dialogue
   talk: (who: string, lines: string | string[]) => talk(who, lines),
   ask: (who: string, q: string, opts: string[]) => ask(who, q, opts),
@@ -203,7 +213,7 @@ registerDebug({
     return b ? { x: b.x / TILE, y: b.y / TILE, state: b.state } : null;
   },
   bunnies: () =>
-    world().bunnies.map((b) => ({ x: b.x / TILE, y: b.y / TILE, mode: b.mode, flees: b.flees, home: { x: (b.area.x + b.area.w / 2) / TILE, y: (b.area.y + b.area.h / 2) / TILE, w: b.area.w / TILE, h: b.area.h / TILE } })),
+    world().bunnies.map((b) => ({ id: b.textureKey.replace(/^bunny-/, ''), x: b.x / TILE, y: b.y / TILE, mode: b.mode, flees: b.flees, home: { x: (b.area.x + b.area.w / 2) / TILE, y: (b.area.y + b.area.h / 2) / TILE, w: b.area.w / TILE, h: b.area.h / TILE } })),
   give: (id: string, n = 1) => {
     if (app.data) app.data.inventory[id] = (app.data.inventory[id] ?? 0) + n;
   },
@@ -230,6 +240,17 @@ registerDebug({
   openDance: (style = 'jig', rival: string | null = null, audience: string[] = []) => void dance({ style, rival, audience }),
   danceState: () => danceDebug.state(),
   danceAuto: (on = true) => danceDebug.setAuto(on),
+  // M8: bowling
+  openBowl: (rival: string | null = null, skill = 0.3, tricks = false) => void bowl({ rival: rival ? { id: rival, skill } : null, tricks }),
+  bowlState: () => bowlDebug.state(),
+  bowlAuto: (on = true) => bowlDebug.setAuto(on),
+  bowlSpeed: (k = 1) => bowlDebug.setSpeed(k),
+  bowlThrow: (x: number, angleDeg: number, speed: number, spin = 0) => bowlDebug.throwNow({ x, angle: (angleDeg * Math.PI) / 180, speed, spin }),
+  // M8 checkpoint: home decorating
+  openPlanner: () => void openPlanner(() => world().reloadRoom()),
+  plannerState: () => plannerState(),
+  home: () => (app.data?.home.items ?? []).map((it) => ({ ...it })),
+  solidAt: (cx: number, cy: number) => world().coll.isSolid(cx, cy),
   addSand: (id: string) => {
     if (app.data && !app.data.sands.includes(id)) app.data.sands.push(id);
   },

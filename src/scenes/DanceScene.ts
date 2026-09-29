@@ -446,8 +446,9 @@ export class DanceScene extends Phaser.Scene {
 
     // input: arrows / WASD / d-pad for each dancing player
     for (const pl of this.lanes) {
-      const dir = input.p[pl.player].dir;
-      if (dir) this.press(pl, dir as Lane);
+      // (a held d-pad repeats for menus — in a dance, only a fresh press counts)
+      const pad = input.p[pl.player];
+      if (pad.dir && !pad.dirRepeat) this.press(pl, pad.dir as Lane);
     }
     if (autoplay) for (const pl of this.lanes) for (let i = pl.next; i < pl.notes.length && pl.notes[i].n.t <= now + 0.005; i++) if (pl.notes[i].state === 'live') this.press(pl, pl.notes[i].n.lane);
 

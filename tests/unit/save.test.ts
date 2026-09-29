@@ -89,8 +89,14 @@ describe('migrateSave', () => {
     const old = { version: 0, day: 12, flags: { a: true }, inventory: { shell: 2 }, players: [{ name: 'Kit' }] };
     const m = migrateSave(old);
     expect(m.day).toBe(12);
-    expect(m.flags).toEqual({ a: true });
-    expect(m.inventory).toEqual({ shell: 2 });
+    expect(m.flags).toEqual({ a: true, 'home:v1': true });
+    expect(m.inventory.shell).toBe(2);
+    // a save from before decorating gets its furnished cottage (once)
+    expect(m.home.items.map((it) => it.id)).toContain('bed');
+    expect(m.inventory.bed).toBe(1);
+    const again = migrateSave(JSON.parse(JSON.stringify(m)));
+    expect(again.home.items).toEqual(m.home.items);
+    expect(again.inventory.bed).toBe(1);
     expect(m.players[0].name).toBe('Kit');
     expect(m.players[0].outfit.top?.id).toBe('tee-striped'); // filled from defaults
     expect(m.players[1].name).toBe('Player 2');

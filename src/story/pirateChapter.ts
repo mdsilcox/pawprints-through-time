@@ -162,8 +162,9 @@ onEnterMap('cove', async ({ world }) => {
       await talk('marigold', ['THE TREASURE! And a glowing sand that hums like a lullaby! Crew — this calls for a party!']);
       await talk('saltwhistle', ['Ahem. Congratulations, Captain. I... may have been a bit grumpy about the map.']);
       await talk('marigold', ['And I may have shouted “THIEF” a teeny bit too loudly. Friends, Saltwhistle?', 'Friends! And friends of the future too — {players}, you’ll always have a place aboard the Sunny Marigold.']);
-      await talk('marigold', 'I’d love to see this Tockwood of yours someday. Save me a spot on your dock!');
+      await talk('marigold', ['I’d love to see this Tockwood of yours someday. Save me a spot on your dock!', 'And take this — the wheel from my very first ship. Hang it in your cottage and think of us!']);
     });
+    give('ship-wheel', 1, { from: 'Captain Marigold gave you' });
     setFlag('marigold:friend');
     befriend('marigold', 40);
     befriend('saltwhistle', 20);
@@ -380,7 +381,34 @@ onTalk('coco', async () => {
   ], `${crew ? '⚓ Sailor’s prices! ' : ''}Tropical treats for your soup pot — Pirate’s Gumbo needs something spicy, something from the sea and something from a sunny island.`);
 });
 
-onTalk('cookie', async () => {
+/** Cookie's hornpipe dance-off (from a chat with her, or from her galley pot). True once the crew's respect is won. */
+async function cookieDanceOff(world: WorldScene, alreadyAsked = false): Promise<boolean> {
+  if (!alreadyAsked) {
+    const pick = await ask('cookie', flag('hornpipe:tried') ? 'Squeak! Ready for another hornpipe?' : 'Squeak! So you want to sail with us? Then show me your HORNPIPE! A dance-off, right here on deck!', ['Let’s dance!', 'Not yet']);
+    if (pick !== 0) return false;
+  }
+  setFlag('hornpipe:tried');
+  const o = await dance({ style: 'hornpipe', rival: 'cookie', audience: ['marigold', 'pepper'], title: '💃 Hornpipe Dance-off!', blurb: 'Dance the Sailor’s Hornpipe against Cookie — the whole crew is watching!' });
+  if (!o?.finished) return false;
+  if (!o.won) {
+    await talk('cookie', ['Squeak! Good try! Sailors practise their hornpipe for years, you know.', 'Try again whenever you like — I’ll be right here! (And “Just dance” counts too — it’s the spirit that matters!)']);
+    return false;
+  }
+  setFlag('crew:respect');
+  befriend('cookie', 20);
+  // the whole crew cheers (confetti, dancing on deck)
+  world.celebrate(6500);
+  await cutscene(async () => {
+    audio.sfx('cheer');
+    await talk('cookie', 'SQUEAK! What footwork! You dance like true sailors!');
+    await talk('marigold', 'Three cheers for our new crew! Hip hip — HOORAY!');
+  });
+  learnNote('pirate-hornpipe');
+  giveTockens(15);
+  return true;
+}
+
+onTalk('cookie', async ({ world }) => {
   if (!flag('met:cookie')) {
     await talk('cookie', [
       'Squeak! Welcome to my galley — the tastiest kitchen on the seven seas!',
@@ -390,24 +418,7 @@ onTalk('cookie', async () => {
     setFlag('met:cookie');
   }
   if (flag('map:whole') && !flag('crew:respect')) {
-    const pick = await ask('cookie', flag('hornpipe:tried') ? 'Squeak! Ready for another hornpipe?' : 'Squeak! So you want to sail with us? Then show me your HORNPIPE! A dance-off, right here on deck!', ['Let’s dance!', 'Not yet']);
-    if (pick !== 0) return;
-    setFlag('hornpipe:tried');
-    const o = await dance({ style: 'hornpipe', rival: 'cookie', audience: ['marigold', 'pepper'], title: '💃 Hornpipe Dance-off!', blurb: 'Dance the Sailor’s Hornpipe against Cookie — the whole crew is watching!' });
-    if (!o?.finished) return;
-    if (!o.won) {
-      await talk('cookie', ['Squeak! So close! Sailors practise their hornpipe for years, you know.', 'Try again whenever you like — I’ll be right here!']);
-      return;
-    }
-    setFlag('crew:respect');
-    befriend('cookie', 20);
-    await cutscene(async () => {
-      audio.sfx('cheer');
-      await talk('cookie', 'SQUEAK! What footwork! You dance like true sailors!');
-      await talk('marigold', 'Three cheers for our new crew! Hip hip — HOORAY!');
-    });
-    learnNote('pirate-hornpipe');
-    giveTockens(15);
+    if (!(await cookieDanceOff(world))) return;
   }
   if (flag('map:whole') && !app.data!.recipes.includes('pirates-gumbo')) {
     await talk('cookie', ['Sailing the Swirling Shoals? Then you need my famous Pirate’s Gumbo! It calms the stormiest seas.', 'Here’s the secret...']);
@@ -419,9 +430,18 @@ onTalk('cookie', async () => {
   if (pick === 0) await openCauldron({ title: '🍲 Cookie’s Galley Pot' });
 });
 
-onUse('galley', async () => {
+onUse('galley', async ({ world }) => {
   if (!flag('met:cookie')) await talk('cookie', 'Squeak! Help yourself to my pot — I’ll be right here!');
   setFlag('met:cookie');
+  // before the crew's respect is won, the pot is where most players find Cookie — so she asks
+  if (flag('map:whole') && !flag('crew:respect')) {
+    const pick = await ask('cookie', 'Squeak! Here to cook — or here for our HORNPIPE dance-off? Win it, and the crew will sail with you!', ['Dance-off!', 'Just cook', 'Not now']);
+    if (pick === 0) {
+      await cookieDanceOff(world, true);
+      return;
+    }
+    if (pick !== 1) return;
+  }
   const res = await openCauldron({ title: '🍲 Cookie’s Galley Pot' });
   if (res?.soup.id === 'pirates-gumbo') await talk('cookie', res.drank ? 'THAT’S the stuff! Now the Shoals will be smooth as custard. To the wheel!' : 'Perfect gumbo! Don’t forget to eat it before we sail!');
 });
@@ -466,10 +486,12 @@ onUse('ship-wheel', async ({ world }) => {
   if (!hasEffect('calm') && !flag('shoals:seen')) {
     setFlag('shoals:seen');
     await talk('marigold', 'Take a look at the chart, shipmate... see those whirlpools? They spin a ship right round and back again!');
-    await openPuzzle('marigold-chart');
+    await openPuzzle('marigold-chart', { preview: 'See the whirlpools? In rough seas they spin the ship right back — nobody can sail this yet. We need calm water: Pirate’s Gumbo!' });
   }
   if (!hasEffect('calm')) {
-    await talk('marigold', ['Nobody sails the Swirling Shoals without a belly full of Pirate’s Gumbo!', app.data!.recipes.includes('pirates-gumbo') ? 'Brew some in the galley — and drink it before we sail.' : 'Ask Cookie in the galley — she knows the recipe.']);
+    const d = app.data!;
+    const knows = d.recipes.includes('pirates-gumbo') || d.clues.includes('pirates-gumbo');
+    await talk('marigold', ['Nobody sails the Swirling Shoals without a belly full of Pirate’s Gumbo!', knows ? 'You know Cookie’s recipe — brew some in the galley, and drink it before we sail.' : 'Ask Cookie in the galley — she knows the recipe.']);
     return;
   }
   await talk('marigold', 'All hands on deck! {players}, you take the wheel!');
@@ -562,28 +584,53 @@ onUse('treasure-chest', async ({ world }) => {
   toast('The first Time Sand! (1 of 8)', { icon: '⏳', cls: 'quest', ms: 4200 });
   give('doubloon', 5, { quiet: true });
   give('spyglass', 1, { quiet: true });
-  giveTockens(40);
-  toast('From the chest: 5 gold doubloons, a brass spyglass and 40 Tockens', { icon: '🪙', ms: 3600 });
+  // one line for the whole haul (not a pile of toasts over the players)
+  d.tockens += 40;
+  audio.sfx('coin');
+  toast('From the chest: 5 gold doubloons, a brass spyglass and +40 Tockens', { icon: '🪙', ms: 3600 });
   learnNote('pirate-treasure');
   findScrap('scrap-isle-north', world);
   app.autosave.request();
 });
 
 // ------------------------------------------------------------------ back home: the first sand in the Great Hourglass
-export async function placeSands(): Promise<boolean> {
-  const d = app.data!;
-  if (!d.sands.includes('pirate') || flag('sand:pirate:placed')) return false;
-  await cutscene(async () => {
-    await talk('narrator', 'You hold up the Time Sand. It floats out of your hands... and swirls into the first socket of the Great Hourglass with a bright TING!');
-    audio.sfx('chime');
-    await talk('pip', [
+const SAND_HOME: Record<string, { lines: string[]; after?: () => void }> = {
+  pirate: {
+    lines: [
       'One home, seven to go! And listen...',
       'Tick... tock. Tick, tock! One of Rocco’s clocks is ticking FORWARDS again!',
       'The Map of Time is shimmering — new places are calling. We’ll go when they’re ready!',
-    ]);
-  });
-  setFlag('sand:pirate:placed');
-  befriend('rocco', 10);
+    ],
+    after: () => befriend('rocco', 10),
+  },
+  fifties: {
+    lines: [
+      'Two sands home! The hourglass is glowing brighter already.',
+      'And look out the window — Rollo is hanging a new sign on the bowling alley: TOCKWOOD LANES is open!',
+      'Rosita has come to Tockwood too. There’ll be dancing on the plaza tonight!',
+    ],
+    after: () => {
+      setFlag('bowling:open');
+      setFlag('rosita:arrived');
+    },
+  },
+};
+
+/** Put every Time Sand you've brought home into the Great Hourglass (one little ceremony each). */
+export async function placeSands(): Promise<boolean> {
+  const d = app.data!;
+  const todo = d.sands.filter((s) => !flag(`sand:${s}:placed`));
+  if (!todo.length) return false;
+  for (const s of todo) {
+    const home = SAND_HOME[s] ?? { lines: ['Another sand home! The Great Hourglass sparkles.'] };
+    await cutscene(async () => {
+      await talk('narrator', 'You hold up the Time Sand. It floats out of your hands... and swirls into a socket of the Great Hourglass with a bright TING!');
+      audio.sfx('chime');
+      await talk('pip', home.lines);
+    });
+    setFlag(`sand:${s}:placed`);
+    home.after?.();
+  }
   app.autosave.request();
   return true;
 }

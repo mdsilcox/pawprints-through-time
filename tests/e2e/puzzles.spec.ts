@@ -115,16 +115,55 @@ test.describe('brain-builders', () => {
     expect(cb).toBe('rgb(0, 114, 178)');
   });
 
-  test('on a short phone Pip reads out the rules first, and “How to play” brings them back', async ({ page }, info) => {
+  test('on a short phone Pip points to “How to play”, which shows the rules on a card over the puzzle', async ({ page }, info) => {
     test.skip(info.project.name !== 'phone', 'phones hide the how-to paragraph');
     await startGame(page, [30.5, 24]);
     await openPz(page, 'rocco-lock', 'easy');
-    const bubble = page.getByTestId('pz-bubble');
-    await expect(bubble).toContainText(/gold/i);
-    await press(page, '[data-testid="pz-hint"]');
-    await expect(bubble).not.toContainText(/gold star/i);
+    await expect(page.getByTestId('pz-bubble')).toContainText('How to play');
+    const card = page.getByTestId('pz-rules-card');
+    await expect(card).toBeHidden();
     await press(page, '[data-testid="pz-rules"]');
-    await expect(bubble).toContainText(/gold/i);
+    await expect(card).toBeVisible();
+    await expect(card).toContainText(/gold/i);
+    await press(page, '[data-testid="pz-rules-ok"]');
+    await expect(card).toBeHidden();
+    await press(page, '[data-testid="pz-rules"]');
+    await expect(card).toBeVisible();
+    // Back closes the card, not the puzzle
+    await page.keyboard.press('Escape');
+    await expect(card).toBeHidden();
+    await expect(page.getByTestId('puzzle')).toBeVisible();
+  });
+
+  test('on a short phone the whole Shoals chart fits: the ship, the island and Start over are all on screen', async ({ page }, info) => {
+    test.skip(info.project.name !== 'phone', 'the small screen is the point');
+    await startGame(page, [30.5, 24]);
+    for (const level of ['easy', 'medium', 'hard'] as const) {
+      await openPz(page, 'marigold-chart', level);
+      const vh = page.viewportSize()!.height;
+      for (const sel of ['.sa-board', '.sa-boat', '[data-testid="sail-reset"]']) {
+        const b = (await page.locator(sel).first().boundingBox())!;
+        expect(b, `${level} ${sel}`).toBeTruthy();
+        expect(b.y, `${level} ${sel} top`).toBeGreaterThanOrEqual(0);
+        expect(b.y + b.height, `${level} ${sel} bottom`).toBeLessThanOrEqual(vh);
+      }
+      // nothing hidden inside a scrolled-away corner of the panel either
+      const clipped = await page.locator('.sa-board').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        let p = el.parentElement;
+        while (p) {
+          const s = getComputedStyle(p);
+          if (/(auto|scroll|hidden)/.test(s.overflowY)) {
+            const pr = p.getBoundingClientRect();
+            if (r.bottom > pr.bottom + 1 || r.top < pr.top - 1) return true;
+          }
+          p = p.parentElement;
+        }
+        return false;
+      });
+      expect(clipped, `${level}: the chart is cut off`).toBe(false);
+      await press(page, '[data-testid="pz-leave"]');
+    }
   });
 
   test('sliding blocks: pick a crate up and slide it with the arrow keys until the wheelbarrow rolls out', async ({ page }) => {

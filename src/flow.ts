@@ -1,4 +1,5 @@
 import { app } from './app';
+import { hud } from './ui/hud';
 import { ui } from './ui/ui';
 import { askNames } from './ui/newGame';
 import { audio } from './audio/audio';
@@ -43,7 +44,12 @@ export async function returnToTitle(reason = 'quit'): Promise<void> {
   if (app.data) await app.saveNow();
   app.markPlayEnd(reason);
   const sm = app.phaser.scene;
-  for (const s of sm.getScenes(true)) if (s.scene.key !== 'title') sm.stop(s.scene.key);
+  // every scene that's running, paused (the world behind a dance or a bowling game) or asleep
+  for (const s of sm.getScenes(false)) {
+    const k = s.scene.key;
+    if (k !== 'title' && (sm.isActive(k) || sm.isPaused(k) || sm.isSleeping(k))) sm.stop(k);
+  }
+  hud.setDancing(false);
   sm.start('title');
   audio.music('title');
 }
