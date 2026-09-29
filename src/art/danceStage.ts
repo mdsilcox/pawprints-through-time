@@ -5,7 +5,7 @@ import { makeCanvas } from './draw';
  * Painted backdrops for the dance floor, drawn at the screen's size: the Sunny Marigold's deck
  * at sunset (the hornpipe) and Tockwood's plaza under lantern light (home dances).
  */
-export type StageKind = 'deck' | 'plaza' | 'diner';
+export type StageKind = 'deck' | 'plaza' | 'diner' | 'nile' | 'court';
 
 function bunting(ctx: CanvasRenderingContext2D, w: number, y: number, sag: number, size: number, colors: string[]): void {
   ctx.strokeStyle = PAL.ink;
@@ -50,6 +50,185 @@ export function drawDanceStage(kind: StageKind, w: number, h: number): HTMLCanva
   const { c, ctx } = makeCanvas(Math.max(2, Math.round(w)), Math.max(2, Math.round(h)));
   const u = Math.min(w / 1280, h / 720);
   const horizon = h * 0.5;
+  if (kind === 'court') {
+    // the Duchess's courtyard in Florence: an evening sky, the great dome, arches, banners and a marble floor
+    const sky = ctx.createLinearGradient(0, 0, 0, h * 0.45);
+    sky.addColorStop(0, '#3f4f8f');
+    sky.addColorStop(1, '#e9a37a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, h * 0.45);
+    // the dome over the rooftops
+    const dx = w * 0.5;
+    const dy = h * 0.3;
+    ctx.fillStyle = '#c96a4a';
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineWidth = Math.max(2, 4 * u);
+    ctx.beginPath();
+    ctx.moveTo(dx - 130 * u, dy);
+    ctx.quadraticCurveTo(dx - 120 * u, dy - 170 * u, dx, dy - 190 * u);
+    ctx.quadraticCurveTo(dx + 120 * u, dy - 170 * u, dx + 130 * u, dy);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#f3e6c4';
+    ctx.lineWidth = Math.max(1.5, 3 * u);
+    for (const k of [-0.5, 0, 0.5]) {
+      ctx.beginPath();
+      ctx.moveTo(dx + k * 130 * u, dy);
+      ctx.quadraticCurveTo(dx + k * 90 * u, dy - 120 * u, dx, dy - 188 * u);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#f3e6c4';
+    ctx.fillRect(dx - 14 * u, dy - 220 * u, 28 * u, 32 * u);
+    // the arcade: cream walls with round arches
+    const top = h * 0.3;
+    const floor = h * 0.58;
+    ctx.fillStyle = '#f3e6c4';
+    ctx.fillRect(0, top, w, floor - top);
+    ctx.fillStyle = '#5a4a6a';
+    const n = Math.max(4, Math.round(w / (170 * u)));
+    const aw = w / n;
+    for (let i = 0; i < n; i++) {
+      const ax = i * aw + aw * 0.18;
+      const aww = aw * 0.64;
+      ctx.beginPath();
+      ctx.moveTo(ax, floor);
+      ctx.lineTo(ax, top + aww * 0.55);
+      ctx.arc(ax + aww / 2, top + aww * 0.55, aww / 2, Math.PI, 0);
+      ctx.lineTo(ax + aww, floor);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // banners in the Duchess's colours
+    for (let i = 0; i < n; i++) {
+      const bx = (i + 0.5) * aw;
+      if (i % 2) continue;
+      ctx.fillStyle = i % 4 ? '#6f3fa0' : '#b8404a';
+      ctx.beginPath();
+      ctx.moveTo(bx - 20 * u, top - 10 * u);
+      ctx.lineTo(bx + 20 * u, top - 10 * u);
+      ctx.lineTo(bx + 20 * u, top + 70 * u);
+      ctx.lineTo(bx, top + 56 * u);
+      ctx.lineTo(bx - 20 * u, top + 70 * u);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = PAL.ink;
+      ctx.lineWidth = Math.max(1.5, 2.5 * u);
+      ctx.stroke();
+      ctx.fillStyle = '#f7c65a';
+      ctx.beginPath();
+      ctx.arc(bx, top + 26 * u, 8 * u, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // the marble floor with a star in the middle
+    ctx.fillStyle = '#efe9e0';
+    ctx.fillRect(0, floor, w, h - floor);
+    ctx.strokeStyle = '#d6cabb';
+    ctx.lineWidth = Math.max(1.5, 2 * u);
+    for (let i = -10; i <= 10; i++) {
+      ctx.beginPath();
+      ctx.moveTo(w / 2 + i * w * 0.05, floor);
+      ctx.lineTo(w / 2 + i * w * 0.14, h);
+      ctx.stroke();
+    }
+    for (let y = floor + 26 * u, k = 1; y < h; y += 26 * u * (1 + k * 0.2), k++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    for (const x of [0.15, 0.85]) lantern(ctx, w * x, h * 0.4, 14 * u);
+    bunting(ctx, w, h * 0.05, h * 0.03, 26 * u, ['#6f3fa0', '#f7c65a', '#b8404a', '#fff4e0']);
+    return c;
+  }
+  if (kind === 'nile') {
+    // the builders' festival at Giza: a dusky sky, the pyramids across the Nile, a limestone floor
+    const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+    sky.addColorStop(0, '#4b3f8a');
+    sky.addColorStop(0.6, '#e98a6a');
+    sky.addColorStop(1, '#ffd08a');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, w, horizon + 4);
+    // pyramids on the horizon (the new one with its golden tip)
+    for (const [x, pw, gold] of [
+      [0.28, 300, true],
+      [0.55, 200, false],
+      [0.76, 150, false],
+    ] as [number, number, boolean][]) {
+      const px = w * x;
+      const ph = pw * 0.62 * u;
+      ctx.fillStyle = '#d9b07a';
+      ctx.beginPath();
+      ctx.moveTo(px - (pw / 2) * u, horizon);
+      ctx.lineTo(px, horizon - ph);
+      ctx.lineTo(px + (pw / 2) * u, horizon);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(120, 70, 40, 0.18)';
+      ctx.beginPath();
+      ctx.moveTo(px, horizon - ph);
+      ctx.lineTo(px + (pw / 2) * u, horizon);
+      ctx.lineTo(px, horizon);
+      ctx.closePath();
+      ctx.fill();
+      if (gold) {
+        ctx.fillStyle = '#f7c65a';
+        ctx.beginPath();
+        ctx.moveTo(px - 26 * u, horizon - ph + 40 * u);
+        ctx.lineTo(px, horizon - ph);
+        ctx.lineTo(px + 26 * u, horizon - ph + 40 * u);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    // the Nile with sunset glints
+    const river = ctx.createLinearGradient(0, horizon, 0, h * 0.6);
+    river.addColorStop(0, '#4fa6c4');
+    river.addColorStop(1, '#3a86a8');
+    ctx.fillStyle = river;
+    ctx.fillRect(0, horizon, w, h * 0.1);
+    ctx.fillStyle = 'rgba(255, 220, 150, 0.6)';
+    for (let i = 0; i < 6; i++) ctx.fillRect(w * 0.28 - (50 - i * 6) * u, horizon + (6 + i * 9) * u, (100 - i * 12) * u, 3 * u);
+    // palms at the edges
+    for (const [x, s] of [
+      [0.05, 1],
+      [0.95, -1],
+    ] as [number, number][]) {
+      const px = w * x;
+      ctx.strokeStyle = '#8a5a3a';
+      ctx.lineWidth = 16 * u;
+      ctx.beginPath();
+      ctx.moveTo(px, h * 0.62);
+      ctx.quadraticCurveTo(px + s * 30 * u, h * 0.4, px + s * 12 * u, h * 0.18);
+      ctx.stroke();
+      ctx.fillStyle = '#5fa85a';
+      for (let k = 0; k < 6; k++) {
+        const a = -Math.PI / 2 + (k - 2.5) * 0.55;
+        ctx.beginPath();
+        ctx.ellipse(px + s * 12 * u + Math.cos(a) * 60 * u, h * 0.18 + Math.sin(a) * 30 * u + 20 * u, 70 * u, 16 * u, a, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // the limestone festival floor with a turquoise and gold border
+    const top = h * 0.58;
+    ctx.fillStyle = '#f3e6c4';
+    ctx.fillRect(0, top, w, h - top);
+    ctx.fillStyle = '#4fb8b0';
+    ctx.fillRect(0, top, w, 10 * u);
+    ctx.fillStyle = '#f7c65a';
+    for (let x = 0; x < w; x += 40 * u) ctx.fillRect(x, top + 10 * u, 20 * u, 8 * u);
+    ctx.strokeStyle = '#e0cfa6';
+    ctx.lineWidth = Math.max(1.5, 2 * u);
+    for (let y = top + 50 * u; y < h; y += 44 * u) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+    bunting(ctx, w, h * 0.06, h * 0.04, 30 * u, ['#4fb8b0', '#f7c65a', '#e46a6a', '#fbf6ea']);
+    for (const x of [0.18, 0.42, 0.62, 0.84]) lantern(ctx, w * x, h * 0.36, 14 * u);
+    return c;
+  }
   if (kind === 'diner') {
     // the Rock-a-Roll Diner's dance floor: pink walls, a glowing jukebox, a black-and-white floor
     ctx.fillStyle = '#f7c9d9';

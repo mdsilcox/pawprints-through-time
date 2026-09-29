@@ -24,6 +24,18 @@ const CRATE_LABELS: [string, string][] = [
   ['lentils', 'lentil'],
 ];
 
+/** Stone blocks on the pyramid ramp carry carved pictures instead (so they can still be named). */
+const STONE_LABELS: [string, string][] = [
+  ['scarab', 'scarab'],
+  ['hippo', 'hippo'],
+  ['bead', 'bead'],
+  ['scroll', 'scroll'],
+  ['dates', 'date'],
+  ['lentils', 'lentil'],
+  ['onion', 'onion'],
+  ['blackcumin', 'seed'],
+];
+
 /** Sliding blocks: drag a crate along its direction, or pick it (Enter / tap) and use the arrows. */
 registerView('slide', (ctx) => {
   const level = parseLevel(ctx.variant.rows);
@@ -34,12 +46,14 @@ registerView('slide', (ctx) => {
   let grabFrom = 0;
   let finished = false;
   const label = new Map<string, [string, string]>();
-  level.blocks.filter((b) => !b.key).forEach((b, i) => label.set(b.id, CRATE_LABELS[i % CRATE_LABELS.length]));
+  const stones = ctx.variant.blockName === 'stone block';
+  const labels = stones ? STONE_LABELS : CRATE_LABELS;
+  level.blocks.filter((b) => !b.key).forEach((b, i) => label.set(b.id, labels[i % labels.length]));
   const keyName = ctx.variant.keyName ?? 'the wheelbarrow';
   const blockName = ctx.variant.blockName ?? 'crate';
   const nameOf = (id: string) => (level.blocks.find((b) => b.id === id)?.key ? keyName : `the ${label.get(id)?.[1]} ${blockName}`);
 
-  const board = h('div', { class: `sl-board ${ctx.variant.blockName === 'barrel' ? 'barrels' : ''}`, style: `--w:${level.w}; --h:${level.h}`, attrs: { 'data-testid': 'slide-board' } });
+  const board = h('div', { class: `sl-board ${ctx.variant.blockName === 'barrel' ? 'barrels' : stones ? 'stones' : ''}`, style: `--w:${level.w}; --h:${level.h}`, attrs: { 'data-testid': 'slide-board' } });
   const keyRow = level.blocks.find((b) => b.key)!.y;
   board.append(h('div', { class: 'sl-exit', style: `top: ${(keyRow / level.h) * 100}%; height: ${100 / level.h}%`, attrs: { 'aria-hidden': 'true' } }, '➜'));
   const counter = h('div', { class: 'sl-count', attrs: { 'data-testid': 'slide-moves' } });
@@ -113,7 +127,11 @@ registerView('slide', (ctx) => {
         dataset: { nav: '' },
         attrs: { type: 'button', 'data-testid': `block-${b.id}`, 'aria-label': `${nameOf(b.id)}, slides ${b.dir === 'h' ? 'left and right' : 'up and down'}` },
       },
-      b.key ? h('span', { class: 'sl-barrow', attrs: { 'aria-hidden': 'true' } }, h('img', { attrs: { src: iconUrl('carrot'), alt: '' } }), h('img', { attrs: { src: iconUrl('pumpkin'), alt: '' } })) : h('img', { class: 'sl-icon', attrs: { src: iconUrl(icon), alt: '' } }),
+      b.key
+        ? stones
+          ? h('span', { class: 'sl-barrow sl-capstone', attrs: { 'aria-hidden': 'true' } }, '▲')
+          : h('span', { class: 'sl-barrow', attrs: { 'aria-hidden': 'true' } }, h('img', { attrs: { src: iconUrl('carrot'), alt: '' } }), h('img', { attrs: { src: iconUrl('pumpkin'), alt: '' } }))
+        : h('img', { class: 'sl-icon', attrs: { src: iconUrl(icon), alt: '' } }),
     );
     place(b, el);
     els.set(b.id, el);

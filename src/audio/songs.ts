@@ -308,6 +308,106 @@ S.sockhop = () => {
   };
 };
 
+// ---------------------------------------------------------------- Giza: a ney melody over oud and hand drums, in the Hijaz mode on D
+S.egypt = () => {
+  const bars = ['D', 'D', 'Gm', 'D', 'Cm', 'D', 'Eb', 'D'];
+  return {
+    id: 'egypt',
+    bpm: 92,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'ney',
+        vol: 0.8,
+        lead: true,
+        notes: mel(`
+          D5 - Eb5 F#5 G5 - F#5 Eb5 | D5 - - - . . A4 - | Bb4 - A4 G4 F#4 - G4 A4 | D5 - - - . . . . |
+          A5 - G5 F#5 G5 - F#5 Eb5 | F#5 - Eb5 D5 Eb5 - . . | C5 - Bb4 A4 Bb4 C5 Eb5 - | D5 - - - - - . . `),
+      },
+      { inst: 'oud', vol: 0.42, notes: comp(bars, 8, 'arp', 3, 0.5) },
+      { inst: 'bass', vol: 0.6, notes: bassline(bars, 8, 'root', 2) },
+      { vol: 0.42, drums: [...beat('x...x...', 'doum', 0.6, 8), ...beat('.x.x..x.', 'tek', 0.42, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- the builders' festival: a quick, joyful dance tune (Hijaz on D)
+S.festival = () => {
+  const bars = ['D', 'Eb', 'Gm', 'D', 'Gm', 'Cm', 'Eb', 'D'];
+  return {
+    id: 'festival',
+    bpm: 118,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'ney',
+        vol: 0.82,
+        lead: true,
+        notes: mel(`
+          D5 F#5 G5 A5 G5 F#5 Eb5 D5 | Eb5 F#5 G5 F#5 Eb5 - D5 - | A5 - Bb5 A5 G5 A5 F#5 G5 | A5 - - - . . . . |
+          D6 - A5 - Bb5 A5 G5 F#5 | G5 F#5 Eb5 D5 C5 - D5 - | G5 A5 G5 F#5 Eb5 F#5 Eb5 D5 | D5 - D5! - D5 - . . `),
+      },
+      { inst: 'oud', vol: 0.4, notes: comp(bars, 8, 'offbeat', 4, 0.5) },
+      { inst: 'bass', vol: 0.66, notes: bassline(bars, 8, 'rootfifth', 2) },
+      { vol: 0.5, drums: [...beat('X..xx.x.', 'doum', 0.62, 8), ...beat('.x.x.xx.', 'tek', 0.45, 8), ...beat('xxxxxxxx', 'tamb', 0.25, 8), ...beat('....x...', 'clap', 0.35, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- Florence: a gentle lute pavane with a recorder tune, in D minor
+S.florence = () => {
+  const bars = ['Dm', 'C', 'Bb', 'A', 'Dm', 'F', 'C', 'Dm'];
+  return {
+    id: 'florence',
+    bpm: 96,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'recorder',
+        vol: 0.78,
+        lead: true,
+        notes: mel(`
+          D5 - F5 - A5 - G5 F5 | E5 - - - C5 - D5 E5 | F5 - D5 - Bb4 - C5 D5 | C#5 - - - A4 - - - |
+          D5 - F5 - A5 - D6 C6 | Bb5 - A5 G5 A5 - F5 - | G5 - E5 C5 E5 - D5 C#5 | D5 - - - - - . . `),
+      },
+      { inst: 'lute', vol: 0.45, notes: comp(bars, 8, 'arp', 3, 0.5) },
+      { inst: 'bass', vol: 0.55, notes: bassline(bars, 8, 'root', 2) },
+      { vol: 0.3, drums: [...beat('x.......', 'tamb', 0.35, 8), ...beat('....x...', 'wood', 0.3, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- the Duchess's court dance: a stately-then-merry tune on lute and recorder
+S.court = () => {
+  const bars = ['F', 'C', 'Dm', 'C', 'F', 'Bb', 'C', 'F'];
+  return {
+    id: 'court',
+    bpm: 108,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'recorder',
+        vol: 0.8,
+        lead: true,
+        notes: mel(`
+          F5 - A5 - C6 - A5 - | G5 - E5 - C5 - - - | D5 - F5 - A5 - G5 F5 | E5 - G5 - C5 - . . |
+          F5 G5 A5 Bb5 C6 - A5 - | Bb5 - G5 - D5 - F5 - | E5 F5 G5 A5 G5 - E5 - | F5 - C5! - F5! - . . `),
+      },
+      { inst: 'lute', vol: 0.42, notes: comp(bars, 8, 'strum', 3, 0.5) },
+      { inst: 'bass', vol: 0.62, notes: bassline(bars, 8, 'rootfifth', 2) },
+      { vol: 0.42, drums: [...beat('x...x...', 'kick', 0.4, 8), ...beat('..x...x.', 'tamb', 0.36, 8), ...beat('x.x.x.x.', 'wood', 0.22, 8)] },
+    ],
+  };
+};
+
 void loop;
 
 const cache = new Map<string, Song>();

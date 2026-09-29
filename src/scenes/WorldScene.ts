@@ -32,6 +32,8 @@ import '../world/maps/tockwood';
 import '../world/maps/interiors';
 import '../world/maps/pirate';
 import '../world/maps/fifties';
+import '../world/maps/egypt';
+import '../world/maps/florence';
 
 export interface WorldInit {
   map?: string;

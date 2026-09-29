@@ -10,6 +10,68 @@ export interface HistoryNote {
 }
 
 export const NOTES: HistoryNote[] = [
+  // ---------------------------------------------------------------- Renaissance Florence (~1500)
+  {
+    id: 'florence-renaissance',
+    era: 'florence',
+    title: 'The Renaissance',
+    text: '“Renaissance” means “rebirth”. Around the 1400s and 1500s, Florence was bursting with new ideas in art, building, science and books.',
+  },
+  {
+    id: 'florence-dome',
+    era: 'florence',
+    title: 'The great dome',
+    text: 'The dome of Florence’s cathedral was finished in 1436. Its builder, Filippo Brunelleschi, invented clever machines to lift the bricks — it is still the biggest brick dome in the world.',
+  },
+  {
+    id: 'florence-fresco',
+    era: 'florence',
+    title: 'Fresco painting',
+    text: 'A fresco is painted onto wet plaster. As the plaster dries, the colours become part of the wall — so painters had to work fast!',
+  },
+  {
+    id: 'florence-inventors',
+    era: 'florence',
+    title: 'Inventors’ notebooks',
+    text: 'Leonardo da Vinci grew up near Florence. He filled notebooks with ideas for flying machines — and once built a mechanical lion that could walk!',
+  },
+  {
+    id: 'florence-florin',
+    era: 'florence',
+    title: 'The golden florin',
+    text: 'Florence made its own gold coin, the florin. It was trusted by traders all over Europe.',
+  },
+  // ---------------------------------------------------------------- Ancient Egypt (Giza, ~2500 BCE)
+  {
+    id: 'egypt-pyramids',
+    era: 'egypt',
+    title: 'Who built the pyramids?',
+    text: 'The Great Pyramid was built about 4,500 years ago from more than two million stone blocks. Thousands of skilled workers and farmers built it — they were paid in bread, and lived in a town nearby.',
+  },
+  {
+    id: 'egypt-sphinx',
+    era: 'egypt',
+    title: 'The Great Sphinx',
+    text: 'The Great Sphinx at Giza has the body of a lion and the head of a king. It was carved out of one huge piece of limestone rock, right where it stands.',
+  },
+  {
+    id: 'egypt-hieroglyphs',
+    era: 'egypt',
+    title: 'Hieroglyphs',
+    text: 'Egyptians wrote with hieroglyphs: hundreds of little pictures that stood for sounds and words. Scribes trained for years to learn them all.',
+  },
+  {
+    id: 'egypt-papyrus',
+    era: 'egypt',
+    title: 'Paper from reeds',
+    text: 'Papyrus reeds grew along the Nile. Egyptians sliced them, pressed them flat and dried them into sheets to write on — our word “paper” comes from “papyrus”.',
+  },
+  {
+    id: 'egypt-bread',
+    era: 'egypt',
+    title: 'What the builders ate',
+    text: 'Pyramid builders ate lots of bread, plus onions, lentils, radishes and fish. Bread was so important that workers were often paid with it!',
+  },
   // ---------------------------------------------------------------- 1950s America
   {
     id: 'fifties-rock',
@@ -55,12 +117,6 @@ export const NOTES: HistoryNote[] = [
     text: 'Many pirate crews wrote their own rules, called “articles”. Crews often voted to choose their captain — and could vote a new one in!',
   },
   {
-    id: 'pirate-eight',
-    era: 'pirate',
-    title: 'Pieces of eight',
-    text: '“Pieces of eight” were silver coins from Spain. Each one was worth eight smaller coins called reales.',
-  },
-  {
     id: 'pirate-hornpipe',
     era: 'pirate',
     title: 'The sailor’s hornpipe',
@@ -76,7 +132,7 @@ export const NOTES: HistoryNote[] = [
     id: 'pirate-treasure',
     era: 'pirate',
     title: 'Buried treasure?',
-    text: 'Real pirates hardly ever buried their treasure — they usually shared it out and spent it! Treasure maps with an X are mostly from storybooks.',
+    text: 'Real pirates hardly ever buried their treasure — they usually shared it out and spent it! Much of it was silver “pieces of eight” from Spain. Treasure maps with an X are mostly from storybooks.',
   },
 ];
 

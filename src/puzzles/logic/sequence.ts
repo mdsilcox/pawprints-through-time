@@ -20,11 +20,11 @@ export interface SequencePuzzle {
   rounds: SeqRound[];
 }
 
-export type TokenKind = 'icon' | 'number' | 'clock' | 'arrow';
+export type TokenKind = 'icon' | 'number' | 'clock' | 'arrow' | 'paint';
 
 export function tokenKind(t: string): TokenKind {
   const p = t.slice(0, 2);
-  return p === 'n:' ? 'number' : p === 'c:' ? 'clock' : p === 'a:' ? 'arrow' : 'icon';
+  return p === 'n:' ? 'number' : p === 'c:' ? 'clock' : p === 'a:' ? 'arrow' : p === 'p:' ? 'paint' : 'icon';
 }
 
 export function tokenValue(t: string): string {

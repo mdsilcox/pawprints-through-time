@@ -106,7 +106,28 @@ export async function rescueBunny(id: string, world?: WorldScene): Promise<void>
   const hb = HOPKINS_BY_ID.get(id);
   toast(`${hb?.name ?? id} is hopping home to the warren! (${d.bunnies.length} of 12)`, { icon: '🐰', cls: 'quest', ms: 3400 });
   await applyBunnyReward(d.bunnies.length);
+  await cousinsSand(id);
   app.autosave.request();
+}
+
+/**
+ * The eight Time Sands: one in each era's story, and one more found by that era's three lost
+ * cousins — they hand it over when the last of them is found.
+ */
+async function cousinsSand(id: string): Promise<void> {
+  const d = app.data!;
+  const era = HOPKINS_BY_ID.get(id)?.era;
+  if (!era) return;
+  const sand = `${era}-cousins`;
+  const all = [...HOPKINS_BY_ID.values()].filter((b) => b.era === era);
+  if (d.sands.includes(sand) || !all.every((b) => d.bunnies.includes(b.id))) return;
+  await cutscene(async () => {
+    await talk(`hop-${id}`, ['Wait! Before I go — we cousins found this while we were lost. It was glowing, so we kept it safe for you!']);
+    await talk('pip', ['A TIME SAND! The cousins found one all by themselves!', 'When we’re home, it goes straight into the Great Hourglass.']);
+  });
+  d.sands.push(sand);
+  audio.sfx('chime');
+  toast(`The cousins’ Time Sand! (${d.sands.length} of 8)`, { icon: '⏳', cls: 'quest', ms: 3600 });
 }
 
 async function lostBunnyChat(id: string, world: WorldScene, extra?: () => Promise<void>): Promise<void> {
@@ -366,7 +387,6 @@ onTalk('coco', async () => {
       'Welcome to Coco’s fruit stall! Coconuts, island peppers — the freshest in the Caribbean!',
       'I take Tockens... how strange and shiny! Most folk here pay with pieces of eight.',
     ]);
-    learnNote('pirate-eight');
     setFlag('met:coco');
   }
   // dressed like sailors? Coco gives crew prices
@@ -594,7 +614,17 @@ onUse('treasure-chest', async ({ world }) => {
 });
 
 // ------------------------------------------------------------------ back home: the first sand in the Great Hourglass
-const SAND_HOME: Record<string, { lines: string[]; after?: () => void }> = {
+interface SandHome {
+  lines: string[];
+  after?: () => void;
+}
+
+/** Other chapters add what happens when their sand comes home. */
+export function registerSandHome(id: string, home: SandHome): void {
+  SAND_HOME[id] = home;
+}
+
+const SAND_HOME: Record<string, SandHome> = {
   pirate: {
     lines: [
       'One home, seven to go! And listen...',
@@ -622,7 +652,11 @@ export async function placeSands(): Promise<boolean> {
   const todo = d.sands.filter((s) => !flag(`sand:${s}:placed`));
   if (!todo.length) return false;
   for (const s of todo) {
-    const home = SAND_HOME[s] ?? { lines: ['Another sand home! The Great Hourglass sparkles.'] };
+    const home =
+      SAND_HOME[s] ??
+      (s.endsWith('-cousins')
+        ? { lines: ['The cousins’ sand! Found by the littlest time travellers of all.', 'Clover says the whole warren cheered when it went in. The Great Hourglass sparkles brighter!'] }
+        : { lines: ['Another sand home! The Great Hourglass sparkles.'] });
     await cutscene(async () => {
       await talk('narrator', 'You hold up the Time Sand. It floats out of your hands... and swirls into a socket of the Great Hourglass with a bright TING!');
       audio.sfx('chime');

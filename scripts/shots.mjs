@@ -918,6 +918,195 @@ const SCENARIOS = [
       await wait(600);
     },
   },
+  // ---------------------------------------------------------------- M9: Ancient Egypt and Renaissance Florence
+  {
+    name: 'giza',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'egypt', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 16.2, 16.8, 0);
+      if (players === 2) await g(page, 'teleport', 17.4, 17.1, 1);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'giza-sphinx',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'egypt', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 16.8, 10.2, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'giza-site',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'egypt', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 31, 16.4, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'giza-done',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'giza:arrived', 'capstone:placed']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'egypt', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 33, 16.4, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'tomb-dark',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'giza:arrived', 'sphinx:passed']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'tomb', 'in');
+      await wait(2600);
+    },
+  },
+  {
+    name: 'tomb-glow',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'giza:arrived', 'sphinx:passed', 'tomb:lit']) await g(page, 'setFlag', f, true);
+      await g(page, 'drink', 'glowbroth', 2);
+      await g(page, 'goTo', 'tomb', 'in');
+      await wait(2400);
+    },
+  },
+  {
+    name: 'sphinx-riddle',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'sphinx-riddles', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'ramp-stones',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'ramp-stones', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'dance-festival',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'openDance', 'festival', null, ['neb', 'ankhi', 'sesi']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(7400);
+    },
+  },
+  {
+    name: 'florence',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'florence', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 23, 13.4, 0);
+      if (players === 2) await g(page, 'teleport', 24.2, 13.7, 1);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'florence-palazzo',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'florence', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 31, 22.6, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'workshop-in',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'flor:arrived', 'met:lucia']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'workshop', 'in');
+      await wait(2200);
+    },
+  },
+  {
+    name: 'studio-in',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'studio', 'in');
+      await wait(2200);
+    },
+  },
+  {
+    name: 'fresco-puzzle',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'fiorella-fresco', 'hard');
+      await wait(900);
+    },
+  },
+  {
+    name: 'lion-grid',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'lucia-lion', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'dance-court',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'openDance', 'court', null, ['orsola', 'lucia', 'fiorella']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(7400);
+    },
+  },
+  {
+    name: 'worldmap4',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'portal:ready', true);
+      for (const s of ['pirate', 'egypt', 'fifties']) await g(page, 'addSand', s);
+      await g(page, 'goTo', 'clocktower', 'in');
+      await wait(1500);
+      await g(page, 'openWorldMap');
+      await wait(700);
+    },
+  },
   {
     name: 'worldmap2',
     players: [1],

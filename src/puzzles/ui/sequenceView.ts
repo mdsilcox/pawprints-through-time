@@ -6,10 +6,23 @@ import { seededShuffle, hashString } from '../logic/riddle';
 import { registerView } from './screen';
 import { notQuite, pop, wiggle } from './common';
 
-/** Draw one pattern token: an item icon, a number, a little clock or an arrow. */
+/** Painted tiles: every colour has its own motif too (colour is never the only clue). */
+const PAINT_MOTIF: Record<string, [string, string]> = {
+  red: ['♥', 'red heart'],
+  blue: ['●', 'blue dot'],
+  gold: ['★', 'gold star'],
+  green: ['▲', 'green leaf'],
+  purple: ['◆', 'purple diamond'],
+};
+
+/** Draw one pattern token: an item icon, a number, a little clock, an arrow or a painted tile. */
 export function token(t: string): HTMLElement {
   const kind = tokenKind(t);
   const v = tokenValue(t);
+  if (kind === 'paint') {
+    const [motif, name] = PAINT_MOTIF[v] ?? ['?', v];
+    return h('span', { class: `sq-tok paint p-${v}`, attrs: { 'aria-label': name } }, h('span', { class: 'sq-motif' }, motif));
+  }
   if (kind === 'icon') return h('span', { class: 'sq-tok icon' }, h('img', { attrs: { src: iconUrl(v), alt: v } }));
   if (kind === 'number') return h('span', { class: 'sq-tok num' }, v);
   if (kind === 'arrow') return h('span', { class: `sq-tok arrow a-${v}`, attrs: { 'aria-label': v } }, h('span', null, '➜'));

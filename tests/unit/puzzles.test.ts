@@ -11,6 +11,8 @@ import { allPuzzles, recordAttempt, starsFor } from '../../src/puzzles/registry'
 import { TOCKWOOD_RIDDLES } from '../../src/puzzles/content/riddles';
 import '../../src/puzzles/content/tockwood';
 import { PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
+import { EGYPT_RIDDLES } from '../../src/puzzles/content/egypt';
+import '../../src/puzzles/content/florence';
 import { defaultSave, type Difficulty } from '../../src/core/state';
 import type { LogicGrid } from '../../src/puzzles/logic/logicGrid';
 import type { SailVariant, SlideVariant, CodeVariant } from '../../src/puzzles/types';
@@ -60,7 +62,7 @@ describe('riddles', () => {
 
   it('every riddle is complete: answers, 4+ decoys that are not answers, three hints, unique ids', () => {
     expect(TOCKWOOD_RIDDLES.length).toBeGreaterThanOrEqual(15);
-    const all = [...TOCKWOOD_RIDDLES, ...PIRATE_RIDDLES];
+    const all = [...TOCKWOOD_RIDDLES, ...PIRATE_RIDDLES, ...EGYPT_RIDDLES];
     expect(new Set(all.map((r) => r.id)).size).toBe(all.length);
     for (const r of all) {
       expect(r.answers.length).toBeGreaterThan(0);

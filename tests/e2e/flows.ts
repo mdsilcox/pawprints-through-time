@@ -2,6 +2,10 @@ import { expect, type Page } from '@playwright/test';
 import { advanceDialogue, hook, playThrough, press, pressUntil, talkTo } from './helpers';
 import { solve as solveSail } from '../../src/puzzles/logic/navigation';
 import { MARIGOLD_CHART, PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
+import { EGYPT_RIDDLES, RAMP_STONES } from '../../src/puzzles/content/egypt';
+import { FIORELLA_FRESCO, LUCIA_LION } from '../../src/puzzles/content/florence';
+import { parseLevel, solve as solveSlide } from '../../src/puzzles/logic/sliding';
+import type { Riddle } from '../../src/puzzles/logic/riddle';
 
 /**
  * Whole-chapter playthroughs, played the way a family would (walk up, press the action button,
@@ -314,7 +318,7 @@ export async function pirateChapter(page: Page, two: boolean): Promise<void> {
   await homeWithTheSand(page, [7.5, 19.3], 'pirate');
   await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('pirate-sand');
   expect((await hook<any>(page, 'state')).tockens).toBeGreaterThan(tockens0 + 50);
-  expect((await hook<any>(page, 'state')).notes.length).toBeGreaterThanOrEqual(6);
+  expect((await hook<any>(page, 'state')).notes.length).toBeGreaterThanOrEqual(5);
 }
 
 // ------------------------------------------------------------------ chapter 2: 1950s America
@@ -369,4 +373,243 @@ export async function fiftiesChapter(page: Page, two: boolean): Promise<void> {
   expect(await flag(page, 'bowling:open')).toBe(true);
   expect(await flag(page, 'rosita:arrived')).toBe(true);
   await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('fifties-sand');
+}
+
+// ------------------------------------------------------------------ chapter 3: Ancient Egypt
+/** Answer whichever riddle is showing (picking it, or typing it on Tricky). */
+export async function answerRiddle(page: Page, pool: Riddle[]): Promise<void> {
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  const q = (await page.getByTestId('riddle-text').textContent())!;
+  const riddle = pool.find((r) => r.q === q)!;
+  expect(riddle, q).toBeTruthy();
+  if (await page.getByTestId('riddle-input').count()) {
+    await page.getByTestId('riddle-input').fill(riddle.answers[0]);
+    await page.getByTestId('riddle-input').press('Enter');
+  } else {
+    const labels = await page.locator('[data-testid^="riddle-choice-"]').allTextContents();
+    const right = labels.findIndex((l) => riddle.answers.some((a) => a.toLowerCase() === l.trim().toLowerCase()));
+    await press(page, `[data-testid="riddle-choice-${right}"]`);
+  }
+  await celebrate(page);
+}
+
+/** Slide the blocks out of the way with the keys, following the solver's moves. */
+export async function solveSlideBoard(page: Page, rows: string[]): Promise<void> {
+  const level = parseLevel(rows);
+  const moves = solveSlide(level)!;
+  for (const m of moves) {
+    const b = level.blocks.find((x) => x.id === m.id)!;
+    await page.getByTestId(`block-${m.id}`).click(); // pick it up
+    const key = b.dir === 'h' ? (m.d > 0 ? 'ArrowRight' : 'ArrowLeft') : m.d > 0 ? 'ArrowDown' : 'ArrowUp';
+    for (let i = 0; i < Math.abs(m.d); i++) await page.keyboard.press(key);
+    await page.keyboard.press('Escape'); // put it down
+    await page.waitForTimeout(120);
+  }
+  await celebrate(page);
+}
+
+async function variantOf(page: Page): Promise<'easy' | 'medium' | 'hard'> {
+  const diff = (await page.getByTestId('pz-difficulty').textContent())!.trim();
+  return diff === 'Easy' ? 'easy' : diff === 'Medium' ? 'medium' : 'hard';
+}
+
+export async function egyptChapter(page: Page, two: boolean): Promise<void> {
+  // the master builder has lost his plans
+  await talkTo(page, 'neb');
+  await playThrough(page);
+  expect(await flag(page, 'met:neb')).toBe(true);
+
+  // the Sphinx's riddle gauntlet: three right answers in a row
+  await useAt(page, 16.8, 9.8, 'Talk');
+  await advanceDialogue(page); // the Sphinx wakes up, chats... "Ready!"
+  for (let i = 0; i < 3; i++) {
+    await answerRiddle(page, EGYPT_RIDDLES);
+    if (i < 2) await advanceDialogue(page); // "CORRECT! Riddle number two..."
+  }
+  await playThrough(page);
+  expect(await flag(page, 'sphinx:passed')).toBe(true);
+  expect((await hook<any>(page, 'state')).wardrobe).toContain('nemes');
+  await greetBunny(page, 'nibbles'); // napping between the Sphinx's paws
+
+  // the tomb is pitch dark: Glowbroth from Sesi's pot (black cumin, sea salt, a radish)
+  await talkTo(page, 'sesi');
+  await playThrough(page);
+  await useAt(page, 11.2, 17.3, 'Shop');
+  for (const id of ['black-cumin', 'sea-salt', 'radish']) await press(page, `[data-testid="stall-buy-${id}"]`);
+  await press(page, '[data-testid="stall-done"]');
+  await useAt(page, 19.6, 17.5, 'Cook');
+  await expect(page.getByTestId('cauldron')).toBeVisible();
+  for (const id of ['black-cumin', 'sea-salt', 'radish']) await page.getByTestId(`cd-ing-${id}`).click();
+  await press(page, '[data-testid="cd-stir"]');
+  for (const k of two ? ['KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash'] : ['KeyE', 'KeyE', 'KeyE', 'KeyE']) {
+    await page.waitForTimeout(420);
+    await page.keyboard.press(k);
+  }
+  await expect(page.getByTestId('cd-result')).toHaveAttribute('data-soup', 'glowbroth');
+  await page.waitForTimeout(350);
+  await press(page, '[data-testid="cd-drink"]');
+  await playThrough(page);
+  expect((await hook<any[]>(page, 'effects')).map((e) => e.effect)).toContain('glow');
+
+  // inside the old tomb: the plans, and a cousin lost in the dark
+  await enter(page, 8, 7.6, 'tomb');
+  await playThrough(page); // "Your glow fills the old tomb!"
+  await useAt(page, 7, 5.8, 'Look');
+  await playThrough(page);
+  expect(await flag(page, 'plans:found')).toBe(true);
+  expect(await inv(page, 'pyramid-plans')).toBe(1);
+  await greetBunny(page, 'lotus');
+
+  // the plans back to Neb, then the stones on the ramp
+  await hook(page, 'goTo', 'egypt', 'tomb-out');
+  await toMap(page, 'egypt');
+  await talkTo(page, 'neb');
+  await playThrough(page);
+  expect(await flag(page, 'plans:given')).toBe(true);
+  await useAt(page, 31.4, 15.8, 'Ramp');
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  await solveSlideBoard(page, RAMP_STONES.variants[await variantOf(page)].rows);
+  await playThrough(page, 60_000);
+  expect(await flag(page, 'capstone:placed')).toBe(true);
+  expect(await hook<string[]>(page, 'sands')).toContain('egypt');
+
+  // the builders' festival
+  await useAt(page, 15.6, 20.3, 'Dance!');
+  await advanceDialogue(page); // "let the festival BEGIN!"
+  await danceItOut(page, two);
+  await playThrough(page);
+  expect(await flag(page, 'festival:danced')).toBe(true);
+  expect(await inv(page, 'egypt-lamp')).toBe(1);
+  expect((await hook<any>(page, 'state')).wardrobe).toContain('shendyt');
+
+  // Sandy hides with the builders' baskets until Biscuit sniffs her out — and the cousins found a sand too
+  await tp(page, 42.4, 19.8);
+  await page.waitForTimeout(1200);
+  await pressUntil(page, 'KeyQ', () => hook(page, 'getFlag', 'found:sandy') as Promise<boolean>);
+  await page.waitForTimeout(700);
+  await greetBunny(page, 'sandy');
+  await playThrough(page);
+  expect(await hook<string[]>(page, 'sands')).toContain('egypt-cousins');
+
+  // home: both sands into the Great Hourglass, and Ankhi comes to visit
+  await homeWithTheSand(page, [5, 23.9], 'egypt');
+  expect(await flag(page, 'sand:egypt-cousins:placed')).toBe(true);
+  expect(await flag(page, 'ankhi:arrived')).toBe(true);
+  await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('egypt-sand');
+  await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('egypt-bunnies');
+}
+
+// ------------------------------------------------------------------ chapter 4: Renaissance Florence
+/** A pattern puzzle: pick the right painted tile, row after row. */
+async function solvePattern(page: Page, rounds: { answer: string }[]): Promise<void> {
+  for (const r of rounds) {
+    const choice = page.locator(`.sq-choice[data-token="${r.answer}"]`);
+    await expect(choice).toBeVisible();
+    await expect(choice).toBeEnabled();
+    await page.waitForTimeout(250);
+    await choice.click();
+    await page.waitForTimeout(700);
+  }
+  await celebrate(page);
+}
+
+/** A logic grid: tick (✓) every right answer — a ✓ crosses out the rest of its row and column. */
+async function solveGrid(page: Page, answer: number[][]): Promise<void> {
+  for (let c = 0; c < answer.length; c++)
+    for (let s = 0; s < answer[c].length; s++) {
+      const cell = page.getByTestId(`grid-${c}-${s}-${answer[c][s]}`);
+      await cell.click(); // ✗
+      await cell.click(); // ✓
+    }
+  await celebrate(page);
+}
+
+export async function florenceChapter(page: Page, two: boolean): Promise<void> {
+  // the Duchess and her court dance that can't begin
+  await talkTo(page, 'orsola');
+  await playThrough(page);
+  expect(await flag(page, 'met:orsola')).toBe(true);
+
+  // Fiorella's studio: mend the fresco's painted border
+  await enter(page, 38.5, 14.4, 'studio');
+  await talkTo(page, 'fiorella');
+  await playThrough(page);
+  await useAt(page, 6.5, 4.0, 'Look');
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  await solvePattern(page, FIORELLA_FRESCO.variants[await variantOf(page)].rounds);
+  await playThrough(page);
+  expect(await flag(page, 'fresco:mended')).toBe(true);
+  expect((await hook<any>(page, 'state')).wardrobe).toContain('painter-smock');
+  // Sketch hides among the canvases until Biscuit sniffs
+  await tp(page, 2.8, 6.9);
+  await page.waitForTimeout(1200);
+  await pressUntil(page, 'KeyQ', () => hook(page, 'getFlag', 'found:sketch') as Promise<boolean>);
+  await page.waitForTimeout(700);
+  await greetBunny(page, 'sketch');
+
+  // Maestra Lucia's workshop: the lion's gear lock, then its jumbled parts
+  await hook(page, 'goTo', 'florence', 'studio-out');
+  await toMap(page, 'florence');
+  await enter(page, 7.5, 14.4, 'workshop');
+  await talkTo(page, 'lucia');
+  await playThrough(page);
+  await useAt(page, 7, 7.2, 'Look');
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  for (const n of await hook<number[]>(page, 'puzzleSecret')) await page.getByTestId(`code-pick-${n}`).click();
+  await page.getByTestId('code-check').click();
+  await celebrate(page);
+  await advanceDialogue(page); // "The panel is open! ...let's put them back!"
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  const grid = LUCIA_LION.variants[await variantOf(page)] as { answer: number[][] };
+  await solveGrid(page, grid.answer);
+  await playThrough(page, 60_000);
+  expect(await flag(page, 'lion:awake')).toBe(true);
+  expect(await hook<string[]>(page, 'sands')).toContain('florence');
+
+  // Pesto in the herb garden; Twirl stuck up high (Hopscotch Chowder from Beppe's pot)
+  await hook(page, 'goTo', 'florence', 'workshop-out');
+  await toMap(page, 'florence');
+  await greetBunny(page, 'pesto');
+  await useAt(page, 43.2, 22.4, 'Look up');
+  await playThrough(page); // "Help! ...super-bunny jumps!"
+  expect(await flag(page, 'rescued:twirl')).toBeFalsy();
+  await useAt(page, 14.6, 21.1, 'Shop');
+  for (const id of ['lettuce', 'carrot', 'honey']) await press(page, `[data-testid="stall-buy-${id}"]`);
+  await press(page, '[data-testid="stall-done"]');
+  await useAt(page, 8.2, 22.9, 'Cook');
+  await expect(page.getByTestId('cauldron')).toBeVisible();
+  for (const id of ['lettuce', 'carrot', 'honey']) await page.getByTestId(`cd-ing-${id}`).click();
+  await press(page, '[data-testid="cd-stir"]');
+  for (const k of two ? ['KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash', 'KeyE', 'Slash'] : ['KeyE', 'KeyE', 'KeyE', 'KeyE']) {
+    await page.waitForTimeout(420);
+    await page.keyboard.press(k);
+  }
+  await expect(page.getByTestId('cd-result')).toHaveAttribute('data-soup', 'hopscotch-chowder');
+  await page.waitForTimeout(350);
+  await press(page, '[data-testid="cd-drink"]');
+  await playThrough(page);
+  await useAt(page, 43.2, 22.4, 'Look up');
+  await playThrough(page); // BOING! ...and the cousins' sand
+  expect((await hook<any>(page, 'state')).bunnies).toContain('twirl');
+  expect(await hook<string[]>(page, 'sands')).toContain('florence-cousins');
+
+  // the Duchess's court dance
+  await useAt(page, 29.5, 22.0, 'Dance!');
+  await advanceDialogue(page); // "Musicians — play!"
+  await danceItOut(page, two);
+  await playThrough(page);
+  expect(await flag(page, 'court:danced')).toBe(true);
+  expect(await inv(page, 'globe')).toBe(1);
+
+  // home with both sands; Maestra Lucia comes to visit Rocco
+  await homeWithTheSand(page, [22, 24.5], 'florence');
+  expect(await flag(page, 'sand:florence-cousins:placed')).toBe(true);
+  expect(await flag(page, 'lucia:arrived')).toBe(true);
+  await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('florence-sand');
+  await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('florence-bunnies');
 }

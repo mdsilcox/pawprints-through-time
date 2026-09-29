@@ -74,6 +74,11 @@ import './story/soupStory';
 import './puzzles/content/pirates';
 import './puzzles/ui/jigsawView';
 import './story/pirateChapter';
+import './puzzles/content/egypt';
+import './story/egyptChapter';
+import './puzzles/content/florence';
+import './story/florenceChapter';
+import { EGYPT_PROPS } from './art/egyptProps';
 import { learnNote, openNotes } from './ui/notesScreen';
 import { openWorldMap } from './ui/worldMap';
 import { openRecipeBook } from './ui/recipeBook';
@@ -106,6 +111,14 @@ installQuestRuntime();
 registerPortraitSource((id) => {
   if (id === 'biscuit') return renderCorgiPortrait(biscuitPieces(app.data?.biscuit.outfit ?? {}), 160);
   if (id === 'grandma') return renderBunnyPortrait(GRANDMA, 160);
+  if (id === 'sphinx') {
+    // the Sphinx's face, cropped from its statue
+    const src = EGYPT_PROPS['prop-sphinx']().cv.c;
+    const c = document.createElement('canvas');
+    c.width = c.height = 160;
+    c.getContext('2d')!.drawImage(src, 95, 50, 300, 300, 0, 0, 160, 160);
+    return c;
+  }
   if (id.startsWith('hop-')) {
     const hb = HOPKINS.find((b) => `hop-${b.id}` === id);
     if (hb) return renderBunnyPortrait(hb.look, 160);

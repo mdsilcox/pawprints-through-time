@@ -3,6 +3,8 @@ import { makeCanvas, rrPath, circlePath, ellipsePath, paint, softShade, OUTLINE,
 import type { PropArt } from './props';
 import { FIFTIES_FURNITURE } from './fiftiesProps';
 import { HOME_ART } from './homeArt';
+import { EGYPT_FURNITURE } from './egyptProps';
+import { FLORENCE_FURNITURE } from './florenceProps';
 
 /** Indoor furniture and fixtures (also the decorating catalogue). Anchor = floor contact point. */
 const L = OUTLINE;
@@ -83,6 +85,8 @@ function greatHourglass(filled: number): PropArt {
 export const FURNITURE_ART: Record<string, () => PropArt> = {
   ...FIFTIES_FURNITURE,
   ...HOME_ART,
+  ...EGYPT_FURNITURE,
+  ...FLORENCE_FURNITURE,
   bed: () =>
     art(200, 240, (c) => {
       box(c, 16, 20, 168, 60, 18, PAL.wood);

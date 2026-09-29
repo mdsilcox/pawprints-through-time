@@ -1,5 +1,6 @@
 import { PAL, shade } from './palette';
 import { makeCanvas, rng } from './draw';
+import { glyph } from './egyptProps';
 
 /**
  * Interior backdrops: the back wall (with wallpaper, windows, trim), side walls, floor pattern,
@@ -185,9 +186,8 @@ export function drawRoom(spec: RoomSpec, T: number): HTMLCanvasElement {
       }
       break;
     case 'hieroglyph':
-      ctx.fillStyle = shade(spec.wall, -0.22);
-      ctx.font = '700 34px Fredoka, sans-serif';
-      for (let y = wy + 50; y < wh; y += 60) for (let x = fx + 30; x < fx + fw; x += 70) ctx.fillText(['𓂀', '☥', '◯', '𓆣', '〰', '▲'][Math.floor(r() * 6)], x, y);
+      // rows of carved picture-signs (drawn, so every device shows them)
+      for (let y = wy + 40; y < wh - 16; y += 58) for (let x = fx + 40; x < fx + fw - 20; x += 64) glyph(ctx, Math.floor(r() * 5), x, y, 34, shade(spec.wall, -0.28));
       break;
     case 'checker':
       ctx.fillStyle = shade(spec.wall, -0.07);

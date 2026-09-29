@@ -435,6 +435,46 @@ function starlightcup(): PropArt {
   }, 164);
 }
 
+function carrotlamp(): PropArt {
+  return art(90, 210, (c) => {
+    box(c, 40, 120, 10, 80, 3, PAL.goldDark, 3);
+    box(c, 18, 196, 54, 10, 5, PAL.goldDark, 3);
+    // a glowing golden carrot for a lampshade
+    const g = c.createRadialGradient(45, 70, 4, 45, 70, 70);
+    g.addColorStop(0, 'rgba(255, 230, 150, 0.9)');
+    g.addColorStop(1, 'rgba(255, 230, 150, 0)');
+    c.fillStyle = g;
+    c.fillRect(0, 0, 90, 150);
+    c.beginPath();
+    c.moveTo(20, 40);
+    c.quadraticCurveTo(45, 30, 70, 40);
+    c.quadraticCurveTo(58, 96, 45, 126);
+    c.quadraticCurveTo(32, 96, 20, 40);
+    c.closePath();
+    paint(c, PAL.gold, L);
+    c.strokeStyle = PAL.goldDark;
+    c.lineWidth = 2.5;
+    for (const y of [56, 74, 92]) {
+      c.beginPath();
+      c.moveTo(30, y);
+      c.lineTo(42, y + 4);
+      c.stroke();
+    }
+    for (const [x, a] of [
+      [36, -0.4],
+      [45, 0],
+      [54, 0.4],
+    ] as [number, number][]) {
+      c.save();
+      c.translate(x, 32);
+      c.rotate(a);
+      ellipsePath(c, 0, -12, 6, 14);
+      paint(c, PAL.leaf, 2.5);
+      c.restore();
+    }
+  }, 204);
+}
+
 function pintrophy(): PropArt {
   return art(90, 176, (c) => {
     box(c, 22, 110, 46, 58, 6, '#efe6d4');
@@ -648,6 +688,7 @@ export const HOME_ART: Record<string, () => PropArt> = {
   seachest,
   starlightcup,
   pintrophy,
+  carrotlamp,
   cuckoo,
   'painting-sea': paintingSea,
   'painting-meadow': paintingMeadow,

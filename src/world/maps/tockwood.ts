@@ -123,6 +123,8 @@ function objects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'finnegan', kind: 'npc', x: 31.2, y: 41.8, p: { id: 'finnegan', wander: 0.5 } });
   o.push({ id: 'marigold-visit', kind: 'npc', x: 30.8, y: 39.6, p: { id: 'marigold', wander: 0.4 }, when: 'marigold:friend' });
   o.push({ id: 'juniper', kind: 'npc', x: 22.5, y: 13.3, p: { id: 'juniper', wander: 1.2 } });
+  // (Maestra Lucia visits from Florence once the fourth sand is home: two tinkerers at one stall)
+  o.push({ id: 'lucia-visit', kind: 'npc', x: 37.6, y: 19.4, p: { id: 'lucia', wander: 0.6 }, when: 'lucia:arrived' });
   // (beside his stall, not in front of the counter — so the Shop is always in reach)
   o.push({ id: 'rocco', kind: 'npc', x: 33.2, y: 18.9, p: { id: 'rocco', wander: 0.6 } });
   o.push({ id: 'rosita', kind: 'npc', x: 28.5, y: 22.8, p: { id: 'rosita', wander: 2 }, when: 'rosita:arrived' });

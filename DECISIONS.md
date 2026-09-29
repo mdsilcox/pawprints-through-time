@@ -114,4 +114,9 @@ One line each: decision — reason.
 - Each era gives a keepsake for the cottage (spec examples: a pirate chest, a jukebox; the Egyptian lamp and Renaissance globe come with M9).
 - On small phones the puzzle rules show on a card behind "❔ How to play" (Pip's first line points at it) instead of in Pip's bubble, so the board always gets the room (the M6 re-review found the Shoals chart cut off).
 - Leaving play stops every scene that is running, paused or asleep, and mini-game cards settle their promises when closed from outside — so a break or a quit mid-dance/mid-bowling can never leave a frozen world or a dance-mode HUD behind (M7 review).
+- The eight Time Sands: each era has two — one from its story and one from its three Hopkins cousins (handed over when the last one is rescued). It rewards finding every cousin (feature 13) and keeps every era worth the same.
+- Egypt's dark tomb needs Glowbroth (spec: "lights up dark tombs"), so its ingredients (black cumin, sea salt, radishes) and a cooking pot are right there in Giza — nobody has to travel home to finish the chapter. Florence's high column needs Hopscotch Chowder (spec: "reach high ledges"), likewise brewable on the spot.
+- The Sphinx's "riddle gauntlet" is three riddles in a row from a pool of eight original ones; a wrong answer just ends that try, and the next try asks different riddles.
+- Florence's "mechanical logic puzzles" are the lion's gear lock (code-breaking) and its parts (a logic grid); the "painting-pattern puzzle" is a fresco border of painted tiles, each colour paired with a motif (heart, dot, star, leaf, diamond) for colour-blind players.
+- Canvas art never relies on special fonts for pictures: hieroglyphs are drawn shapes (eye, ankh, sun, water, bird), so they look the same on every device.
 

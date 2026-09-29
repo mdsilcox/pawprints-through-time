@@ -2,6 +2,8 @@ import { PAL, shade } from './palette';
 import { makeCanvas, rrPath, circlePath, ellipsePath, paint, softShade, OUTLINE, rng, sparkle, type Cv } from './draw';
 import { crateJam, gearLockbox, knittingBasket, mosaicFloor, riddleStone, toyBoat, cloverPatch, caveMouth, lookoutRock, chestClosed, chestOpen } from './puzzleProps';
 import { FIFTIES_PROPS } from './fiftiesProps';
+import { EGYPT_PROPS } from './egyptProps';
+import { FLORENCE_PROPS } from './florenceProps';
 import { barrelJam, cargoHatch, fruitStall, galleyStove, mapTable, messageBottle, rowboat, saltPan, shipHull, shipMast, shipWheel, stoneDoorClosed, stoneDoorOpen, wallTorch, washingLine, crewSign } from './pirateProps';
 
 /**
@@ -860,6 +862,8 @@ export function oakBurrow(): PropArt {
 
 export const PROP_ART: Record<string, () => PropArt> = {
   ...FIFTIES_PROPS,
+  ...EGYPT_PROPS,
+  ...FLORENCE_PROPS,
   'tree-round': () => treeRound(11),
   'tree-fruit': () => treeRound(23, true),
   'tree-pine': () => treePine(2),

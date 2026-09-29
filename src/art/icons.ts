@@ -497,6 +497,25 @@ const DRAW: Record<string, (ctx: Ctx) => void> = {
       e(c, x, y, 8, 13, '#8a4e2c', 2.5, a);
     shine(c, 34, 26, 2, 4);
   },
+  lettuce: (c) => {
+    for (const [x, y, rx] of [
+      [22, 36, 14],
+      [42, 36, 14],
+      [32, 28, 16],
+      [32, 42, 15],
+    ] as [number, number, number][])
+      e(c, x, y, rx, rx * 0.8, '#8fd06d');
+    e(c, 32, 36, 8, 7, '#b8e68a', 2);
+  },
+  blackcumin: (c) => {
+    r(c, 12, 30, 40, 22, 10, '#d9b77a');
+    for (let i = 0; i < 11; i++) e(c, 17 + (i % 6) * 6, 29 - Math.floor(i / 6) * 5, 2.4, 3.6, '#2f2622', 1.2);
+  },
+  bead: (c) => {
+    e(c, 32, 34, 18, 16, '#4fc1b0');
+    e(c, 32, 34, 6, 5.5, '#2f7f7a', 2);
+    shine(c, 25, 27);
+  },
   lentils: (c) => {
     r(c, 12, 30, 40, 22, 10, '#c99a62');
     for (let i = 0; i < 9; i++) e(c, 18 + (i % 5) * 7, 28 - Math.floor(i / 5) * 5, 3.5, 3, '#e8a03a', 1.5);
