@@ -1,5 +1,14 @@
 # Progress log
 
+## M4 — Wardrobe ✅ (awaiting critic)
+- Wardrobe screen (pause menu tile, the cottage wardrobe, Bramble's magic mirror): tabs for Player 1, Player 2 and Biscuit; Hat / Top / Bottoms / Shoes / Extras (+ Biscuit's Hat / Neck); item thumbnails drawn on a mannequin; colour-variant swatches; a Look tab (6 skin tones, 8 hair colours, 6 hairstyles); a live, rotatable preview (front/side/back) with a squishy bounce; "Surprise me!" dice.
+- 49 player clothing items (30+ required) incl. era pieces (tricorn, deckhand bandana, sailor shirt, captain's coat, parrot, linen tunic & shendyt, nemes, broad collar, poodle skirt, cat-eye glasses, letter jacket, bowling shirt, saddle shoes, roller skates, Renaissance cap, doublet, breeches, painter's smock...) and 9 Biscuit items (bandana, tiny pirate hat, party bow, bunny-ear hat...).
+- Starting wardrobe: 10 player pieces + Biscuit's bandana and party bow; both players always keep a top, bottoms and shoes.
+- Bramble's shop: talk to Bramble ("Browse your clothes" / "Dress up Biscuit") or use the mirror: try things on in the preview, buy with Tockens, a friendly "not enough Tockens" hint.
+- Changes show instantly on the world sprites (players and Biscuit), and portraits update; the same outfit data feeds the dance and bowling mini-games later.
+- Tests: catalogue integrity (30+ items, all kinds drawable, era pieces, shop prices), wardrobe rules (owned-only equip, colour clamping, essentials stay on, buying, looks, surprise); browser tests for dressing P1/P2/Biscuit, the shop (try on, buy, can't afford), mirror and cottage wardrobe, keyboard-only use.
+- Robustness: input "menu mode" is now read live from the UI (a key pressed as a menu opens/closes is always routed correctly); tests pin the device hour (the real late-night nudge can't interrupt them) and poll instead of fixed waits.
+
 ## M3 — Tockwood comes alive ✅ (awaiting critic)
 - Opening story: a 4-page illustrated storybook (the island, Pip and the Great Hourglass, the gentle storm scattering the sands, backwards clocks and the ferry) → ferry arrival cutscene → Biscuit bounds up the dock, barks, and trots ahead to the clocktower (waiting when you fall behind) → Pip's scene at the cracked Great Hourglass with a choice → Biscuit becomes your companion.
 - Main quest "A Crack in Time": follow Biscuit, meet Pip, visit Clover, say hello to 3 neighbours, dig with Biscuit, tell Pip you're ready (the portal opens in M6).
@@ -45,7 +54,7 @@
 - `node scripts/shots.mjs <milestone>` captures review screenshots.
 
 ## Next
-- M4: wardrobe (mirror + cottage wardrobe), looks, Biscuit's wardrobe, Bramble's shop.
+- M5: puzzle framework (riddles, logic grids, sliding blocks, patterns, code-breaking, navigation), adaptive difficulty, Pip's hints, puzzle journal; magic soup (garden, ingredients, cauldron, recipes, effects).
 
 ## Known issues
 - (none yet)

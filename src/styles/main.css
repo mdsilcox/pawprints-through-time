@@ -368,6 +368,11 @@ p {
 }
 
 /* ---------- toasts ---------- */
+#ui-root.dimmed .toast-layer {
+  justify-content: flex-end;
+  padding-top: 0;
+  padding-bottom: 0.6rem;
+}
 .toast-layer {
   display: flex;
   flex-direction: column;

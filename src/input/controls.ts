@@ -11,6 +11,7 @@ import { toast } from '../ui/ui';
 /** Wires devices → per-frame input → menus / world. Call once after the UI is mounted. */
 export function installControls(): void {
   input.attach();
+  input.menuCheck = () => ui.blocking;
   const touch = new TouchControls(ui.touchLayer);
   input.touch = touch;
   hud.touch = touch;
@@ -40,7 +41,6 @@ export function installControls(): void {
 
   // Poll every frame, just before Phaser steps the scenes.
   app.phaser.events.on('prestep', () => {
-    input.menuMode = ui.blocking;
     input.update();
   });
 }

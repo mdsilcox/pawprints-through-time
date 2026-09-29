@@ -12,6 +12,11 @@ export function watchErrors(page: Page): string[] {
 
 /** Load the game and wait until the title menu is interactive. */
 export async function bootToTitle(page: Page): Promise<void> {
+  // Tests run at any time of day: pin the device clock to noon so the (real) late-night
+  // nudge doesn't pop up in the middle of unrelated tests. The nudge has its own test.
+  await page.addInitScript(() => {
+    (window as unknown as { __testDeviceHour: number }).__testDeviceHour = 12;
+  });
   await page.goto('/');
   await page.waitForFunction(() => (window as any).__game?.ready?.() === true, null, { timeout: 60_000 });
   await expect(page.locator('[data-screen="title"]')).toBeVisible();
@@ -82,6 +87,20 @@ export async function walkUntil(page: Page, dx: number, dy: number, dist: number
   } finally {
     await hook(page, 'release', 0);
   }
+}
+
+/** Press a key until `done()` is true (a player would press again if the first tap didn't land). */
+export async function pressUntil(page: Page, key: string, done: () => Promise<boolean>, tries = 4): Promise<void> {
+  for (let i = 0; i < tries; i++) {
+    await page.keyboard.press(key);
+    try {
+      await expect.poll(done, { timeout: 2500 }).toBe(true);
+      return;
+    } catch {
+      /* try again */
+    }
+  }
+  await expect.poll(done, { timeout: 2500 }).toBe(true);
 }
 
 export async function activeScenes(page: Page): Promise<string[]> {

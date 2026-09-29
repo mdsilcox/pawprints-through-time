@@ -6,6 +6,7 @@ import { MORNING, sleepUntilMorning, nightAmount } from '../world/clock';
 import { befriend, count, flag, give, giveTockens, hearts, oncePerDay, onTalk, onUse, registerNpcName, setFlag, take, cutscene, wait } from './hooks';
 import { registerQuest, flagDone } from './quests';
 import { TW } from '../world/maps/tockwood';
+import { openWardrobe } from '../ui/wardrobe';
 
 /**
  * Tockwood's neighbours: first meetings, daily chatter that changes with the day, the time
@@ -81,6 +82,20 @@ onTalk('quill', async () => {
 
 // ------------------------------------------------------------------ Bramble (badger, tailor)
 onTalk('bramble', async () => {
+  if (flag('met:bramble')) {
+    const pick = await ask('bramble', 'What can I do for you, darlings?', ['Browse your clothes', 'Just chatting', 'Dress up Biscuit']);
+    if (pick === 0) {
+      await talk('bramble', 'Try anything on! My mirror shows you before you buy. Tockens only when you love it.');
+      if (oncePerDay('chat:bramble')) befriend('bramble', 6);
+      openWardrobe({ shop: true });
+      return;
+    }
+    if (pick === 2) {
+      await talk('bramble', 'Ooh, a canine client! Biscuit, hold still, sweetie...');
+      openWardrobe({ shop: true, who: 'biscuit' });
+      return;
+    }
+  }
   await chat(
     'bramble',
     [
@@ -280,10 +295,10 @@ onUse('bed', async ({ world }) => {
 
 // Placeholders that later chapters replace with the real screens.
 onUse('mirror', async () => {
-  await talk('bramble', 'My magic mirror is being polished, darlings! Come back very soon to try on outfits.');
+  openWardrobe({ shop: true });
 });
 onUse('wardrobe', async () => {
-  await talk('narrator', 'Your wardrobe. It’s full of comfy clothes (the dressing-up mirror is coming soon!).');
+  openWardrobe();
 });
 onUse('cauldron', async () => {
   await talk('clover', 'Grandma’s cauldron is still warming up! Bring me ingredients and come back soon.');

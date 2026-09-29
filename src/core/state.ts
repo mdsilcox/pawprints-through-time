@@ -126,7 +126,7 @@ export function defaultSave(now = Date.now()): SaveData {
     location: { map: 'tockwood', x: -1, y: -1 },
     flags: {},
     inventory: {},
-    wardrobe: ['tee-striped', 'shorts-denim', 'sneakers', 'beanie', 'hoodie', 'pants-comfy', 'backpack', 'biscuit-bandana'],
+    wardrobe: ['tee-striped', 'shorts-denim', 'sneakers', 'beanie', 'hoodie', 'pants-comfy', 'backpack', 'skirt', 'round-glasses', 'sunhat', 'biscuit-bandana', 'party-bow'],
     tockens: 20,
     friendship: {},
     lastChat: {},

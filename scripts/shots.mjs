@@ -27,6 +27,9 @@ const g = (page, name, ...args) =>
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function boot(page) {
+  await page.addInitScript(() => {
+    window.__testDeviceHour = 12;
+  });
   await page.goto('/');
   await page.waitForFunction(() => window.__game?.ready?.() === true, null, { timeout: 60000 });
   await page.waitForSelector('[data-screen="title"]');
@@ -195,6 +198,10 @@ const SCENARIOS = [
   { name: 'map', players: [1], run: async (page) => { await play(page, 1, [30.5, 26]); await g(page, 'openMap'); await wait(700); } },
   { name: 'dock-finnegan', players: [1], run: async (page) => { await play(page, 1, [30.8, 40.5]); await wait(900); } },
   { name: 'dig', players: [1], run: async (page) => { await play(page, 1, [31.2, 26.6]); await wait(600); await page.keyboard.press('KeyE'); await wait(2600); } },
+  { name: 'wardrobe', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'openWardrobe', 0); await wait(700); } },
+  { name: 'wardrobe-look', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'openWardrobe', 1); await wait(300); await page.click('[data-testid="wd-slot-look"]'); await wait(500); } },
+  { name: 'wardrobe-biscuit', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'openWardrobe', 'biscuit'); await wait(700); } },
+  { name: 'shop', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'openWardrobe', 0, true); await wait(400); await page.click('[data-testid="wd-slot-top"]'); await wait(300); await page.click('[data-testid="wd-item-cardigan"]'); await wait(600); } },
   {
     name: 'pause',
     players: [1, 2],

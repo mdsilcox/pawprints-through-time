@@ -5,6 +5,7 @@ import '@fontsource/fredoka/700.css';
 import './styles/main.css';
 import './styles/menus.css';
 import './styles/world.css';
+import './styles/wardrobe.css';
 
 import { app } from './app';
 import { installDebugHooks, registerDebug } from './core/debug';
@@ -36,6 +37,8 @@ import './story/tockwoodNpcs';
 import { openMap } from './ui/mapScreen';
 import { openBackpack } from './ui/backpack';
 import { openBunnyTracker } from './ui/bunnyTracker';
+import { openWardrobe } from './ui/wardrobe';
+import { equip as wEquip, grant as wGrant } from './core/wardrobe';
 import { registerPortraitSource } from './ui/portraits';
 import { renderCorgiPortrait } from './art/corgi';
 import { renderBunnyPortrait } from './art/bunny';
@@ -163,6 +166,17 @@ registerDebug({
   openMap: () => openMap(),
   openBackpack: () => openBackpack(),
   openBunnies: () => openBunnyTracker(),
+  openWardrobe: (who: 0 | 1 | 'biscuit' = 0, shop = false) => openWardrobe({ who, shop }),
+  equip: (who: 0 | 1 | 'biscuit', id: string, color = 0) => {
+    const ok = app.data ? wEquip(app.data, who, id, color) : false;
+    if (ok) app.events.emit('outfit-changed', who === 'biscuit' ? 2 : who);
+    return ok;
+  },
+  grant: (id: string) => (app.data ? wGrant(app.data, id) : false),
+  setTockens: (n: number) => {
+    if (app.data) app.data.tockens = n;
+  },
+  textures: () => ({ players: world().players.map((p) => p.textureKey), biscuit: world().biscuit?.textureKey ?? null }),
 });
 installDebugHooks(app);
 void registerPwa();

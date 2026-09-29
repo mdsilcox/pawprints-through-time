@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, playThrough, press, startGame, watchErrors } from './helpers';
+import { bootToTitle, hook, playThrough, press, pressUntil, startGame, watchErrors } from './helpers';
 
 async function advanceDialogue(page: Page, max = 30): Promise<void> {
   for (let i = 0; i < max; i++) {
@@ -20,10 +20,16 @@ async function talkTo(page: Page, npc: string): Promise<void> {
   const list = await hook<{ id: string; x: number; y: number }[]>(page, 'npcs');
   const n = list.find((x) => x.id === npc)!;
   expect(n).toBeTruthy();
-  await hook(page, 'teleport', n.x, n.y + 0.9, 0);
-  await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Talk');
-  await page.keyboard.press('KeyE');
-  await expect.poll(() => hook<boolean>(page, 'dialogueOpen')).toBe(true);
+  // neighbours wander a little, so keep stepping up to them until the prompt shows
+  await expect
+    .poll(async () => {
+      const cur = (await hook<{ id: string; x: number; y: number }[]>(page, 'npcs')).find((x) => x.id === npc)!;
+      await hook(page, 'teleport', cur.x, cur.y + 0.9, 0);
+      await page.waitForTimeout(120);
+      return hook(page, 'prompt');
+    }, { timeout: 12000 })
+    .toBe('Talk');
+  await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
   await advanceDialogue(page);
 }
 
@@ -93,8 +99,7 @@ test.describe('village life', () => {
   test('Biscuit digs up treasure at sparkly spots and sniffs out hidden ones', async ({ page }) => {
     await startGame(page, [32.5, 28.2]);
     await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Dig');
-    await page.waitForTimeout(700); // let the island settle, like a real player would
-    await page.keyboard.press('KeyE');
+    await pressUntil(page, 'KeyE', async () => (await hook<string | null>(page, 'prompt')) !== 'Dig');
     await expect.poll(async () => (await hook<any>(page, 'inventory'))['clock-gear'] ?? 0, { timeout: 10000 }).toBe(1);
     expect(await hook(page, 'getFlag', 'dug:first')).toBe(true);
     // a hidden spot becomes visible after a sniff nearby

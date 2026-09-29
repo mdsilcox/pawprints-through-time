@@ -63,7 +63,10 @@ class ReminderController {
       this.show(ev);
       return;
     }
-    if (!this.lateShown && app.settings.lateNightNudge && isLateNight(this.clock()) && this.timer.state === 'running') {
+    // Automated tests pin the device hour so results don't depend on when they run.
+    const testHour = (window as unknown as { __testDeviceHour?: number }).__testDeviceHour;
+    const now = testHour !== undefined ? new Date(2026, 0, 1, testHour) : this.clock();
+    if (!this.lateShown && app.settings.lateNightNudge && isLateNight(now) && this.timer.state === 'running') {
       this.lateShown = true;
       this.showLate();
     }

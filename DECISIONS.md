@@ -43,4 +43,7 @@ One line each: decision — reason.
 - Twelve Hopkins cousins (3 per era), each with a hint in the Bunny Tracker; rescue milestones unlock soups, headbands and Biscuit's bunny-ear hat.
 - Friendship: chatting gives points once per in-game day, gifts/favours give more; 5 hearts max with special lines at some hearts — gentle, no decay.
 - Interiors are painted as one backdrop per room with collision from a small grid; furniture and people are depth-sorted sprites on top.
+- The family shares one wardrobe: anything owned can be worn by either player (and Biscuit has his own pieces) — no bickering over who owns the tricorn.
+- Tops, bottoms and shoes can be swapped but not removed; hats and extras can be "none".
+- Shop items are bought with Tockens; era outfits are earned in their eras (not for sale) — outfits double as souvenirs.
 - Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.

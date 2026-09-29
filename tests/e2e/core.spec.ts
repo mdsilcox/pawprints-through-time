@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, press, startGame, watchErrors } from './helpers';
+import { bootToTitle, hook, playThrough, press, pressUntil, startGame, watchErrors } from './helpers';
 
 const MIN = 60_000;
 
@@ -18,29 +18,36 @@ async function finishDialogue(page: Page, max = 12) {
 }
 
 test.describe('dialogue & quests', () => {
-  test('reading a sign opens a type-on dialogue box that skips and advances', async ({ page }) => {
+  test('reading a sign opens the dialogue box', async ({ page }) => {
     const errors = watchErrors(page);
     await play(page, [29.2, 27]);
-    await hook(page, 'setSettings', { textSpeed: 'slow' });
     await expect.poll(() => hook(page, 'prompt')).toBe('Read');
-    await page.keyboard.press('KeyE');
-    const box = page.getByTestId('dialogue');
-    await expect(box).toBeVisible();
-    const text = page.getByTestId('dialogue-text');
-    // type-on: the first line is still being written, a press completes it instantly
-    const partial = (await text.textContent()) ?? '';
-    const full = (await text.getAttribute('data-full')) ?? '';
-    expect(full).toContain('TOCKWOOD PLAZA');
-    expect(partial.length).toBeLessThan(full.length);
-    await page.keyboard.press('KeyE');
-    await expect(text).toHaveText(full);
-    // advancing goes to the second line, then closes
-    await page.waitForTimeout(200);
-    await page.keyboard.press('KeyE');
-    await expect(text).toHaveAttribute('data-full', /North: the old clocktower/);
-    await finishDialogue(page);
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    await expect(page.getByTestId('dialogue')).toBeVisible();
+    await playThrough(page);
+    const lines = (await hook<{ who: string; text: string }[]>(page, 'dialogueLines')).map((l) => l.text).join(' ');
+    expect(lines).toContain('TOCKWOOD PLAZA');
+    expect(lines).toContain('North: the old clocktower');
     expect(await hook(page, 'getFlag', 'read:plaza-sign')).toBe(true);
     expect(errors).toEqual([]);
+  });
+
+  test('type-on text: one press shows the whole line, the next press moves on', async ({ page }) => {
+    await play(page);
+    await hook(page, 'setSettings', { textSpeed: 'slow' });
+    const long = 'Tick tock! This is a rather long line of text so that it takes a good few seconds to type out, letter by letter, in the dialogue box.';
+    void hook(page, 'talk', 'pip', [long, 'And this is the second line.']);
+    const text = page.getByTestId('dialogue-text');
+    await expect(text).toHaveAttribute('data-full', long);
+    const partial = (await text.textContent()) ?? '';
+    expect(partial.length).toBeLessThan(long.length);
+    await page.keyboard.press('KeyE');
+    await expect(text).toHaveText(long); // skipped to the full line
+    await page.waitForTimeout(300);
+    await page.keyboard.press('KeyE');
+    await expect(text).toHaveAttribute('data-full', 'And this is the second line.');
+    await playThrough(page);
+    expect(await hook<boolean>(page, 'dialogueOpen')).toBe(false);
   });
 
   test('choices can be picked with keyboard or touch, and any player can answer', async ({ page }) => {

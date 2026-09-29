@@ -51,7 +51,7 @@ const C = {
 export const CLOTHES: ClothingItem[] = [
   // ---------------- hats
   { id: 'beanie', name: 'Cozy Beanie', slot: 'hat', kind: 'beanie', colors: [C.red, C.blue, C.green], colorNames: ['Berry', 'Sky', 'Meadow'], source: 'start', desc: 'Warm ears, happy heart.' },
-  { id: 'sunhat', name: 'Straw Sun Hat', slot: 'hat', kind: 'sunhat', colors: [['#f3dca2', '#e46a6a'], ['#f3dca2', '#6fb3e0'], ['#f3dca2', '#7cc47f']], colorNames: ['Cherry ribbon', 'Sky ribbon', 'Leaf ribbon'], source: 'shop', price: 30, desc: 'For sunny strolls on the beach.' },
+  { id: 'sunhat', name: 'Straw Sun Hat', slot: 'hat', kind: 'sunhat', colors: [['#f3dca2', '#e46a6a'], ['#f3dca2', '#6fb3e0'], ['#f3dca2', '#7cc47f']], colorNames: ['Cherry ribbon', 'Sky ribbon', 'Leaf ribbon'], source: 'start', desc: 'For sunny strolls on the beach.' },
   { id: 'cap', name: 'Sporty Cap', slot: 'hat', kind: 'cap', colors: [C.blue, C.red, C.purple], colorNames: ['Blue', 'Red', 'Grape'], source: 'shop', price: 25, desc: 'Brim forward, ready for anything.' },
   { id: 'flower-crown', name: 'Flower Crown', slot: 'hat', kind: 'flowercrown', colors: [['#7cc47f', '#f4a3b4'], ['#7cc47f', '#f7c65a'], ['#7cc47f', '#a58bd6']], colorNames: ['Roses', 'Buttercups', 'Violets'], source: 'shop', price: 40, desc: 'Woven fresh from the meadow.' },
   { id: 'hair-bow', name: 'Big Bow', slot: 'hat', kind: 'bow', colors: [C.pink, C.red, C.blue], colorNames: ['Pink', 'Red', 'Blue'], source: 'shop', price: 20, desc: 'A bow big enough to wave hello.' },
@@ -83,7 +83,7 @@ export const CLOTHES: ClothingItem[] = [
   // ---------------- bottoms
   { id: 'shorts-denim', name: 'Denim Shorts', slot: 'bottom', kind: 'shorts', colors: [['#5d86b8', '#fff4e0'], ['#b57a4e', '#fff4e0'], ['#7cc47f', '#fff4e0']], colorNames: ['Denim', 'Khaki', 'Sage'], source: 'start', desc: 'Pockets for pebbles.' },
   { id: 'pants-comfy', name: 'Comfy Pants', slot: 'bottom', kind: 'pants', colors: [['#6b5a8e', '#fff4e0'], ['#3f5a8a', '#fff4e0'], ['#8a5a3a', '#fff4e0']], colorNames: ['Plum', 'Navy', 'Cocoa'], source: 'start', desc: 'Stretchy and splendid.' },
-  { id: 'skirt', name: 'Twirly Skirt', slot: 'bottom', kind: 'skirt', colors: [C.pink, C.blue, C.gold], colorNames: ['Pink', 'Blue', 'Buttercup'], source: 'shop', price: 30, desc: 'Excellent for spinning.' },
+  { id: 'skirt', name: 'Twirly Skirt', slot: 'bottom', kind: 'skirt', colors: [C.pink, C.blue, C.gold], colorNames: ['Pink', 'Blue', 'Buttercup'], source: 'start', desc: 'Excellent for spinning.' },
   { id: 'pleated-skirt', name: 'Pleated Skirt', slot: 'bottom', kind: 'pleated', colors: [['#8a5a3a', '#fff4e0'], ['#3f5a8a', '#fff4e0'], ['#4a8f4a', '#fff4e0']], colorNames: ['Cocoa', 'Navy', 'Moss'], source: 'shop', price: 30, desc: 'Neat pleats for neat feats.' },
   { id: 'pantaloons', name: 'Sailor Pantaloons', slot: 'bottom', kind: 'pantaloons', colors: [['#fff4e0', '#8a5a3a'], ['#d9c9a6', '#8a5a3a']], colorNames: ['Sailcloth', 'Sand'], era: 'pirate', source: 'era', desc: 'Loose and breezy for climbing rigging.' },
   { id: 'shendyt', name: 'Linen Shendyt', slot: 'bottom', kind: 'shendyt', colors: [['#fbf6ea', '#f7c65a'], ['#fbf6ea', '#6fb3e0']], colorNames: ['Gold belt', 'Blue belt'], era: 'egypt', source: 'era', desc: 'A pleated linen kilt, the everyday wear of ancient Egypt.' },
@@ -102,7 +102,7 @@ export const CLOTHES: ClothingItem[] = [
   { id: 'velvet-slippers', name: 'Velvet Slippers', slot: 'shoes', kind: 'slippers', colors: [['#b8404a', '#f7c65a'], ['#3f5a8a', '#f7c65a']], colorNames: ['Crimson', 'Lapis'], era: 'florence', source: 'era', desc: 'Soft slippers fit for a court dance.' },
 
   // ---------------- accessories
-  { id: 'round-glasses', name: 'Round Glasses', slot: 'acc', kind: 'glasses', colors: [['#4a3b35', '#dff3ff'], ['#d9a23a', '#dff3ff'], ['#e46a6a', '#dff3ff']], colorNames: ['Classic', 'Gold', 'Red'], source: 'shop', price: 25, desc: 'Great for reading history notes.' },
+  { id: 'round-glasses', name: 'Round Glasses', slot: 'acc', kind: 'glasses', colors: [['#4a3b35', '#dff3ff'], ['#d9a23a', '#dff3ff'], ['#e46a6a', '#dff3ff']], colorNames: ['Classic', 'Gold', 'Red'], source: 'start', desc: 'Great for reading history notes.' },
   { id: 'scarf', name: 'Knitted Scarf', slot: 'acc', kind: 'scarf', colors: [C.red, C.mint, C.gold], colorNames: ['Berry', 'Mint', 'Honey'], source: 'shop', price: 20, desc: 'Grandma-level coziness.' },
   { id: 'backpack', name: 'Explorer Backpack', slot: 'acc', kind: 'backpack', colors: [['#f29e4c', '#8a5a3a'], ['#6fb3e0', '#3f5a8a'], ['#7cc47f', '#4a8f4a']], colorNames: ['Orange', 'Blue', 'Green'], source: 'start', desc: 'Room for snacks and souvenirs.' },
   { id: 'bowtie', name: 'Bow Tie', slot: 'acc', kind: 'bowtie', colors: [C.red, C.blue, ['#f4a3b4', '#fff']], colorNames: ['Red', 'Blue', 'Pink'], source: 'shop', price: 15, desc: 'Instantly fancy.' },
@@ -121,7 +121,7 @@ export const BISCUIT_ITEMS: BiscuitItem[] = [
   { id: 'gold-collar', name: 'Golden Collar', slot: 'neck', kind: 'goldcollar', colors: [['#f7c65a', '#6fb3e0']], colorNames: ['Gold & lapis'], era: 'egypt', source: 'era', desc: 'Egyptians adored their dogs — and their collars!' },
   { id: 'lace-collar', name: 'Lace Collar', slot: 'neck', kind: 'lace', colors: [['#ffffff', '#f7c65a']], colorNames: ['Lace'], era: 'florence', source: 'era', desc: 'Fancy enough for a Florentine portrait.' },
   { id: 'pirate-hat', name: 'Tiny Pirate Hat', slot: 'hat', kind: 'tricorn', colors: [['#4a3b35', '#f7c65a'], ['#3f5a8a', '#f7c65a']], colorNames: ['Classic', 'Navy'], era: 'pirate', source: 'era', desc: 'Captain Biscuit reporting for duty!' },
-  { id: 'party-bow', name: 'Party Bow', slot: 'hat', kind: 'bow', colors: [['#f4a3b4', '#fff'], ['#6fb3e0', '#fff'], ['#f7c65a', '#fff']], colorNames: ['Pink', 'Blue', 'Gold'], source: 'shop', price: 10, desc: 'Every day is a party with Biscuit.' },
+  { id: 'party-bow', name: 'Party Bow', slot: 'hat', kind: 'bow', colors: [['#f4a3b4', '#fff'], ['#6fb3e0', '#fff'], ['#f7c65a', '#fff']], colorNames: ['Pink', 'Blue', 'Gold'], source: 'start', desc: 'Every day is a party with Biscuit.' },
   { id: 'bunny-ear-hat', name: 'Bunny-Ear Hat', slot: 'hat', kind: 'bunnyears', colors: [['#ffffff', '#f4a3b4']], colorNames: ['Snowy'], source: 'bunny', desc: 'A corgi who thinks he is a bunny.' },
   { id: 'sock-hop-cap', name: 'Soda Jerk Cap', slot: 'hat', kind: 'paper', colors: [['#ffffff', '#e46a6a']], colorNames: ['Diner'], era: 'fifties', source: 'era', desc: 'From the Rocket Diner, with love.' },
 ];

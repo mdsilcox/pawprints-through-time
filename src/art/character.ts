@@ -724,7 +724,7 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
 export const HAIR_STYLES = ['Tousled', 'Bob', 'Long', 'Curly', 'Pigtails', 'Ponytail'] as const;
 
 function drawHairBack(ctx: CanvasRenderingContext2D, spec: CharSpec, rig: Rig) {
-  if (spec.species !== 'human') return;
+  if (spec.species !== 'human' || (spec.hairStyle ?? 0) < 0) return;
   const { x, y, r } = rig.head;
   const c = spec.hair ?? '#5a3a29';
   const st = spec.hairStyle ?? 0;
@@ -754,6 +754,7 @@ function drawHairBack(ctx: CanvasRenderingContext2D, spec: CharSpec, rig: Rig) {
 }
 
 function hairCap(ctx: CanvasRenderingContext2D, spec: CharSpec, rig: Rig) {
+  if ((spec.hairStyle ?? 0) < 0) return; // mannequin
   const { x, y, r } = rig.head;
   const c = spec.hair ?? '#5a3a29';
   const st = spec.hairStyle ?? 0;
@@ -941,6 +942,8 @@ export function registerHat(kind: string, d: PieceDrawer): void {
 export function registerAcc(kind: string, layer: 'back' | 'neck' | 'face' | 'shoulder', d: PieceDrawer): void {
   accDrawers[kind] = { layer, draw: d };
 }
+export const hasHat = (kind: string) => kind in hatDrawers;
+export const hasAcc = (kind: string) => kind in accDrawers;
 
 // Built-in beanie so the default outfit renders even before the item art module loads.
 registerHat('beanie', (ctx, p, rig) => {

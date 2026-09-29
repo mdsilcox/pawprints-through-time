@@ -16,22 +16,27 @@ async function holdKey(page: Page, code: string, ms: number) {
   await page.waitForTimeout(80);
 }
 
+/** Hold a key until player `i` has moved at least `dist` tiles along the expected axis (load-proof). */
+async function holdKeyUntil(page: Page, code: string, i: 0 | 1, axis: 'x' | 'y', sign: 1 | -1, dist: number) {
+  const start = (await players(page))[i];
+  await page.keyboard.down(code);
+  try {
+    await expect.poll(async () => ((await players(page))[i][axis] - start[axis]) * sign, { timeout: 8000 }).toBeGreaterThan(dist);
+  } finally {
+    await page.keyboard.up(code);
+    await page.waitForTimeout(80);
+  }
+}
+
 test.describe('movement & controls', () => {
   test('player 1 walks with WASD, and arrow keys also work in 1-player mode', async ({ page }) => {
     const errors = watchErrors(page);
     await startAt(page);
-    const a = (await players(page))[0];
-    await holdKey(page, 'KeyD', 800);
-    const b = (await players(page))[0];
-    expect(b.x - a.x).toBeGreaterThan(1);
-    expect(b.facing).toBe('right');
-    await holdKey(page, 'KeyW', 500);
-    const c = (await players(page))[0];
-    expect(c.y).toBeLessThan(b.y - 0.8);
-    expect(c.facing).toBe('up');
-    await holdKey(page, 'ArrowLeft', 500);
-    const d = (await players(page))[0];
-    expect(d.x).toBeLessThan(c.x - 0.8);
+    await holdKeyUntil(page, 'KeyD', 0, 'x', 1, 1);
+    expect((await players(page))[0].facing).toBe('right');
+    await holdKeyUntil(page, 'KeyW', 0, 'y', -1, 0.8);
+    expect((await players(page))[0].facing).toBe('up');
+    await holdKeyUntil(page, 'ArrowLeft', 0, 'x', -1, 0.8);
     expect(errors).toEqual([]);
   });
 
@@ -41,14 +46,12 @@ test.describe('movement & controls', () => {
     await press(page, '[data-testid="pause-p2"]');
     await press(page, '[data-testid="pause-resume"]');
     await expect.poll(async () => (await players(page)).length).toBe(2);
-    const [p1a, p2a] = await players(page);
-    await holdKey(page, 'ArrowDown', 500);
+    const [p1a] = await players(page);
+    await holdKeyUntil(page, 'ArrowDown', 1, 'y', 1, 0.8);
     const [p1b, p2b] = await players(page);
-    expect(p2b.y - p2a.y).toBeGreaterThan(0.8);
     expect(Math.abs(p1b.y - p1a.y)).toBeLessThan(0.05); // arrows no longer move P1
-    await holdKey(page, 'KeyA', 400);
-    const [p1c, p2c] = await players(page);
-    expect(p1c.x).toBeLessThan(p1b.x - 0.6);
+    await holdKeyUntil(page, 'KeyA', 0, 'x', -1, 0.6);
+    const [, p2c] = await players(page);
     expect(Math.abs(p2c.x - p2b.x)).toBeLessThan(0.05);
     // leave again
     await press(page, '[data-testid="hud-pause"]');
@@ -64,11 +67,14 @@ test.describe('movement & controls', () => {
     // pull in opposite directions for a long time
     await hook(page, 'hold', 0, -1, 0);
     await hook(page, 'hold', 1, 1, 0);
-    await page.waitForTimeout(3500);
+    // they walk apart (the camera pulls back) until the tether stops them
+    await expect.poll(async () => {
+      const [p1, p2] = await players(page);
+      return p2.x - p1.x;
+    }, { timeout: 15000 }).toBeGreaterThan(8);
+    await page.waitForTimeout(1500);
     expect(await hook(page, 'onScreen', 0)).toBe(true);
     expect(await hook(page, 'onScreen', 1)).toBe(true);
-    const [p1, p2] = await players(page);
-    expect(p2.x - p1.x).toBeGreaterThan(8); // they did walk apart, the camera pulled back
     // ... and vertically
     await hook(page, 'hold', 0, 0, -1);
     await hook(page, 'hold', 1, 0, 1);
@@ -172,10 +178,8 @@ test.describe('touch controls', () => {
     const a = (await players(page))[0];
     await touch('touchStart', [{ x: 120, y: 260, id: 1 }]);
     await touch('touchMove', [{ x: 175, y: 260, id: 1 }]);
-    await page.waitForTimeout(600);
+    await expect.poll(async () => (await players(page))[0].x - a.x, { timeout: 8000 }).toBeGreaterThan(1);
     await touch('touchEnd', []);
-    const b = (await players(page))[0];
-    expect(b.x - a.x).toBeGreaterThan(1);
 
     // two players: each thumb zone drives its own player at the same time
     await press(page, '[data-testid="hud-p2"]');
@@ -190,11 +194,13 @@ test.describe('touch controls', () => {
       { x: 90, y: 200, id: 1 },
       { x: 560, y: 300, id: 2 },
     ]);
-    await page.waitForTimeout(500);
+    await expect
+      .poll(async () => {
+        const [p1b, p2b] = await players(page);
+        return Math.min(p1a.y - p1b.y, p2b.y - p2a.y); // P1 went up AND P2 went down
+      }, { timeout: 8000 })
+      .toBeGreaterThan(0.5);
     await touch('touchEnd', []);
-    const [p1b, p2b] = await players(page);
-    expect(p1b.y).toBeLessThan(p1a.y - 0.5); // P1 went up
-    expect(p2b.y).toBeGreaterThan(p2a.y + 0.5); // P2 went down
     // action buttons are big enough to hit with a thumb
     const box = await page.getByTestId('touch-a-p1').boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(44);

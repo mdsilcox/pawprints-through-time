@@ -70,8 +70,19 @@ interface PadMemory {
 export class InputManager {
   readonly p: [PadState, PadState] = [emptyPad(), emptyPad()];
   twoPlayer = false;
-  /** When true (UI screen open), direction/confirm/back become menu events instead of world input. */
-  menuMode = false;
+  /**
+   * When true (a UI screen is open), direction/confirm/back become menu events instead of world
+   * input. Read live from the UI (not once per frame) so a key pressed right as a menu opens or
+   * closes is always routed correctly, even when frames are slow.
+   */
+  menuCheck: (() => boolean) | null = null;
+  private menuFlag = false;
+  get menuMode(): boolean {
+    return this.menuCheck ? this.menuCheck() : this.menuFlag;
+  }
+  set menuMode(v: boolean) {
+    this.menuFlag = v;
+  }
   events = new Emitter<InputEvents>();
   touch: TouchSource | null = null;
   /** Debug/test injection: virtual held buttons per player (e.g. from Playwright). */
