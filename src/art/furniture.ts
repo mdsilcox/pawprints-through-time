@@ -21,6 +21,63 @@ function art(w: number, h: number, draw: (ctx: CanvasRenderingContext2D, cv: Cv)
   return { cv, ox: 0.5, oy: oy / h };
 }
 
+/** The Great Hourglass, with `filled` of its eight sockets glowing with Time Sand. */
+function greatHourglass(filled: number): PropArt {
+  return art(260, 430, (c) => {
+      // pedestal
+      box(c, 40, 380, 180, 44, 12, PAL.stone);
+      // frame posts
+      for (const x of [44, 200]) box(c, x, 50, 16, 334, 6, PAL.woodDark);
+      box(c, 24, 30, 212, 34, 12, PAL.wood);
+      box(c, 24, 360, 212, 30, 12, PAL.wood);
+      // glass bulbs
+      c.beginPath();
+      c.moveTo(70, 66);
+      c.lineTo(190, 66);
+      c.quadraticCurveTo(190, 170, 136, 210);
+      c.quadraticCurveTo(190, 250, 190, 358);
+      c.lineTo(70, 358);
+      c.quadraticCurveTo(70, 250, 124, 210);
+      c.quadraticCurveTo(70, 170, 70, 66);
+      c.closePath();
+      paint(c, 'rgba(220,242,250,0.9)', L);
+      // the crack
+      c.strokeStyle = PAL.ink;
+      c.lineWidth = 3;
+      c.beginPath();
+      c.moveTo(150, 90);
+      c.lineTo(138, 120);
+      c.lineTo(156, 140);
+      c.lineTo(144, 170);
+      c.stroke();
+      c.fillStyle = 'rgba(255,255,255,0.7)';
+      c.beginPath();
+      c.ellipse(96, 110, 8, 30, 0, 0, Math.PI * 2);
+      c.fill();
+      // the sand that's home again settles in the bottom bulb
+      if (filled > 0) {
+        const hgt = 16 + filled * 12;
+        c.save();
+        c.beginPath();
+        c.moveTo(72, 356);
+        c.lineTo(188, 356);
+        c.lineTo(188, 356 - hgt);
+        c.quadraticCurveTo(130, 356 - hgt - 18, 72, 356 - hgt);
+        c.closePath();
+        c.fillStyle = '#c9b3f0';
+        c.fill();
+        c.restore();
+      }
+      // eight sand sockets around the top: glowing when their Time Sand is home
+      for (let i = 0; i < 8; i++) {
+        const x = 40 + i * 25.7;
+        circlePath(c, x, 16, 9);
+        paint(c, i < filled ? '#b28cf0' : '#d8cfe6', 2.5);
+        if (i < filled) sparkle(c, x + 4, 11, 5, '#ffffff');
+      }
+    }, 424);
+}
+
 export const FURNITURE_ART: Record<string, () => PropArt> = {
   bed: () =>
     art(200, 240, (c) => {
@@ -200,46 +257,9 @@ export const FURNITURE_ART: Record<string, () => PropArt> = {
       c.stroke();
       sparkle(c, 200, 40, 10, '#fff7c2');
     }, 214),
-  greathourglass: () =>
-    art(260, 430, (c) => {
-      // pedestal
-      box(c, 40, 380, 180, 44, 12, PAL.stone);
-      // frame posts
-      for (const x of [44, 200]) box(c, x, 50, 16, 334, 6, PAL.woodDark);
-      box(c, 24, 30, 212, 34, 12, PAL.wood);
-      box(c, 24, 360, 212, 30, 12, PAL.wood);
-      // glass bulbs
-      c.beginPath();
-      c.moveTo(70, 66);
-      c.lineTo(190, 66);
-      c.quadraticCurveTo(190, 170, 136, 210);
-      c.quadraticCurveTo(190, 250, 190, 358);
-      c.lineTo(70, 358);
-      c.quadraticCurveTo(70, 250, 124, 210);
-      c.quadraticCurveTo(70, 170, 70, 66);
-      c.closePath();
-      paint(c, 'rgba(220,242,250,0.9)', L);
-      // the crack
-      c.strokeStyle = PAL.ink;
-      c.lineWidth = 3;
-      c.beginPath();
-      c.moveTo(150, 90);
-      c.lineTo(138, 120);
-      c.lineTo(156, 140);
-      c.lineTo(144, 170);
-      c.stroke();
-      c.fillStyle = 'rgba(255,255,255,0.7)';
-      c.beginPath();
-      c.ellipse(96, 110, 8, 30, 0, 0, Math.PI * 2);
-      c.fill();
-      // eight empty sand sockets around the top
-      for (let i = 0; i < 8; i++) {
-        const x = 40 + i * 25.7;
-        circlePath(c, x, 16, 9);
-        paint(c, '#d8cfe6', 2.5);
-      }
-    }, 424),
-  portalring: () =>
+  greathourglass: () => greatHourglass(0),
+  ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`greathourglass-${n}`, () => greatHourglass(n)])),
+    portalring: () =>
     art(260, 300, (c) => {
       box(c, 30, 262, 200, 32, 10, PAL.stone);
       ellipsePath(c, 130, 150, 110, 130);

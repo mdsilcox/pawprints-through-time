@@ -203,15 +203,15 @@ export const FINNEGAN_BOAT = registerPuzzle({
   place: 'The dock',
   era: 'tockwood',
   intro: 'Finnegan’s toy sailboat has to reach the buoy before the tide turns!',
-  howTo: 'Pick a direction and the boat sails until something stops it. Swirly currents turn the boat. Reach the buoy within the moves.',
+  howTo: 'Pick a direction and the boat sails until something stops it. Currents turn the boat, and whirlpools spin it back. Reach the buoy within the moves.',
   variants: {
     easy: { chart: { rows: ['....#...', 'S#...#..', '.......#', '....###.', '#...#...', '#......G'] }, moves: 7 },
-    medium: { chart: { rows: ['.....#..', '....#v..', 'S.<v..#.', '..##...<', '..#...G.', '.....#..'] }, moves: 8 },
-    hard: { chart: { rows: ['..v^....', '..#.^...', 'v.S#....', '...#..#G', '.#..#...', '#......#'], wind: 'up' }, moves: 9 },
+    medium: { chart: { rows: ['........', '>##.....', '....<...', '.......G', '##.#.#..', 'S..@^..#'] }, moves: 8 },
+    hard: { chart: { rows: ['..#.^..@', 'Sv.....#', '.@..>.#.', '...#....', '@#@#...G', '.#..<v..'], wind: 'up' }, moves: 9 },
   },
   hints: {
     easy: ['The boat keeps going until it bumps into a rock or the edge.', 'Rocks are great for stopping exactly where you want!', 'Pip will show you a good next move.'],
-    medium: ['Watch the currents — they turn your boat as it sails over them.', 'Sometimes the long way round is the only way.', 'Pip will show you a good next move.'],
+    medium: ['Watch the currents — they turn your boat as it sails over them. And steer clear of that whirlpool!', 'Sometimes the long way round is the only way.', 'Pip will show you a good next move.'],
     hard: ['The wind nudges the boat one more square after every move.', 'Use the wind: it can push you somewhere a rock can’t.', 'Pip will show you a good next move.'],
   },
 });

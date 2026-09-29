@@ -352,7 +352,7 @@
     font-size: 0.8rem;
   }
   .cd-grid {
-    max-height: calc(100vh - 10.5rem);
+    max-height: calc(100vh - 15rem);
     grid-template-columns: repeat(auto-fill, minmax(3.9rem, 1fr));
   }
   .cd-ing img {

@@ -774,9 +774,28 @@
 .c-left .sa-arrow {
   transform: rotate(180deg);
 }
-.calm .sa-arrow {
-  opacity: 0.25;
-  animation: none;
+.sa-cell.whirl {
+  background: radial-gradient(circle, rgba(79, 166, 196, 0.9) 0 30%, rgba(255, 255, 255, 0.2) 31% 38%, rgba(79, 166, 196, 0.6) 39% 60%, transparent 61%);
+}
+.sa-whirl {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  border: 4px dotted #fff;
+  border-left-color: transparent;
+  animation: whirl-spin 1.1s linear infinite;
+}
+.calm .sa-whirl {
+  opacity: 0.3;
+  animation-duration: 6s;
+}
+@keyframes whirl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sa-boat.spin {
+  animation: whirl-spin 0.5s linear;
 }
 @keyframes current-flow {
   50% {

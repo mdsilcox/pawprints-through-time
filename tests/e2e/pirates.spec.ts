@@ -174,7 +174,8 @@ test.describe('the Golden Age of Piracy', () => {
     for (const [i, d] of solveSail(MARIGOLD_CHART.variants[variant].chart, true)!.entries()) {
       await page.keyboard.press(ARROW[d]);
       await expect(page.getByTestId('sail-moves')).toContainText(`Moves: ${i + 1}`);
-      await page.waitForTimeout(1300);
+      await expect(page.getByTestId('sail-board')).not.toHaveAttribute('data-busy', 'true', { timeout: 15000 });
+      await page.waitForTimeout(250);
     }
     await celebrate(page);
     await playThrough(page);
@@ -356,6 +357,27 @@ test.describe('the Golden Age of Piracy', () => {
     await expect.poll(() => inv(page, 'doubloon'), { timeout: 8000 }).toBe(coins + 2);
     expect((await hook<any>(page, 'state')).wardrobe).toContain('eyepatch');
     expect((await hook<any[]>(page, 'digSpots')).some((s) => s.x)).toBe(false);
+  });
+
+  test('an eager extra press after the portal can’t skip the arrival scene', async ({ page }) => {
+    const errors = watchErrors(page);
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'setFlag', 'portal:ready', true);
+    await hook(page, 'goTo', 'clocktower', 'in');
+    await toMap(page, 'clocktower');
+    await useAt(page, 10.5, 7.6, 'Portal');
+    await press(page, '[data-testid="wm-go-pirate"]');
+    // mash the action button through Pip's travel lines and on into the cove
+    for (let i = 0; i < 14; i++) {
+      await page.keyboard.press('KeyE');
+      await page.waitForTimeout(140);
+    }
+    await expect.poll(() => hook<string>(page, 'mapId'), { timeout: 15000 }).toBe('cove');
+    await expect.poll(() => flag(page, 'cove:arrived'), { timeout: 15000 }).toBe(true);
+    await playThrough(page, 60_000);
+    expect(await hook<string>(page, 'mapId')).toBe('cove');
+    expect((await hook<any>(page, 'state')).notes).toContain('pirate-golden-age');
+    expect(errors).toEqual([]);
   });
 
   test('the Map of Time only opens eras whose Time Sand is calling', async ({ page }) => {

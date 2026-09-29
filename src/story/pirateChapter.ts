@@ -151,6 +151,13 @@ onEnterMap('cove', async ({ world }) => {
   // after the treasure: the crew throws a party (and two captains make friends)
   if (app.data!.sands.includes('pirate') && !flag('pirate:party')) {
     setFlag('pirate:party');
+    // the whole crew — and Captain Saltwhistle — gather on the deck
+    world.bringNpc('saltwhistle', 35, 23.6);
+    world.bringNpc('marigold', 36.6, 23.4);
+    world.bringNpc('pepper', 34, 22.6);
+    world.bringNpc('coco', 38.2, 23.9);
+    world.celebrate(9000);
+    audio.music('hornpipe');
     await cutscene(async () => {
       await talk('marigold', ['THE TREASURE! And a glowing sand that hums like a lullaby! Crew — this calls for a party!']);
       await talk('saltwhistle', ['Ahem. Congratulations, Captain. I... may have been a bit grumpy about the map.']);
@@ -456,6 +463,11 @@ onUse('ship-wheel', async ({ world }) => {
     await talk('marigold', ['The crew won’t follow a helmsman who hasn’t danced the hornpipe!', 'Show Cookie your best steps — she’s by the galley.']);
     return;
   }
+  if (!hasEffect('calm') && !flag('shoals:seen')) {
+    setFlag('shoals:seen');
+    await talk('marigold', 'Take a look at the chart, shipmate... see those whirlpools? They spin a ship right round and back again!');
+    await openPuzzle('marigold-chart');
+  }
   if (!hasEffect('calm')) {
     await talk('marigold', ['Nobody sails the Swirling Shoals without a belly full of Pirate’s Gumbo!', app.data!.recipes.includes('pirates-gumbo') ? 'Brew some in the galley — and drink it before we sail.' : 'Ask Cookie in the galley — she knows the recipe.']);
     return;
@@ -539,19 +551,21 @@ onUse('treasure-chest', async ({ world }) => {
   world.openChestProp('treasure-chest');
   await cutscene(async () => {
     audio.sfx('fanfare');
+    await world.raiseTimeSand(5.5, 3.6);
     await talk('narrator', ['The lid swings open... gold coins, a spyglass, and — glowing softly in the middle — a swirl of shining sand!']);
     await talk('pip', [
       'THE TIME SAND! The first one!',
       'Oh, and a fun fact for your notes: real pirates almost never buried their treasure — they spent it! But this one was hidden by the time-tangle.',
     ]);
   });
-  learnNote('pirate-treasure');
   if (!d.sands.includes('pirate')) d.sands.push('pirate');
-  findScrap('scrap-isle-north', world);
-  toast('Time Sand 1 of 8!', { icon: '⏳', cls: 'quest', ms: 3600 });
-  give('doubloon', 5, { from: 'From the chest:' });
+  toast('The first Time Sand! (1 of 8)', { icon: '⏳', cls: 'quest', ms: 4200 });
+  give('doubloon', 5, { quiet: true });
   give('spyglass', 1, { quiet: true });
   giveTockens(40);
+  toast('From the chest: 5 gold doubloons, a brass spyglass and 40 Tockens', { icon: '🪙', ms: 3600 });
+  learnNote('pirate-treasure');
+  findScrap('scrap-isle-north', world);
   app.autosave.request();
 });
 

@@ -566,6 +566,38 @@ const SCENARIOS = [
       await wait(900);
     },
   },
+  {
+    name: 'pz-chart-rough',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'marigold-chart', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'hourglass-sand',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'sand:pirate:placed', true);
+      await g(page, 'goTo', 'clocktower', 'in');
+      await wait(2000);
+      await g(page, 'teleport', 6.5, 6.4, 0);
+      await wait(900);
+    },
+  },
+  {
+    name: 'party',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'met:marigold', 'map:whole', 'isle:reached']) await g(page, 'setFlag', f, true);
+      await g(page, 'addSand', 'pirate');
+      await g(page, 'goTo', 'cove', 'from-isle');
+      await wait(4200);
+    },
+  },
   // ---------------------------------------------------------------- M7: dancing
   {
     name: 'dance-setup',

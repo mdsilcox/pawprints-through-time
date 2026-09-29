@@ -108,13 +108,14 @@ test.describe('village life', () => {
     await page.waitForTimeout(3500);
     expect(await flees()).toBe(0);
     // walk calmly up to them and stand still: still no fleeing
-    const target = (await wildNow())[0];
-    await hook(page, 'teleport', target.x - 3.5, target.y, 0);
+    // the bunny nearest the middle of the meadow, approached from inland (never from the shoreline)
+    const target = (await wildNow()).sort((a, b) => Math.hypot(a.x - 11, a.y - 25) - Math.hypot(b.x - 11, b.y - 25))[0];
+    await hook(page, 'teleport', target.x + 2.4, target.y, 0);
     await page.waitForTimeout(1500);
     const calm = await flees();
     expect(calm).toBe(0); // standing nearby doesn't scare anyone
     // now rush right at them
-    await hook(page, 'hold', 0, 1, 0);
+    await hook(page, 'hold', 0, -1, 0);
     await expect.poll(flees, { timeout: 6000 }).toBeGreaterThan(calm);
     await hook(page, 'release', 0);
     // they always come back to their meadow

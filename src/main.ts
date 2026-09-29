@@ -220,7 +220,7 @@ registerDebug({
   openBunnies: () => openBunnyTracker(),
   openSell: () => void openSellScreen(),
   // M5: puzzles & soup
-  openPuzzle: (id: string, difficulty?: Difficulty) => void openPuzzle(id, { difficulty }),
+  openPuzzle: (id: string, difficulty?: Difficulty, replay = false) => void openPuzzle(id, { difficulty, replay }),
   puzzleSecret: () => codeDebug.secret.slice(),
   puzzles: () => (app.data ? { records: structuredClone(app.data.puzzles), skill: app.data.skill } : null),
   openJournal: () => openPuzzleJournal(),
@@ -230,6 +230,9 @@ registerDebug({
   openDance: (style = 'jig', rival: string | null = null, audience: string[] = []) => void dance({ style, rival, audience }),
   danceState: () => danceDebug.state(),
   danceAuto: (on = true) => danceDebug.setAuto(on),
+  addSand: (id: string) => {
+    if (app.data && !app.data.sands.includes(id)) app.data.sands.push(id);
+  },
   learnNoteDebug: (id: string) => learnNote(id),
   sands: () => app.data?.sands.slice() ?? [],
   openRecipeBook: () => openRecipeBook(),

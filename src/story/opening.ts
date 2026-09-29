@@ -194,8 +194,11 @@ function metNeighboursDone(): boolean {
   return metNeighbours() >= 3;
 }
 
-onUse('hourglass', async () => {
-  if (await placeSands()) return;
+onUse('hourglass', async ({ world }) => {
+  if (await placeSands()) {
+    world.refreshHourglass();
+    return;
+  }
   const n = app.data?.sands.length ?? 0;
   await talk('narrator', [
     n === 0

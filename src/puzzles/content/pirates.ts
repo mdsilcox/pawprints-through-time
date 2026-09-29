@@ -33,17 +33,17 @@ export const MARIGOLD_CHART = registerPuzzle({
   title: 'Through the Swirling Shoals',
   place: 'The Sunny Marigold',
   era: 'pirates',
-  intro: 'With calm seas from the gumbo, steer the Sunny Marigold through the rocks to Treasure Island!',
-  howTo: 'Pick a direction and the ship sails until something stops it. Reach Treasure Island within the moves.',
+  intro: 'The Swirling Shoals: rocks, currents, a stiff wind — and whirlpools that spin ships right back. Steer the Sunny Marigold to Treasure Island!',
+  howTo: 'Pick a direction and the ship sails until something stops it. Currents turn the ship, the wind nudges it one more square after each move, and whirlpools spin it back — unless the sea is calm.',
   variants: {
-    easy: { chart: { rows: ['..<<...#<', '.v.#.....', '.#.......', '....^.<.#', 'S.#..#<..', '......#.G'], wind: 'up' }, moves: 7, needsCalm: true },
-    medium: { chart: { rows: ['<.^..^>..', '.#.^..#..', 'Sv..#.#..', '....>##..', '.#...>#.#', '#....#..G'], wind: 'up' }, moves: 8, needsCalm: true },
-    hard: { chart: { rows: ['.......##', '.<...##..', 'S<#..#...', '#<^..^>..', '.v.#....G', '..>.#.#..'], wind: 'up' }, moves: 9, needsCalm: true },
+    easy: { chart: { rows: ['S...#.#..', '#...^.#..', '^....<..>', '.@...#.v.', '##@..#.#.', '#.@.>@..G'], wind: 'up' }, moves: 7, needsCalm: true },
+    medium: { chart: { rows: ['......@..', '.......@#', '......#..', '..>#@..##', '@...#..@G', 'S..#...^.'], wind: 'up' }, moves: 8, needsCalm: true },
+    hard: { chart: { rows: ['S...#.##G', '.^..#>...', '@#...##.@', '....##.#.', '.^..##...', '..>...@..'], wind: 'up' }, moves: 9, needsCalm: true },
   },
   hints: {
-    easy: ['Rocks are handy: sail at one to stop exactly where you want.', 'Sometimes you need to go up or down first to line up with a gap.', 'Pip will show you a good next move.'],
-    medium: ['Plan two moves ahead: where will you stop after this one?', 'The long way round the rocks is often the only way.', 'Pip will show you a good next move.'],
-    hard: ['Count the moves: you have just a few spare.', 'Look for a rock that stops you right in line with the island.', 'Pip will show you a good next move.'],
+    easy: ['The wind pushes the ship up one square after every move — use it!', 'With calm seas you can sail straight over a whirlpool.', 'Pip will show you a good next move.'],
+    medium: ['Currents turn the ship as it sails over them. Where will this one send you?', 'Plan two moves ahead: where will you stop after this one?', 'Pip will show you a good next move.'],
+    hard: ['Count the moves: you have just a few spare.', 'A current can carry you round a corner a rock can’t.', 'Pip will show you a good next move.'],
   },
 });
 

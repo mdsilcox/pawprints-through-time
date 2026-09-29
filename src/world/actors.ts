@@ -163,8 +163,23 @@ export class NpcActor extends Actor {
     if (p) this.faceToward(p.x, p.y);
   }
 
+  /** Strike a dance pose for a moment (parties!). */
+  dance(frame: string, ms: number): void {
+    this.danceFrame = frame;
+    this.danceUntil = performance.now() + ms;
+  }
+  private danceFrame: string | null = null;
+  private danceUntil = 0;
+
   update(dt: number): void {
     const now = performance.now();
+    if (now < this.danceUntil && this.danceFrame) {
+      this.moving = false;
+      this.sprite.setTexture(this.textureKey, this.danceFrame);
+      this.sprite.setFlipX(false);
+      this.sync();
+      return;
+    }
     if (this.talking || this.lookAt) {
       this.moving = false;
       if (this.lookAt) this.faceToward(this.lookAt.x, this.lookAt.y);

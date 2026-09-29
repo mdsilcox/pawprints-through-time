@@ -4,6 +4,7 @@ import { parseLevel, solve as solveSlide } from '../../src/puzzles/logic/sliding
 import { solve as solveSail } from '../../src/puzzles/logic/navigation';
 import { score } from '../../src/puzzles/logic/codebreak';
 import { QUILL_PATTERNS, JUNIPER_CRATES, FINNEGAN_BOAT } from '../../src/puzzles/content/tockwood';
+import { MARIGOLD_CHART } from '../../src/puzzles/content/pirates';
 
 const ARROW: Record<string, string> = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
 
@@ -206,19 +207,36 @@ test.describe('brain-builders', () => {
       for (const [i, d] of dirs.entries()) {
         await page.keyboard.press(ARROW[d]);
         await expect(page.getByTestId('sail-moves')).toContainText(`Moves: ${i + 1}`);
-        await page.waitForTimeout(1300);
+        await expect(page.getByTestId('sail-board')).not.toHaveAttribute('data-busy', 'true', { timeout: 15000 });
+        await page.waitForTimeout(250);
       }
     };
     await openPz(page, 'finnegan-boat', 'easy');
     await sailIt(solveSail(FINNEGAN_BOAT.variants.easy.chart)!);
     await celebrate(page);
-    // medium with calm seas: currents stop pushing, so the short route works
+    // medium with calm seas: the whirlpool settles, so the short route works
     await hook(page, 'drink', 'pirates-gumbo', 2);
     await openPz(page, 'finnegan-boat', 'medium');
     await expect(page.getByTestId('sail-board')).toHaveClass(/calm/);
     const calm = solveSail(FINNEGAN_BOAT.variants.medium.chart, true)!;
     expect(calm.length).toBeLessThan(solveSail(FINNEGAN_BOAT.variants.medium.chart)!.length);
     await sailIt(calm);
+    await celebrate(page);
+  });
+
+  test('replaying the Swirling Shoals from the journal gives calm seas (it can’t be sailed without them)', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'openPuzzle', 'marigold-chart', 'easy', true);
+    await expect(page.getByTestId('puzzle')).toBeVisible();
+    await expect(page.getByTestId('sail-board')).toHaveClass(/calm/);
+    await expect(page.locator('.sa-cell.whirl')).not.toHaveCount(0);
+    await page.waitForTimeout(350);
+    for (const [i, d] of solveSail(MARIGOLD_CHART.variants.easy.chart, true)!.entries()) {
+      await page.keyboard.press(ARROW[d]);
+      await expect(page.getByTestId('sail-moves')).toContainText(`Moves: ${i + 1}`);
+      await expect(page.getByTestId('sail-board')).not.toHaveAttribute('data-busy', 'true', { timeout: 15000 });
+      await page.waitForTimeout(250);
+    }
     await celebrate(page);
   });
 
@@ -237,10 +255,11 @@ test.describe('brain-builders', () => {
     await expect(page.getByTestId('pz-hint')).toBeDisabled();
     await expect(page.getByTestId('pz-hint')).toContainText('No hints left');
     // follow Pip's arrows to the buoy
-    for (let i = 0; i < 8 && !(await page.getByTestId('pz-solved').count()); i++) {
+    for (let i = 0; i < solveSail(FINNEGAN_BOAT.variants.easy.chart)!.length && !(await page.getByTestId('pz-solved').count()); i++) {
       const dir = solveSail(FINNEGAN_BOAT.variants.easy.chart)![i];
       await page.keyboard.press(ARROW[dir]);
-      await page.waitForTimeout(1300);
+      await page.waitForTimeout(300);
+      await expect(page.getByTestId('sail-board')).not.toHaveAttribute('data-busy', 'true', { timeout: 15000 });
     }
     await expect(page.locator('.pz-star.on')).toHaveCount(1);
     await celebrate(page);

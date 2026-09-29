@@ -1,9 +1,10 @@
 /**
  * Turn-limited sailing: pick a direction and the boat sails until something stops it (a rock,
  * the edge of the chart, or the goal). Currents (arrows) turn the boat as it passes over them;
- * on windy charts the wind nudges the boat one square after each move. Calm seas (Pirate's
- * Gumbo) switch currents and wind off. Levels are limited to a few moves; a BFS solver proves
- * each is solvable and gives Pip's "next move" hint.
+ * on windy charts the wind nudges the boat one square after each move. Whirlpools spin the boat
+ * straight back to where it was — unless the sea is calm (Pirate's Gumbo), when they settle and
+ * can be sailed right over. Currents and wind always count. Levels are limited to a few moves;
+ * a BFS solver proves each is solvable and gives Pip's "next move" hint.
  */
 export type Dir = 'up' | 'down' | 'left' | 'right';
 export const DIRS: Dir[] = ['up', 'right', 'down', 'left'];
@@ -11,7 +12,7 @@ const STEP: Record<Dir, [number, number]> = { up: [0, -1], down: [0, 1], left: [
 const ARROW: Record<string, Dir> = { '^': 'up', v: 'down', '<': 'left', '>': 'right' };
 
 export interface Chart {
-  /** rows of: '.' water, '#' rock, 'S' start, 'G' goal, '^ v < >' current */
+  /** rows of: '.' water, '#' rock, '@' whirlpool, 'S' start, 'G' goal, '^ v < >' current */
   rows: string[];
   wind?: Dir;
   /** moves allowed per difficulty is set by the puzzle; this is the minimum known */
@@ -36,27 +37,38 @@ function tile(chart: Chart, x: number, y: number): string {
 }
 
 /** Squares visited while sailing (for animation) and where the boat ends up. */
-export function sail(chart: Chart, from: NavState, dir: Dir, calm = false): { path: NavState[]; end: NavState; reachedGoal: boolean } {
+export function sail(chart: Chart, from: NavState, dir: Dir, calm = false): { path: NavState[]; end: NavState; reachedGoal: boolean; whirled?: boolean } {
   let { x, y } = from;
   let d = dir;
   const path: NavState[] = [];
   const guard = chart.rows.length * chart.rows[0].length * 4;
+  // currents can make a loop: a boat that comes round to the same square heading the same way
+  // stops there (caught circling) instead of sailing round and round
+  const been = new Set<string>();
   for (let i = 0; i < guard; i++) {
+    const state = `${x},${y},${d}`;
+    if (been.has(state)) break;
+    been.add(state);
     const [dx, dy] = STEP[d];
     const t = tile(chart, x + dx, y + dy);
     if (t === '#') break;
+    if (t === '@' && !calm) {
+      // round and round... and spat back out where it came from
+      path.push({ x: x + dx, y: y + dy }, { x, y });
+      return { path, end: { x, y }, reachedGoal: false, whirled: true };
+    }
     x += dx;
     y += dy;
     path.push({ x, y });
     if (t === 'G') return { path, end: { x, y }, reachedGoal: true };
     const cur = ARROW[t];
-    if (cur && !calm) d = cur;
+    if (cur) d = cur;
   }
   // the wind gives one last nudge (if the square is open)
-  if (chart.wind && !calm) {
+  if (chart.wind) {
     const [dx, dy] = STEP[chart.wind];
     const t = tile(chart, x + dx, y + dy);
-    if (t !== '#') {
+    if (t !== '#' && !(t === '@' && !calm)) {
       x += dx;
       y += dy;
       path.push({ x, y });

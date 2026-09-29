@@ -112,7 +112,7 @@ registerMap({
     { id: 'cove-camp', x: 33, y: 4, w: 10, h: 7 },
   ],
   spawns: {
-    portal: { x: COVE.portal.x, y: COVE.portal.y + 0.8, facing: 'down' },
+    portal: { x: COVE.portal.x + 1.7, y: COVE.portal.y + 0.8, facing: 'down' },
     'from-hold': { x: 34, y: 23.4, facing: 'down' },
     'from-isle': { x: 37.5, y: 23.9, facing: 'left' },
   },
@@ -234,11 +234,53 @@ defineRoom({
     floorB: '#a08e74',
     door: { x: 5, w: 1 },
     outside: '#1d1a2e',
+    extras: (ctx, T) => {
+      // stalactites along the ceiling, rocky corners, a glint of gold on the floor
+      ctx.fillStyle = '#5d5569';
+      ctx.strokeStyle = '#4a3b35';
+      ctx.lineWidth = 4;
+      for (let i = 0; i < 11; i++) {
+        const x = (i + 0.5) * T;
+        const len = T * (0.35 + ((i * 37) % 10) / 22);
+        ctx.beginPath();
+        ctx.moveTo(x - T * 0.28, T * 2);
+        ctx.lineTo(x, T * 2 + len);
+        ctx.lineTo(x + T * 0.28, T * 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+      for (const [cx, cy, r] of [
+        [0.4, 2.4, 0.9],
+        [10.6, 2.4, 0.9],
+        [0.3, 7.6, 0.8],
+        [10.7, 7.6, 0.8],
+      ]) {
+        ctx.beginPath();
+        ctx.ellipse(cx * T, cy * T, r * T, r * T * 0.8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#7d7466';
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#f7c65a';
+      for (const [x, y] of [
+        [3.2, 5.2],
+        [3.5, 5.4],
+        [7.6, 4.9],
+        [8.1, 6.6],
+        [2.4, 6.9],
+      ]) {
+        ctx.beginPath();
+        ctx.ellipse(x * T, y * T, T * 0.09, T * 0.06, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    },
   },
   objects: () => [
     { id: 'torch-1', kind: 'prop', x: 2.2, y: 2.1, texture: 'prop-torch' },
     { id: 'torch-2', kind: 'prop', x: 8.8, y: 2.1, texture: 'prop-torch' },
     { id: 'treasure-chest', kind: 'use', x: 5.5, y: 3.8, texture: 'prop-chest', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'treasure-chest', label: 'Treasure!', range: 1.3 } },
-    fur('cave-rock', 'plant', 9.4, 6.4),
+    { id: 'cave-rock', kind: 'prop', x: 9.4, y: 6.6, texture: 'prop-rock', foot: { dx: 0, dy: -1, w: 1, h: 1 } },
+    { id: 'cave-rock-2', kind: 'prop', x: 1.6, y: 6.8, texture: 'prop-rock', foot: { dx: 0, dy: -1, w: 1, h: 1 } },
   ],
 });

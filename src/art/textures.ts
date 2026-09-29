@@ -75,6 +75,18 @@ function registerFx(scene: Phaser.Scene) {
     addCanvasTexture(scene, 'fx-light', c);
   }
   {
+    // a ring of light with a clear middle (a glowing character lights up the ground around them)
+    const { c, ctx } = makeCanvas(256, 256);
+    const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.22, 'rgba(255,255,255,0)');
+    g.addColorStop(0.4, 'rgba(255,255,255,0.85)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    addCanvasTexture(scene, 'fx-light-ring', c);
+  }
+  {
     // player marker arrows (P1 orange, P2 blue)
     for (const [key, col] of [
       ['marker-p1', PAL.orange],

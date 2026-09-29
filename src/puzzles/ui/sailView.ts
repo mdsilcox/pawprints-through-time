@@ -22,13 +22,19 @@ registerView('sail', (ctx) => {
   const board = h('div', { class: `sa-board ${calm ? 'calm' : ''}`, style: `--w:${W}; --h:${H}`, attrs: { 'data-testid': 'sail-board', tabindex: 0 }, dataset: { nav: '', navDir: 'consume', autofocus: '' } });
   chart.rows.forEach((row, y) =>
     [...row].forEach((ch, x) => {
-      const cls = ch === '#' ? 'rock' : ch === 'G' ? 'goal' : ARROWS[ch] ? `current c-${ARROWS[ch]}` : 'water';
-      board.append(h('div', { class: `sa-cell ${cls}`, style: `left:${(x / W) * 100}%; top:${(y / H) * 100}%` }, ch === 'G' ? h('span', { class: 'sa-buoy' }) : ARROWS[ch] ? h('span', { class: 'sa-arrow' }, '➜') : null));
+      const cls = ch === '#' ? 'rock' : ch === 'G' ? 'goal' : ch === '@' ? 'whirl' : ARROWS[ch] ? `current c-${ARROWS[ch]}` : 'water';
+      board.append(
+        h(
+          'div',
+          { class: `sa-cell ${cls}`, style: `left:${(x / W) * 100}%; top:${(y / H) * 100}%` },
+          ch === 'G' ? h('span', { class: 'sa-buoy' }) : ch === '@' ? h('span', { class: 'sa-whirl', attrs: { 'aria-label': calm ? 'a calm whirlpool' : 'a whirlpool' } }) : ARROWS[ch] ? h('span', { class: 'sa-arrow' }, '➜') : null,
+        ),
+      );
     }),
   );
   const boat = h('div', { class: 'sa-boat', attrs: { 'data-testid': 'sail-boat', 'aria-label': 'toy boat' } }, h('span', { class: 'sa-sail' }), h('span', { class: 'sa-hull' }));
   board.append(boat);
-  if (chart.wind) board.append(h('div', { class: `sa-wind w-${chart.wind}`, attrs: { 'aria-label': `wind blowing ${chart.wind}` } }, calm ? '🍲 calm seas' : `💨 wind: ${chart.wind}`));
+  if (chart.wind) board.append(h('div', { class: `sa-wind w-${chart.wind}`, attrs: { 'aria-label': `wind blowing ${chart.wind}` } }, `💨 wind: ${chart.wind}`));
   const placeBoat = () => {
     boat.style.left = `${(at.x / W) * 100}%`;
     boat.style.top = `${(at.y / H) * 100}%`;
@@ -54,15 +60,24 @@ registerView('sail', (ctx) => {
       return;
     }
     busy = true;
+    board.dataset.busy = 'true';
     used++;
     updateCount();
     audio.sfx('splash', { vol: 0.5 });
-    for (const p of r.path) {
+    for (const [i, p] of r.path.entries()) {
       at = p;
       placeBoat();
+      if (r.whirled && i === r.path.length - 2) {
+        boat.classList.add('spin');
+        audio.sfx('bubble');
+        await new Promise((res) => setTimeout(res, 520));
+        boat.classList.remove('spin');
+      }
       await new Promise((res) => setTimeout(res, 110));
     }
+    if (r.whirled) ctx.say(calm ? 'Whoops!' : 'Whoa — the whirlpool spun us right back! If only the sea were calm...');
     busy = false;
+    board.dataset.busy = 'false';
     el.querySelectorAll('.hinted').forEach((x) => x.classList.remove('hinted'));
     if (r.reachedGoal) {
       finished = true;
@@ -98,7 +113,7 @@ registerView('sail', (ctx) => {
     'div',
     { class: 'sa' },
     board,
-    h('div', { class: 'sa-side' }, counter, pad, button('Start over', () => reset(), { icon: '↺', cls: 'secondary small-btn', testid: 'sail-reset' }), calm ? h('div', { class: 'small sa-calm' }, '🍲 Pirate’s Gumbo: calm seas! Currents and wind can’t push you.') : null),
+    h('div', { class: 'sa-side' }, counter, pad, button('Start over', () => reset(), { icon: '↺', cls: 'secondary small-btn', testid: 'sail-reset' }), calm ? h('div', { class: 'small sa-calm' }, '🍲 Calm seas: the whirlpools have settled — sail right over them!') : null),
   );
   updateCount();
   return {

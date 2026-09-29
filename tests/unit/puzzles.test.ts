@@ -183,6 +183,17 @@ describe('sailing charts', () => {
     expect(calm).not.toBeNull();
     expect(calm.length).toBeLessThanOrEqual(v.moves);
     expect(calm.length).toBeGreaterThanOrEqual(4);
+    // calm seas only settle the whirlpools: the wind still blows and the route rides a current
+    expect(v.chart.wind).toBeTruthy();
+    expect(v.chart.rows.join('')).toContain('@');
+    let at = find(v.chart, 'S');
+    let rode = false;
+    for (const d of calm) {
+      const r = sail(v.chart, at, d, true);
+      rode ||= r.path.some((p) => '^v<>'.includes(v.chart.rows[p.y][p.x]));
+      at = r.end;
+    }
+    expect(rode).toBe(true);
   });
 
   it.each(charts.filter((c) => !c.v.needsCalm))('$name reaches the buoy within its move limit (and calm seas never make it harder)', ({ v }) => {
@@ -204,14 +215,39 @@ describe('sailing charts', () => {
     expect(reached).toBe(true);
   });
 
-  it('the boat sails until blocked, currents turn it, wind nudges it, calm seas ignore both', () => {
+  it.each(charts)('$name: every move in the best route is a short, watchable sail (no endless circling)', ({ v }) => {
+    for (const calm of [false, true]) {
+      const sol = sailSolve(v.chart, calm);
+      if (!sol) continue;
+      let at = find(v.chart, 'S');
+      for (const d of sol) {
+        const r = sail(v.chart, at, d, calm);
+        expect(r.path.length).toBeLessThanOrEqual(20);
+        at = r.end;
+      }
+    }
+  });
+
+  it('a loop of currents catches the boat where it came round, instead of spinning forever', () => {
+    const loop = { rows: ['S>v.', '.^<.', '....', '...G'] };
+    const r = sail(loop, find(loop, 'S'), 'right');
+    expect(r.path.length).toBeLessThan(8);
+  });
+
+  it('the boat sails until blocked, currents turn it, wind nudges it; whirlpools spin it back unless the sea is calm', () => {
     const chart = { rows: ['S..#', '..v.', '....', '...G'] };
     expect(sail(chart, find(chart, 'S'), 'right').end).toEqual({ x: 2, y: 0 });
     const turned = sail(chart, { x: 0, y: 1 }, 'right');
     expect(turned.end).toEqual({ x: 2, y: 3 }); // the current turned it south
-    expect(sail(chart, { x: 0, y: 1 }, 'right', true).end).toEqual({ x: 3, y: 1 });
+    expect(sail(chart, { x: 0, y: 1 }, 'right', true).end).toEqual({ x: 2, y: 3 }); // calm seas keep their currents
     const windy = { rows: ['S...', '....', '....', '...G'], wind: 'down' as const };
     expect(sail(windy, find(windy, 'S'), 'right').end).toEqual({ x: 3, y: 1 });
+    expect(sail(windy, find(windy, 'S'), 'right', true).end).toEqual({ x: 3, y: 1 }); // ...and their wind
+    const whirly = { rows: ['S.@.G'] };
+    const spun = sail(whirly, find(whirly, 'S'), 'right');
+    expect(spun.whirled).toBe(true);
+    expect(spun.end).toEqual({ x: 1, y: 0 }); // spat back out beside the whirlpool
+    expect(sail(whirly, find(whirly, 'S'), 'right', true).reachedGoal).toBe(true);
   });
 });
 

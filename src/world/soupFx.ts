@@ -44,6 +44,8 @@ const BUNNY_SAYS = ['Carrots? Did someone say carrots?', 'Hop hop hop! Can’t s
  */
 export class SoupFx {
   private glows: Phaser.GameObjects.Image[] = [];
+  /** at night, a ring of light over the night tint (the ground glows; the character stays true) */
+  private rings: Phaser.GameObjects.Image[] = [];
   private t = 0;
   private hic = 0;
   private sparkleT = 0;
@@ -77,6 +79,7 @@ export class SoupFx {
     }
     for (let i = 0; i < 2; i++) {
       this.glows.push(scene.add.image(0, 0, 'fx-light').setBlendMode(Phaser.BlendModes.ADD).setDepth(1e5 + 3).setVisible(false));
+      this.rings.push(scene.add.image(0, 0, 'fx-light-ring').setBlendMode(Phaser.BlendModes.ADD).setDepth(1e5 + 1).setVisible(false));
     }
     // Whisker Bisque turns barks into words
     this.offFilter = addLineFilter((who, text) => {
@@ -177,8 +180,20 @@ export class SoupFx {
           .setScale(this.dark ? 3.2 : sc.isNight ? 3.6 : 2.4)
           .setAlpha((sc.isNight || this.dark ? 0.32 : 0.18) + Math.sin(this.t * 4 + i) * 0.04);
       } else g.setVisible(false);
+      const ring = this.rings[i];
+      if (glow && sc.isNight && !this.dark)
+        ring
+          .setVisible(true)
+          .setPosition(p.x, p.y - TILE * 0.5)
+          .setTint(glowColor)
+          .setScale(4.2)
+          .setAlpha(0.42 + Math.sin(this.t * 4 + i) * 0.05);
+      else ring.setVisible(false);
     });
-    for (let i = sc.players.length; i < 2; i++) this.glows[i].setVisible(false);
+    for (let i = sc.players.length; i < 2; i++) {
+      this.glows[i].setVisible(false);
+      this.rings[i].setVisible(false);
+    }
     if (this.dark && this.eraser) {
       const rt = this.dark;
       rt.clear();

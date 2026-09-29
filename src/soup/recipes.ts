@@ -118,7 +118,7 @@ export const SOUPS: SoupDef[] = [
     color: '#d9784a',
     effect: 'calm',
     seconds: 240,
-    desc: 'Calm seas! Currents and wind stop pushing your boat in sailing puzzles.',
+    desc: 'Calm seas! Whirlpools settle down in sailing puzzles — sail right over them.',
     needs: ['spicy', 'sea', 'island'],
     clue: 'Something spicy, something from the sea, and something from a sunny tropical island.',
     clueFrom: 'finnegan',

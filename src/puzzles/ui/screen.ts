@@ -110,7 +110,9 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
 
     const factory = VIEWS[def.kind];
     if (!factory) throw new Error(`no view for ${def.kind}`);
-    view = factory({ def, variant, difficulty, riddle, solved: celebrate, say, effects: { calm: hasEffect('calm') } });
+    // (a replay from the journal of a chart that needs calm seas gets them — no gumbo required)
+    const calm = hasEffect('calm') || (!!opts.replay && !!(variant as { needsCalm?: boolean }).needsCalm);
+    view = factory({ def, variant, difficulty, riddle, solved: celebrate, say, effects: { calm } });
 
     const head = h(
       'div',
@@ -120,7 +122,7 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
         'div',
         { class: 'pz-chips' },
         // short phones hide the how-to paragraph: this brings the rules back into Pip's bubble
-        h('button', { class: 'pz-rules', attrs: { type: 'button', 'data-testid': 'pz-rules' }, onclick: (e: Event) => (e.stopPropagation(), say(def.howTo, 'think')) }, '❔ How to play'),
+        h('button', { class: 'pz-rules', dataset: { nav: '' }, attrs: { type: 'button', 'data-testid': 'pz-rules' }, onclick: (e: Event) => (e.stopPropagation(), say(def.howTo, 'think')) }, '❔ How to play'),
         h('span', { class: `pz-chip diff-${difficulty}`, attrs: { 'data-testid': 'pz-difficulty' } }, DIFFICULTY_LABEL[difficulty]),
         opts.replay ? h('span', { class: 'pz-chip' }, 'Replay') : null,
       ),

@@ -300,6 +300,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       let texture = o.texture;
       if (o.kind === 'building' && o.id === 'bowling') texture = app.data?.flags['bowling:open'] ? 'bld-bowling-open' : 'bld-bowling';
       if (o.kind === 'building' && o.id === 'clocktower' && app.data?.flags.hourglassRestored) texture = 'clocktower-fixed';
+      if (o.id === 'hourglass') texture = this.hourglassTexture();
       if (texture && this.textures.exists(texture)) {
         const org = TEXTURE_ORIGIN[texture] ?? { ox: 0.5, oy: 1 };
         const opened = o.texture === 'prop-chest' && app.data?.flags[`${o.id === 'grotto-chest' ? 'grotto:chest' : `chest:${o.id}`}`];
@@ -598,9 +599,16 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       }
     }
     if (d.flags['pip:companion'] && !this.pip && this.def.region !== 'tockwood') {
+      let side = -1;
       const pip = new PipActor(this, this.players[0].x, this.players[0].y, () => {
         const p = this.players[0];
-        return p ? { x: p.x - TILE * 0.9, y: p.y - TILE * 0.2 } : null;
+        if (!p) return null;
+        const b = this.biscuit;
+        if (b) {
+          if (b.x < p.x - TILE * 0.3) side = 1;
+          else if (b.x > p.x + TILE * 0.3) side = -1;
+        }
+        return { x: p.x + side * TILE * 0.95, y: p.y - TILE * 0.35 };
       });
       this.pip = pip;
       this.actors.push(pip);
@@ -894,6 +902,105 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
           const t = this.grid.get(tx, ty);
           if (t !== 'water' && t !== 'wall' && t !== 'void' && t !== 'dark') this.coll.setSolid(tx, ty, false);
         }
+  }
+
+  private hourglassTexture(): string {
+    const n = Math.min(8, Object.keys(app.data?.flags ?? {}).filter((k) => /^sand:.+:placed$/.test(k) && app.data!.flags[k]).length);
+    return n ? `fur-greathourglass-${n}` : 'fur-greathourglass';
+  }
+
+  /** The Great Hourglass shows every sand that's home — with a burst of sparkles for the new one. */
+  refreshHourglass(): void {
+    const img = this.propImages.get('hourglass');
+    if (!img) return;
+    img.setTexture(this.hourglassTexture());
+    const burst = this.add.particles(img.x, img.y - TILE * 3.9, 'fx-sparkle', { speed: { min: 60, max: 220 }, lifespan: 1100, scale: { start: 0.8, end: 0 }, tint: [0xb28cf0, 0xffffff, 0xf7c65a], emitting: false });
+    burst.setDepth(1e5 + 5);
+    burst.explode(36);
+    this.time.delayedCall(1300, () => burst.destroy());
+  }
+
+  /** A Time Sand rises glowing out of a chest (or a cup), then floats to the players. */
+  raiseTimeSand(fromX: number, fromY: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.textures.exists('fx-sand')) {
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = 96;
+        const ctx = cv.getContext('2d')!;
+        const g = ctx.createRadialGradient(48, 48, 4, 48, 48, 46);
+        g.addColorStop(0, 'rgba(255,255,255,1)');
+        g.addColorStop(0.35, 'rgba(178,140,240,0.95)');
+        g.addColorStop(1, 'rgba(178,140,240,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 96, 96);
+        addCanvasTexture(this, 'fx-sand', cv);
+      }
+      const x = fromX * TILE;
+      const y = fromY * TILE;
+      const orb = this.add.image(x, y, 'fx-sand').setDepth(1e5 + 4).setScale(0.2).setBlendMode(Phaser.BlendModes.ADD);
+      const trail = this.add.particles(0, 0, 'fx-sparkle', { follow: orb, speed: { min: 10, max: 60 }, lifespan: 700, scale: { start: 0.5, end: 0 }, tint: [0xb28cf0, 0xffffff], frequency: 40 });
+      trail.setDepth(1e5 + 3);
+      audio.sfx('sparkle');
+      this.tweens.add({ targets: orb, y: y - TILE * 1.8, scale: 1.3, duration: 900, ease: 'Sine.easeOut' });
+      this.tweens.add({ targets: orb, angle: 360, duration: 900, repeat: 1 });
+      const p = this.players[0];
+      this.time.delayedCall(1300, () => {
+        this.tweens.add({
+          targets: orb,
+          x: p?.x ?? x,
+          y: (p?.y ?? y) - TILE,
+          scale: 0.3,
+          alpha: 0.2,
+          duration: 700,
+          ease: 'Quad.easeIn',
+          onComplete: () => {
+            trail.destroy();
+            orb.destroy();
+            audio.sfx('chime');
+            resolve();
+          },
+        });
+      });
+    });
+  }
+
+  /** A party: confetti over everyone, and the neighbours nearby dance. */
+  celebrate(ms = 6000): void {
+    const cam = this.cameras.main;
+    const confetti = this.add.particles(0, 0, 'fx-dot', {
+      x: { min: cam.worldView.x, max: cam.worldView.right },
+      y: cam.worldView.y - 20,
+      speedY: { min: 90, max: 200 },
+      speedX: { min: -50, max: 50 },
+      lifespan: 3600,
+      scale: { start: 0.55, end: 0.35 },
+      tint: [0xe46a6a, 0xf7c65a, 0x7cc47f, 0x6fb3e0, 0xa58bd6, 0xf4a3b4],
+      frequency: 40,
+    });
+    confetti.setDepth(1e5 + 6);
+    const moves = ['dance-left', 'dance-right', 'dance-cheer', 'dance-clap'];
+    const timer = this.time.addEvent({
+      delay: 380,
+      repeat: Math.floor(ms / 380),
+      callback: () => {
+        for (const n of this.npcs.values()) if (Math.hypot(n.x - this.players[0].x, n.y - this.players[0].y) < TILE * 9) n.dance(moves[Math.floor(Math.random() * moves.length)], 420);
+      },
+    });
+    this.time.delayedCall(ms, () => {
+      confetti.stop();
+      timer.remove();
+      this.time.delayedCall(3800, () => confetti.destroy());
+    });
+  }
+
+  /** Bring a neighbour over (for a party, a farewell...). */
+  bringNpc(id: string, x: number, y: number): void {
+    const n = this.npcs.get(id);
+    if (!n) return;
+    n.x = x * TILE;
+    n.y = y * TILE;
+    n.home = { x: n.x, y: n.y };
+    n.sync();
   }
 
   /** Swap a closed chest prop for an open one. */

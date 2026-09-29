@@ -79,8 +79,20 @@ export function triggerTalk(npcId: string, ctx: StoryCtx) {
 export function triggerUse(action: string, ctx: StoryCtx) {
   return run(useHandlers.get(action), ctx);
 }
+/**
+ * A map's arrival scripts. If something else is playing (an eager button press already started
+ * a conversation), they wait their turn instead of being dropped — unless play ends or the
+ * players leave this map first.
+ */
 export async function triggerEnter(mapId: string, ctx: StoryCtx) {
-  for (const fn of enterHandlers.get(mapId) ?? []) await run(fn, ctx);
+  const session = sessionEpoch();
+  const here = () => session === sessionEpoch() && ctx.world.def.id === mapId && ctx.world.scene.isActive();
+  for (const fn of enterHandlers.get(mapId) ?? []) {
+    const t0 = performance.now();
+    while (busy && here() && performance.now() - t0 < 180_000) await new Promise((r) => setTimeout(r, 100));
+    if (!here()) return;
+    await run(fn, ctx);
+  }
 }
 
 // ------------------------------------------------------------------ state helpers

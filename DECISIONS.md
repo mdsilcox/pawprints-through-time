@@ -25,7 +25,10 @@ One line each: decision — reason.
 
 ## Gameplay
 - The pirate chapter's four map pieces each use a different verb (talk, trade, find, sniff+dig) — the vertical slice exercises every core system, not just one.
-- The Swirling Shoals chart is authored so that it is only solvable with calm seas (a unit test proves it) and Marigold won't sail without gumbo — the soup is a real key, and there's no failing, just "not yet".
+- The Swirling Shoals keep the spec's wind and currents at all times; Pirate's Gumbo calms only the whirlpools, which otherwise spin a ship straight back. Each Shoals chart is only passable with calm seas and its calm route rides a current against the wind (unit tests prove both). The first time at the wheel without gumbo you get a look at the rough chart; after that Marigold waits for the gumbo — the soup is a real key, and there's no failing, just "not yet". (M6 review: the earlier "calm switches off wind and currents" dropped the spec's strategy.)
+- Arrival scripts are queued, never dropped: if an eager button press starts something as a map loads, the arrival scene plays right after it — and arrival spots sit clear of "Portal home" rings.
+- Replaying a calm-only chart from the Puzzle Journal gives calm seas automatically — a replay never needs a soup.
+- The Great Hourglass shows each sand that's home (glowing sockets, sand in the bottom bulb), and a Time Sand rises visibly out of its hiding place — the chapter's payoff is on screen, not just in a toast.
 - Torn map = a new seventh puzzle kind (jigsaw: swap, and from Medium also turn pieces) — "put the torn map together" should feel like handling a map, not like an abstract puzzle.
 - The stone door's riddle comes from a pool of five pirate riddles picked by day — replays stay fresh; adaptive difficulty decides pick-from-3 / pick-from-5 / type-it.
 - One currency across time: Coco takes Tockens ("how strange and shiny!") and a History Note explains pieces of eight — kids juggle one number, history still gets taught.
