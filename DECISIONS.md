@@ -6,6 +6,7 @@ One line each: decision — reason.
 - Repo lives in `pawprints-through-time/` inside the session folder; GitHub remote is private `mdsilcox/pawprints-through-time` — spec rule 0.1.
 - Critic reviews use the fallback method: a general-purpose subagent given the body of `.claude/agents/critic.md` — the agent file is created mid-session inside a sub-folder, so Claude Code cannot load it as a named agent type.
 - Critic reviews run against a separate git worktree (`../pawprints-review`) checked out at the milestone commit, in the background, while work continues on the next milestone — keeps the reviewed code frozen and avoids idle waiting; verdicts are still acted on before a milestone is called done.
+- Re-reviews reuse the same critic subagent (continued with its earlier context) so it can check its own previous blockers; each milestone review gets its own frozen worktree (`../pawprints-review-M<n>`).
 - Playwright picks its dev-server port from a hash of the checkout path — the review worktree and the main checkout can run `npm test` at the same time without port clashes.
 
 ## Tech
@@ -21,3 +22,11 @@ One line each: decision — reason.
 - Procedural Canvas-2D art generated at boot ("generated sprite sheets"): soft rounded shapes, chunky 4px warm-brown outlines, top-left light with one soft highlight, dot eyes with a white shine, rosy cheeks.
 - Palette: ink `#4a3b35`, cream `#fff4e0`, paper `#fff8ec`, grass `#8fcf6f`/`#6fae55`/`#b5e08a`, leaf `#5fa85a`, sand `#f3dca2`/`#dfc084`, water `#6cc4d8`/`#4fa6c4`, foam `#e8fbff`, path `#e9c89a`, stone `#cfc2b0`, wood `#b57a4e`/`#8a5a3a`, wall `#fbe7c6`, roofs `#e0715b` `#5fb3a8` `#9b86c9` `#6f9fd8`, gold `#f7c65a`, orange `#f29e4c`, pink `#f4a3b4`, red `#e46a6a`, blue `#6fb3e0`, navy `#3f5a8a`, purple `#a58bd6`, mint `#9fe0c0`, green `#7cc47f`, night `#2d2a5a`, lamp `#ffd98a`, firefly `#f6ff9a`.
 - Colorblind option swaps rhythm/puzzle colors to the Okabe–Ito set and every color cue also has a distinct shape/icon.
+
+## Gameplay
+- World unit = texture pixel, one tile = 96 units; camera zoom is derived from the CSS height (≈7 tiles tall on a phone, ≈11.5 on desktop) — characters stay big and readable on a 375px-tall phone.
+- Players are human kids (customisable skin/hair later); neighbours are animal-folk built on the same paper-doll body, so every outfit fits everyone.
+- In 1-player mode the arrow keys and / . also control Player 1 — kids use whichever keys they find first; they switch to Player 2 when P2 joins.
+- Player 2 is not remembered between sessions; they drop in each time (pause menu, 👥 button, or Start on a second gamepad) — avoids an idle second character when one child plays alone.
+- Soft tether: separation movement slows from 80% of the on-screen limit and stops at 100%; moving back together is never limited — nobody gets dragged.
+- Enter/Space in menus are handled only by our input layer (native button activation suppressed) — prevents double activation.

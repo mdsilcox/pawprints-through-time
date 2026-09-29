@@ -18,12 +18,15 @@ test('installable PWA that keeps working offline', async ({ page, context }) => 
 
   // Wait until the service worker has fully installed and activated (precache complete).
   // (`serviceWorker.ready` only resolves once there is an *active* worker.)
-  const state = await page.evaluate(async () => {
+  const activeState = await page.evaluate(async () => {
     const reg = await navigator.serviceWorker.ready;
-    return reg.active?.state;
+    const sw = reg.active!;
+    if (sw.state !== 'activated') {
+      await new Promise<void>((resolve) => sw.addEventListener('statechange', () => sw.state === 'activated' && resolve()));
+    }
+    return sw.state;
   });
-  expect(['activating', 'activated']).toContain(state);
-  await page.waitForFunction(async () => (await navigator.serviceWorker.ready).active?.state === 'activated', null, { timeout: 30_000 });
+  expect(activeState).toBe('activated');
 
   // The worker claims open pages; if this page loaded before that, a reload hands it over.
   await expect

@@ -7,6 +7,8 @@ import { button, ui } from './ui';
 export async function showTitleMenu(): Promise<void> {
   ui.pop('title');
   const cont = await app.saves.continueSlot().catch(() => null);
+  // The player (or a test) may already have started a game while we were reading the saves.
+  if (!app.phaser.scene.isActive('title') || ui.has('title')) return;
   const anySave = cont !== null;
 
   const buttons = h(

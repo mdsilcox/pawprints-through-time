@@ -12,6 +12,7 @@ export interface AppEvents extends Record<string, unknown> {
   saved: { slot: number; at: number };
   'play-start': { slot: number };
   'play-end': { reason: string };
+  'two-player': boolean;
 }
 
 /**

@@ -37,6 +37,8 @@ export async function activeScenes(page: Page): Promise<string[]> {
 export async function press(page: Page, selector: string): Promise<void> {
   const loc = page.locator(selector).first();
   await expect(loc).toBeVisible();
+  // Menus ignore presses for ~0.3s after a screen opens/closes (anti double-tap), like a real player's pace.
+  await page.waitForTimeout(330);
   const touch = await page.evaluate(() => navigator.maxTouchPoints > 0);
   if (touch) await loc.tap();
   else await loc.click();

@@ -70,13 +70,26 @@ class UIManager {
     return this.stack.map((s) => s.id);
   }
 
+  /**
+   * Briefly ignore button presses after any screen opens or closes, so a quick double-tap or a
+   * held key can't "click through" into the next screen (e.g. skip the slot picker).
+   */
+  private lockUntil = 0;
+  lock(ms = 300): void {
+    this.lockUntil = Math.max(this.lockUntil, performance.now() + ms);
+  }
+  get locked(): boolean {
+    return performance.now() < this.lockUntil;
+  }
+
   push(screen: Screen, layer: HTMLElement = this.screensLayer): Screen {
+    // Never stack two copies of the same screen.
+    const existing = this.stack.find((s) => s.id === screen.id);
+    if (existing) return existing;
     this.stack.push(screen);
     screen.el.classList.add('screen');
     screen.el.dataset.screen = screen.id;
-    // Swallow taps for a moment so a quick double-tap can't "click through" into the new screen.
-    screen.el.classList.add('opening');
-    setTimeout(() => screen.el.classList.remove('opening'), 280);
+    this.lock();
     layer.appendChild(screen.el);
     this.syncDim();
     requestAnimationFrame(() => this.focusFirst(screen));
@@ -90,6 +103,7 @@ class UIManager {
     if (idx < 0) return;
     const [s] = this.stack.splice(idx, 1);
     s.el.remove();
+    this.lock(220);
     s.onClose?.();
     this.syncDim();
     if (this.top) this.focusFirst(this.top, true);
@@ -192,7 +206,7 @@ class UIManager {
 
   confirm(): void {
     const screen = this.top;
-    if (!screen) return;
+    if (!screen || this.locked) return;
     this.setKeyboardNav(true);
     if (screen.onConfirm?.() === true) return;
     const active = document.activeElement as HTMLElement | null;
@@ -224,7 +238,7 @@ export function button(
       attrs: { type: 'button', ...(opts.testid ? { 'data-testid': opts.testid } : {}) },
       onclick: (e: Event) => {
         e.stopPropagation();
-        if (b.disabled) return;
+        if (b.disabled || ui.locked) return;
         onClick();
       },
     },

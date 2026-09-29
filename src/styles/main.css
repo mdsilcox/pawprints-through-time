@@ -90,10 +90,6 @@ body {
   display: flex;
   animation: screen-in 0.22s ease-out;
 }
-.screen.opening,
-.screen.opening * {
-  pointer-events: none !important;
-}
 .center-wrap.backdrop {
   background: rgba(45, 42, 90, 0.35);
 }
@@ -456,4 +452,240 @@ p {
   #rotate-hint {
     display: flex;
   }
+}
+
+/* ---------- HUD ---------- */
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+}
+.hud-left,
+.hud-right {
+  position: absolute;
+  top: max(0.5rem, env(safe-area-inset-top));
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+.hud-left {
+  left: max(0.6rem, env(safe-area-inset-left));
+}
+.hud-right {
+  right: max(0.6rem, env(safe-area-inset-right));
+}
+.hud-place {
+  background: rgba(255, 248, 236, 0.9);
+  border: var(--border) solid var(--ink);
+  border-radius: 999px;
+  padding: 0.2rem 0.85rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 0.18rem 0 var(--shadow);
+}
+.hud-btn {
+  pointer-events: auto;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 50%;
+  border: var(--border) solid var(--ink);
+  background: var(--paper);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.2rem 0 var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hud-btn:active {
+  transform: translateY(0.15rem);
+  box-shadow: 0 0.05rem 0 var(--ink);
+}
+.hud-btn.on {
+  background: var(--blue);
+}
+.pause-glyph {
+  font-size: 0.85rem;
+  letter-spacing: -0.12em;
+}
+
+/* ---------- touch controls ---------- */
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none !important;
+}
+.touch-zone {
+  position: absolute;
+  top: 3.6rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  touch-action: none;
+}
+.touch-controls.two .touch-zone.p1 {
+  right: 50%;
+}
+.touch-controls.two .touch-zone.p2 {
+  left: 50%;
+}
+.touch-controls.two .touch-zone.p1::after,
+.touch-controls.two .touch-zone.p2::after {
+  content: '';
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  width: 0;
+  border-left: 3px dashed rgba(74, 59, 53, 0.18);
+}
+.touch-controls.two .touch-zone.p1::after {
+  right: 0;
+}
+.touch-controls.two .touch-zone.p2::after {
+  display: none;
+}
+.stick-base {
+  position: absolute;
+  width: 7.2rem;
+  height: 7.2rem;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 248, 236, 0.18);
+  border: 3px solid rgba(74, 59, 53, 0.28);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.stick-base.active {
+  opacity: 1;
+  background: rgba(255, 248, 236, 0.32);
+}
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.3rem;
+  height: 3.3rem;
+  border-radius: 50%;
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  box-shadow: 0 0.2rem 0 var(--shadow);
+  transform: translate(-50%, -50%);
+}
+.p2 .stick-knob {
+  background: #d6ecf8;
+}
+.p1 .stick-knob {
+  background: #ffe7cf;
+}
+.touch-btn {
+  position: absolute;
+  border-radius: 50%;
+  border: var(--border) solid var(--ink);
+  font: inherit;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0.25rem 0 var(--ink);
+  touch-action: none;
+  pointer-events: auto;
+  opacity: 0.92;
+}
+.touch-btn.down {
+  transform: translateY(0.2rem);
+  box-shadow: 0 0.05rem 0 var(--ink);
+}
+.touch-btn.a {
+  width: 4.8rem;
+  height: 4.8rem;
+  background: var(--green);
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+}
+.touch-btn.a.ready {
+  background: var(--gold);
+  animation: btn-pulse 1s ease-in-out infinite;
+}
+@keyframes btn-pulse {
+  50% {
+    box-shadow:
+      0 0.25rem 0 var(--ink),
+      0 0 0 0.45rem rgba(247, 198, 90, 0.4);
+  }
+}
+.touch-btn.b {
+  width: 3.4rem;
+  height: 3.4rem;
+  background: var(--paper-2);
+  right: calc(max(1rem, env(safe-area-inset-right)) + 5.6rem);
+  bottom: max(0.8rem, env(safe-area-inset-bottom));
+}
+.touch-btn-glyph {
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.touch-btn.b .touch-btn-glyph {
+  font-size: 1rem;
+}
+.touch-btn-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+  max-width: 4.2rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* 2P: each player's buttons sit low on the inner side of their own half */
+.touch-controls.two .touch-btn.a {
+  width: 4.2rem;
+  height: 4.2rem;
+}
+.touch-controls.two .touch-btn.b {
+  width: 3rem;
+  height: 3rem;
+}
+.touch-controls.two .p1 .touch-btn.a {
+  right: 0.9rem;
+  bottom: 0.8rem;
+}
+.touch-controls.two .p1 .touch-btn.b {
+  right: 5.6rem;
+  bottom: 0.6rem;
+}
+.touch-controls.two .p2 .touch-btn.a {
+  right: auto;
+  left: 0.9rem;
+  bottom: 0.8rem;
+  background: var(--blue);
+}
+.touch-controls.two .p2 .touch-btn.a.ready {
+  background: var(--gold);
+}
+.touch-controls.two .p2 .touch-btn.b {
+  right: auto;
+  left: 5.6rem;
+  bottom: 0.6rem;
+}
+
+/* ---------- pause ---------- */
+.pause-panel {
+  width: min(92vw, 30rem);
+  text-align: center;
+}
+.pause-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.pause-grid .btn {
+  width: 100%;
 }

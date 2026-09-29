@@ -35,7 +35,18 @@ The game is a Progressive Web App. Browsers only install PWAs from an HTTPS addr
 
 ## Controls
 
-_(Filled in as controls land — see the in-game Settings → Controls page.)_
+| | Player 1 | Player 2 |
+| --- | --- | --- |
+| Move | **W A S D** | **Arrow keys** |
+| Action (talk, enter, dig, confirm) | **E** (or Space) | **/** (or Enter) |
+| Biscuit sniff / back | **Q** | **.** |
+| Pause | **Esc** or **P** | **Esc** or **P** |
+
+- **1 player:** both key sets control Player 1, so use whichever feels comfy.
+- **Menus:** move with WASD/arrows, pick with E / Enter / Space, go back with Q / Esc.
+- **Gamepads:** left stick or d-pad to move, **A** action, **B** sniff/back, **Start** pause. The first pad is Player 1, the second is Player 2 — pressing **Start** on a second pad drops Player 2 straight in.
+- **Phone / tablet (hold it sideways):** drag anywhere on the left side for the joystick, tap **A** to act and **B** to sniff. With two players, each player gets half of the screen with their own joystick and buttons.
+- **Player 2 joins or leaves any time** from the pause menu (or the 👥 button in the top-right corner).
 
 ## Playtime reminder
 

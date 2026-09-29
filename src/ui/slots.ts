@@ -24,7 +24,9 @@ export function placeName(map: string): string {
  * new: all (occupied ones ask before overwriting); load: only occupied ones.
  */
 export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
+  if (ui.has('slots')) return null;
   const list = await app.saves.list();
+  if (ui.has('slots')) return null;
   return new Promise((resolve) => {
     const done = (v: number | null) => {
       ui.pop('slots');
@@ -65,6 +67,7 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
 }
 
 export function confirmDialog(message: string, yes = 'Yes', no = 'No'): Promise<boolean> {
+  if (ui.has('confirm')) return Promise.resolve(false);
   return new Promise((resolve) => {
     const finish = (v: boolean) => {
       ui.pop('confirm');

@@ -60,3 +60,34 @@ test.describe('smoke', () => {
     expect(slots.map((s) => s.exists)).toEqual([true, false, true]);
   });
 });
+
+test('a quick double-tap never skips a menu or stacks duplicate screens', async ({ page }) => {
+  await bootToTitle(page);
+  await page.waitForTimeout(350);
+  const btn = page.getByTestId('title-new');
+  await btn.dblclick();
+  await expect(page.locator('[data-screen="slots"]')).toHaveCount(1);
+  expect(await hook<string[]>(page, 'scenes')).not.toContain('world');
+  // a tap landing right as a screen opens is ignored (e.g. the second half of a double-tap)
+  await page.getByTestId('slots-back').click();
+  await expect(page.locator('[data-screen="slots"]')).toHaveCount(0);
+  await page.waitForTimeout(350);
+  await page.getByTestId('title-new').click();
+  const started = await page.evaluate(
+    () =>
+      new Promise<boolean>((resolve) => {
+        const tryClick = () => {
+          const el = document.querySelector('[data-testid="slot-1"]') as HTMLElement | null;
+          if (el) {
+            el.click(); // same frame the picker appeared in
+            setTimeout(() => resolve((window as any).__game.scenes().includes('world')), 600);
+          } else requestAnimationFrame(tryClick);
+        };
+        tryClick();
+      }),
+  );
+  expect(started).toBe(false);
+  // ...while a deliberate tap a moment later works
+  await press(page, '[data-testid="slot-1"]');
+  await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+});

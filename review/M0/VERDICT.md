@@ -1,74 +1,94 @@
-# M0 Review — 9e1d5564dffadc72e0179ca4186bf8c8eedd3a3d
+# M0 Review — 9eb36cb2e005cb6e3ddc31b87476142e7eed800b (re-review 1)
 
-**Verdict:** REVISE
+**Verdict:** PASS
 
-One small fix away from a PASS. The scaffold is solid and the title screen is already charming. The only blocker is a flaky test that makes `npm test` fail more often than it passes.
+The earlier blocker, the flaky offline test, is truly fixed, and the other changes in this commit help. The new "ignore taps while a screen opens" code has a tap-through bug. It doesn't delete anything and every flow still completes, so it isn't a blocker for a scaffold, but it's improvement #1 below and I'll re-test it at M1.
+
+## Previous blocker
+
+- **Flaky `tests/e2e/pwa.spec.ts`: FIXED.**
+  - The spec now waits for `navigator.serviceWorker.ready`. It then polls for `controller`, reloading the page if it isn't controlled yet.
+  - On 9eb36cb it passed **35 of 35** runs across 8 separate invocations: `npm test` twice, `--repeat-each=6` five times, and a 4-worker `--repeat-each=3` run under load. It had failed 5 of 8 before.
+  - I also deliberately provoked the old race: I reloaded 40–240 ms into service-worker install, then ran the new test steps. That's 18 of 18 successes. The one run that left the page uncontrolled was recovered by the new reload-in-poll, and offline boot worked every time.
 
 ## Blockers
 
-- **`npm test` is not reliably green: `tests/e2e/pwa.spec.ts` failed in 5 of 8 runs on this machine.**
-  - **Runs:** the full `npm test` failed once and passed once. `npx playwright test --project=pwa --repeat-each=2`, run 3 times, gave 4 failures and 2 passes. Every failure is the same: `TimeoutError` at line 25, waiting for `navigator.serviceWorker.controller`.
-  - **The bug is in the test, not the game.** Lines 20–23 pass an `async` predicate to `page.waitForFunction`. The Promise it returns counts as truthy, so the "wait for the service worker to be active" step returns at once.
-    - I ran an instrumented copy of the test (scratch script, not committed). The wait returned within about 60 ms of page load, with the SW still `installing`, in 5 of 5 runs.
-    - The test then reloads while the SW is still installing. If the reload lands during activation, `clientsClaim()` misses the new page and it stays uncontrolled for good. Reproduced: `active: "activated"` but `controller: null` for 16 s.
-  - **The shipped PWA works.** With a real wait, the SW took control and an offline reload booted to the title in 4 of 4 runs.
-  - **Fix:** replace lines 20–25 with `await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));` followed by `await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);`. Then run the offline part as it is now, and prove it with `npx playwright test --project=pwa --repeat-each=10`.
-  - **Why this blocks:** spec rule 0.5 says "Tests stay green", the definition of done says "`npm test` passes", and the test harness is M0's deliverable. A gate that flips at random will either block every later commit or teach everyone to ignore red.
+- None.
 
 ## Top improvements
 
-1. **Make menus respond to the keys and gamepads the title promises, and show where focus is.**
-   - The title says "keyboard, gamepad or touch", but in menus the arrow keys, WASD, E/Q, Escape and gamepads all do nothing. `ui.nav()`, `ui.confirm()` and `ui.back()` in `src/ui/ui.ts` are never called, and `src/app.ts` turns off Phaser keyboard and gamepad input.
-   - Tab does move focus, but you can't see it. `.btn { outline: none }` removes the default outline, and the focus ring only draws under `.kbd-nav`, which nothing ever sets. I tabbed to slot 2: no ring, and the computed `outline-style` was `none`.
-   - So a kid holding a controller can't press New Game. Wire one keydown handler and a gamepad poll into the existing `ui.nav/confirm/back`:
-     - P1: WASD, E, Q
-     - P2: arrow keys, `/`, `.`
-     - Anyone: Enter, Space, Escape
-     - Gamepad: d-pad or stick, A, B
-   - Add a `:focus-visible` ring as a fallback. This is M1 scope, but it's the first thing every player touches and the code is already written.
-2. **Protect saves from little fingers.**
-   - In the "Start over in slot 1?" dialog, the destructive "Start over" is the big green button and "Keep it" is the pale one. Swap them.
-   - Dim the slot list behind the dialog. Right now it stays at full brightness and its text peeks out around the dialog.
-   - Ignore taps for about 250 ms after a screen opens. On the phone (667×375), a quick double-tap on New Game skips the slot picker and starts a game in whichever empty slot is under the finger. I reproduced this.
-   - The overwrite-confirm flow has no test. Add one.
-3. **Let each adventure have a name.** Every slot card reads "Player 1 · Day 1", so siblings sharing a tablet can't tell whose save is whose. The save format already has `players[0].name`. Ask for a name (or let kids pick an animal badge) on New Game, and show it on the slot card and the Continue button. It's cheap, very family-friendly, and fits with M2's save-slot work.
+1. **Swallow extra taps instead of letting them fall through (a regression from this commit, plus one older case).**
+   - **Cause:** `.screen.opening { pointer-events: none }` doesn't ignore taps during a screen's first 280 ms. It passes them through to the screen underneath. On the phone (667×375, touch) I got:
+
+     | What the player does | What happens |
+     |---|---|
+     | Double-tap New Game (120 or 200 ms apart) | Two slot pickers stack up. One Back tap leaves one on screen, so Back looks broken. |
+     | Double-tap a used slot (200 ms apart) | Two "Start over?" dialogs. One "Keep it" tap leaves one on screen. |
+     | Double-click New Game (desktop) | Two slot pickers. |
+     | Tap "Keep it" 100–180 ms after the dialog appears | The tap goes through to the slot list and **starts a new game in slot 2**. At 400 ms it works correctly. |
+     | Double-tap "Keep it" (90 or 150 ms apart, dialog fully open) | The second tap lands on slot 2's card and **starts a new game there**. This happened before this commit too. |
+
+   - **Consequence:** in the last two cases, "Continue" then opens the new empty game, because the last-saved slot is now 2. The real adventure is only reachable through Load Game.
+   - **Why it happens:**
+     - Taps fall through the opening screen, as above.
+     - `ui.pop(id)` removes the *lowest* screen with that id, so when there are duplicates the visible one stays.
+     - `pickSlot()` waits on IndexedDB before showing the picker, so a quick second click hits New Game again.
+     - Nothing guards the screen a closing dialog reveals.
+   - **Fix:**
+     - On every UI stack change (push *and* pop), lock input for about 300 ms. Add a capture-phase `pointerdown`/`click` listener on `#ui-root` that calls `preventDefault()` and `stopPropagation()` while locked, and drop the `.opening` rule.
+     - Make `pop(id)` remove the topmost match.
+     - Ignore New Game, Load and slot presses while a picker or dialog is already open.
+     - Add an e2e test covering the three double-tap cases above. Each should leave exactly one screen, and slot 2 should stay empty.
+   - **Why it matters later:** nothing is lost today. Once there's real progress (M1+), "I pressed Keep it and it started a new game" is the kind of moment that ends a family's evening. I'll re-test all five cases at M1.
+2. **Menus still ignore the keys and gamepads the title promises** (carried over from the last review; unchanged in 9eb36cb).
+   - Arrow keys, WASD, E/Q, Escape and gamepads do nothing in menus.
+   - Tab focus is invisible: `.btn { outline: none }`, and `.kbd-nav` is never set because `ui.nav/confirm/back` are never called.
+   - Wire both players' keys and the gamepad into `ui.nav/confirm/back`, and add a `:focus-visible` ring. This is M1 scope.
+3. **Let each adventure have a name** (carried over). Every slot card reads "Player 1 · Day 1", so siblings can't tell whose save is whose. `players[0].name` already exists. Ask for a name on New Game and show it on the slot card and the Continue button. This fits naturally with M2.
 
 ## Fun score
 
-2/10. Biggest thing holding it back: there's nothing to play yet. New Game lands on a flat green screen with a "The island is being built!" panel, which is expected for a scaffold. The front door is already lovely. The drawn-in-code clocktower, warm palette, chunky buttons and friendly wording feel like a real cozy game, not a prototype.
+2/10. Biggest thing holding it back: there's nothing to play yet, which is expected for a scaffold. The title screen and menus are warm and polished, and the redesigned "Start over?" dialog is clearer.
 
 ## Required features tally
 
-Working 0 · partial 0 · missing 14. All of this is expected at M0; where groundwork exists, it's noted.
+Working 0 · partial 0 · missing 14. That's expected at M0; where groundwork exists, it's noted.
 
 1. Adventure story — missing
-2. Village life (neighbors, home, collecting) — missing
+2. Village life — missing
 3. Time travel — missing
-4. Outfits — missing. The save format already has hat, top, bottom, shoes and accessory slots for both players, plus Biscuit's slots.
+4. Outfits — missing. The save format has outfit slots for both players and Biscuit.
 5. Bowling — missing
 6. Corgi character — missing
 7. Dancing — missing
 8. Riddles, logic and strategy — missing
-9. Playtime reminder — missing. Groundwork: settings only allow 15/30/45/60/90 minutes, default to 45, can't be switched off, and are unit-tested. There's no session timer, no Pip message and no fast-forward hook yet (due in M2).
+9. Playtime reminder — missing. Groundwork: settings only allow 15/30/45/60/90 minutes, default 45, can't be switched off, and are now sanitized on every write. The timer, Pip's message and the fast-forward hook are due in M2.
 10. Map and pirates — missing
 11. Fairy — missing
-12. 1 or 2 players — missing. The save holds two player profiles, but there's no way to add Player 2. The M0 "2P" screenshots are byte-identical copies of the 1P ones (see notes).
+12. 1 or 2 players — missing. The save holds two player profiles, but the "2P" screenshots are still copies of 1P (see notes).
 13. Bunnies — missing
 14. Magic soup — missing
 
 ## Notes for the next milestones
 
-- **Screenshots must not fake 2P.** `scripts/shots.mjs` line 55 swallows hook errors with `g(page, 'joinP2').catch(() => undefined)`, and line 54 quietly falls back if `startWorld` fails. That's why `world-2p-desktop.png` and `world-2p-phone.png` have the same MD5 as the 1P shots. Remove the catches so a missing hook fails the shot. From M1 on, I'll check that 2P shots actually show two players.
-- **Autosave isn't periodic yet.** `AutoSaver.tick()` is never called, and nothing saves on `visibilitychange` or `pagehide`. PROGRESS.md's "periodic autosaver" is only the class. Once there's progress to lose, backgrounding the app or closing the tab on a phone will lose it. Wire both in M2.
-- **`app.setSettings()` doesn't clean its input.** It skips `sanitizeSettings()`, so `setSettings({ reminderMinutes: 0 })` is accepted until the next reload. Sanitize on every write before the M2 reminder depends on it.
-- **Debug hooks the spec asks for are still to come:** teleport and join/leave Player 2 (M1), plus fast-forward the session timer and trigger events (M2).
-- **The title still needs Biscuit wagging** (spec section 6), once Biscuit's M3 art exists. The drifting sand is so faint on desktop that it's easy to miss.
-- **Small UI icons are system emoji:** the paw prints in the logo and boot splash, the play, sparkle and book icons on the title buttons, the hourglass and bunny on slot cards, and the phone on the rotate hint. They look different on every platform (on Windows the paw is dark purple next to the gold logo), and they aren't house-style art. Swap them for small SVG icons in the palette when convenient.
-- **DECISIONS and PROGRESS:** no decision drops a spec requirement. Reviewing M0 in a worktree while M1 goes ahead is fine, as long as this fix is re-reviewed before M1 is called done. PROGRESS says "Known issues: (none yet)"; it should list the PWA flake until it's fixed.
+- **`pwa.spec.ts` line 26 is still a no-op.** It uses `page.waitForFunction(async () => ...)` again; I checked that `waitForFunction(async () => false)` resolves in 12 ms. It's harmless now because the poll after it does the real work, but its comment claims it waits for "activated". Delete it, and don't use async predicates with `waitForFunction` in the M1+ scripted playthroughs.
+- **`scripts/shots.mjs` still ignores a missing `joinP2` hook** (line 55, `.catch(() => undefined)`). Fix this before taking M1 screenshots; 2P shots must show two players.
+- **The new autosave wiring works but has no tests.** I verified it by hand:
+  - Hiding the page wrote the save to IndexedDB within 300 ms. The 1.5 s debounce alone wouldn't have.
+  - `pagehide` also saves.
+  - Play with no input saved automatically about 62 s after boot.
 
-## Verified working
+  M2 needs automated tests for these, along with the session-timer tests the spec requires.
+- **`setSettings` resets an invalid value to the default instead of keeping the previous value.** For example, 30 followed by an invalid value becomes 45. That's harmless for the reminder, but surprising.
+- **This fix commit also changed save IDs.** Biscuit's `bandana` became `biscuit-bandana`, and `backpack` was added. That's fine, but keeping fix commits focused keeps re-reviews small. PROGRESS "Known issues" should list the double-tap bug until it's fixed.
+- **Still to come:**
+  - Debug hooks: teleport and join/leave P2 in M1; timer fast-forward and trigger-events in M2.
+  - Biscuit wagging on the title.
+  - House-style SVG icons in place of the system emoji.
 
-- **Repo and tooling:** `critic.md` matches Appendix A. M0 is pushed (`origin/main` = `9e1d556`), and the README's first line links the repo. `tsc --noEmit` is clean. All 18 unit tests pass, and they test real behaviour: save round-trips, reopening an IndexedDB (fake-indexeddb), migrating old and garbage saves, autosave debounce and settings clamping. They would fail if those broke.
-- **Played by hand:** I used real clicks and taps at 1280×720 and 667×375 (touch, 2x pixel density). New Game → pick a slot → world → Back to title → Continue or Load Game all work. Load greys out empty slots. Overwriting asks first, and both "Keep it" and "Start over" do the right thing. Saves survive a page reload. There were no console errors.
-- **Layout:** the title fits cleanly at 568×320, 667×375, 1024×768, 1280×720, 1920×1080 and 2560×1440. The smallest text on the phone is 12 px, which is readable. A phone held upright shows "Turn your phone sideways to play!", which clears on rotation, and the game canvas resizes.
-- **Production build:** `window.__game` only exists when the URL has `?debug`. The manifest is valid (fullscreen, landscape, 192/512/maskable icons). The service worker caches the whole game, and an offline reload boots to the title.
+## Verified in this re-review
+
+- **Tests:** `npm test` passed both times (18 unit + 7 e2e). The 4-worker contention run passed 21 of 21. The PWA spec passed 35 of 35. The provoked-race harness passed 18 of 18.
+- **Overwrite dialog:** the green "Keep it" is the default (it has keyboard focus), "Start over" is pale with red text, and the slot list is dimmed behind the dialog. Checked on phone and desktop. Single taps behave correctly: "Keep it" returns to the slot list, and "Start over" starts the game.
+- **Autosave and settings:** see the notes above. `setSettings({ reminderMinutes: 0 })` becomes 45, and a volume of 5 is clamped to 1.
+- **Full playthrough by hand** at 1280×720 and at 667×375 with touch: new game, back to title, continue, load (empty slots greyed out), overwrite keep and start over, and a page reload keeping the save. Everything works, with no console errors.

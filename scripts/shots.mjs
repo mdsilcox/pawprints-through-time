@@ -34,6 +34,21 @@ async function boot(page) {
 }
 
 /** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
+async function play(page, players = 1, at) {
+  await boot(page);
+  await g(page, 'newGame', 1);
+  await g(page, 'startWorld');
+  await page.waitForFunction(() => window.__game.scenes().includes('world'));
+  await wait(400);
+  if (at) await g(page, 'teleport', at[0], at[1], 0);
+  if (players === 2) {
+    await g(page, 'joinP2');
+    if (at) await g(page, 'teleport', at[0] + 1.2, at[1] + 0.3, 1);
+  }
+  await wait(900);
+}
+
+/** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
 const SCENARIOS = [
   { name: 'title', run: async (page) => boot(page) },
   {
@@ -45,15 +60,31 @@ const SCENARIOS = [
       await wait(400);
     },
   },
+  { name: 'arrival-dock', players: [1, 2], run: async (page, players) => play(page, players) },
+  { name: 'plaza', players: [1, 2], run: async (page, players) => play(page, players, [29.5, 26.5]) },
+  { name: 'meadow', players: [1], run: async (page, players) => play(page, players, [13, 27.5]) },
+  { name: 'sign-prompt', players: [1], run: async (page, players) => play(page, players, [29.2, 27]) },
+  { name: 'clocktower', players: [1], run: async (page, players) => play(page, players, [30.5, 18.2]) },
   {
-    name: 'world',
+    name: 'tether',
+    players: [2],
+    run: async (page) => {
+      await play(page, 2, [30.5, 27]);
+      await g(page, 'hold', 0, -1, 0);
+      await g(page, 'hold', 1, 1, 0);
+      await wait(2500);
+      await g(page, 'release', 0);
+      await g(page, 'release', 1);
+      await wait(300);
+    },
+  },
+  {
+    name: 'pause',
     players: [1, 2],
     run: async (page, players) => {
-      await boot(page);
-      await g(page, 'newGame', 1);
-      await g(page, 'startWorld').catch(() => page.click('[data-testid="title-new"]'));
-      if (players === 2) await g(page, 'joinP2').catch(() => undefined);
-      await wait(1200);
+      await play(page, players, [30.5, 23.5]);
+      await g(page, 'openPause');
+      await wait(500);
     },
   },
 ];
