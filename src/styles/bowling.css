@@ -135,3 +135,8 @@
 .btn.bt-pick.done {
   background: #e8f6e4;
 }
+
+/* while a results card is up, the scorecard steps back (the card has the totals) */
+.bowl-card.behind {
+  visibility: hidden;
+}

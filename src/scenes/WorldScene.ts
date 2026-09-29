@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { app } from '../app';
 import { input } from '../input/input';
 import { TERRAIN_LAYERS, DECOR_SIZE, type DecorFrame } from '../art/decor';
-import { TEXTURE_ORIGIN, addCanvasTexture, ensureBiscuitTexture, ensureBunnyTexture } from '../art/textures';
+import { TEXTURE_ORIGIN, addCanvasTexture, ensureBiscuitTexture, ensureBunnyTexture, ensurePropTexture } from '../art/textures';
 import { rng } from '../art/draw';
 import { WILD_FURS } from '../art/bunny';
 import { layerVariants, cullCovered, type TerrainGrid } from '../world/terrain';
@@ -86,13 +86,18 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   /** tall things (buildings, trees) that fade when a player walks behind them */
   private occluders: { img: Phaser.GameObjects.Image; baseY: number }[] = [];
   private camZoom = 1;
+  /** a spot the camera keeps in frame with the players (e.g. the Great Hourglass's sockets in its ceremony) */
+  private camLook: { x: number; y: number } | null = null;
   private camCenter: Pt = { x: 0, y: 0 };
   private tetherLine!: Phaser.GameObjects.Graphics;
   focusTarget: Interactable | null = null;
+  /** somewhere Pip should keep clear of for a moment (a Time Sand rising out of a chest) */
+  private pipAvoid: { x: number; y: number } | null = null;
   mapW = 0;
   mapH = 0;
   private initData: WorldInit = {};
-  private transitioning = false;
+  /** leaving for another map (a door, the portal): arrival scripts still waiting their turn stand down */
+  transitioning = false;
   private overlay: Phaser.GameObjects.Rectangle | null = null;
   private lamps: Phaser.GameObjects.Image[] = [];
   private fireflies: { img: Phaser.GameObjects.Image; base: Pt; ph: number }[] = [];
@@ -118,6 +123,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.bunnyInteract = [];
     this.lostBunnies = [];
     this.focusTarget = null;
+    this.pipAvoid = null;
+    this.camLook = null;
     this.spots = [];
     this.lamps = [];
     this.fireflies = [];
@@ -307,9 +314,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       if (o.kind === 'building' && o.id === 'bowling') texture = app.data?.flags['bowling:open'] ? 'bld-bowling-open' : 'bld-bowling';
       if (o.kind === 'building' && o.id === 'clocktower' && app.data?.flags.hourglassRestored) texture = 'clocktower-fixed';
       if (o.id === 'hourglass') texture = this.hourglassTexture();
+      if (texture) ensurePropTexture(this, texture);
       if (texture && this.textures.exists(texture)) {
         const org = TEXTURE_ORIGIN[texture] ?? { ox: 0.5, oy: 1 };
         const opened = o.texture === 'prop-chest' && app.data?.flags[`${o.id === 'grotto-chest' ? 'grotto:chest' : `chest:${o.id}`}`];
+        if (opened) ensurePropTexture(this, 'prop-chest-open');
         const img = this.add.image(o.x * TILE, o.y * TILE, opened ? 'prop-chest-open' : texture).setOrigin(org.ox, org.oy).setDepth(o.y * TILE);
         this.propImages.set(o.id, img);
         if (o.p?.scale) img.setScale(o.p.scale);
@@ -552,7 +561,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   /** Swap a prop's picture mid-visit (a trophy case emptied, a door opened...). */
   setPropTexture(id: string, key: string): void {
     const img = this.propImages.get(id);
-    if (img && this.textures.exists(key)) img.setTexture(key);
+    if (img && ensurePropTexture(this, key)) img.setTexture(key);
   }
 
   /** Skaters glide round their loop (and their talk spot goes with them). */
@@ -640,13 +649,17 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       }
     }
     if (d.flags['pip:companion'] && !this.pip && this.def.region !== 'tockwood') {
-      // Pip hovers beside player 1 — on whichever side (or above) is clearest of player 2 and Biscuit
+      // Pip hovers beside player 1 — on whichever side (or above) is clearest of player 2, Biscuit,
+      // whatever the players are walking up to (a chest, a parrot, a map table) and any Time Sand rising
       let side = -1;
       const pip = new PipActor(this, this.players[0].x, this.players[0].y, () => {
         const p = this.players[0];
         if (!p) return null;
         const spot = (s: number) => ({ x: p.x + s * TILE * 0.95, y: p.y - TILE * (s === 0 ? 1.75 : 0.35) });
-        const others = [this.players[1], this.biscuit].filter((o): o is NonNullable<typeof o> => !!o);
+        const others: { x: number; y: number }[] = [this.players[1], this.biscuit].filter((o): o is NonNullable<typeof o> => !!o).map((o) => ({ x: o.x, y: o.y }));
+        const t = this.focusTarget;
+        if (t) others.push({ x: t.x, y: t.y - TILE * 0.6 });
+        if (this.pipAvoid) others.push(this.pipAvoid);
         const room = (s: number) => {
           const at = spot(s);
           return others.length ? Math.min(...others.map((o) => Math.hypot(o.x - at.x, o.y - at.y))) : Infinity;
@@ -960,6 +973,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
 
   private hourglassTexture(): string {
     const n = Math.min(8, Object.keys(app.data?.flags ?? {}).filter((k) => /^sand:.+:placed$/.test(k) && app.data!.flags[k]).length);
+    if (app.data?.flags.hourglassRestored) return 'fur-greathourglass-whole';
     return n ? `fur-greathourglass-${n}` : 'fur-greathourglass';
   }
 
@@ -967,7 +981,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   refreshHourglass(): void {
     const img = this.propImages.get('hourglass');
     if (!img) return;
-    img.setTexture(this.hourglassTexture());
+    const key = this.hourglassTexture();
+    ensurePropTexture(this, key);
+    img.setTexture(key);
     const burst = this.add.particles(img.x, img.y - TILE * 3.9, 'fx-sparkle', { speed: { min: 60, max: 220 }, lifespan: 1100, scale: { start: 0.8, end: 0 }, tint: [0xb28cf0, 0xffffff, 0xf7c65a], emitting: false });
     burst.setDepth(1e5 + 5);
     burst.explode(36);
@@ -991,6 +1007,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       }
       const x = fromX * TILE;
       const y = fromY * TILE;
+      // (Pip flutters out of the way, so the sand doesn't rise through her)
+      this.pipAvoid = { x, y: y - TILE * 1.2 };
       const orb = this.add.image(x, y, 'fx-timesand').setDepth(1e5 + 4).setScale(0.2).setBlendMode(Phaser.BlendModes.ADD);
       const trail = this.add.particles(0, 0, 'fx-sparkle', { follow: orb, speed: { min: 10, max: 60 }, lifespan: 700, scale: { start: 0.5, end: 0 }, tint: [0xb28cf0, 0xffffff], frequency: 40 });
       trail.setDepth(1e5 + 3);
@@ -1010,6 +1028,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
           onComplete: () => {
             trail.destroy();
             orb.destroy();
+            this.pipAvoid = null;
             audio.sfx('chime');
             resolve();
           },
@@ -1060,7 +1079,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   /** Swap a closed chest prop for an open one. */
   openChestProp(id: string): void {
     const img = this.propImages.get(id);
-    if (img && this.textures.exists('prop-chest-open')) img.setTexture('prop-chest-open');
+    if (img && ensurePropTexture(this, 'prop-chest-open')) img.setTexture('prop-chest-open');
   }
 
   /** Hopscotch Chowder: bound up onto a high ledge, grab what's there, bound back down. */
@@ -1344,9 +1363,15 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.applyCamera(true);
   }
 
+  /** Keep a spot (in tiles) in the camera's frame along with the players — or let it go (null). */
+  frameAlso(x: number | null, y = 0): void {
+    this.camLook = x === null ? null : { x: x * TILE, y: y * TILE };
+  }
+
   private applyCamera(snap = false, dt = 1 / 60): void {
     const cam = this.cameras.main;
     const pts = this.players.map((p) => ({ x: p.x, y: p.y - TILE * 0.5 }));
+    if (this.camLook) pts.push(this.camLook);
     const target = midpoint(pts);
     const zTarget = frameZoom(pts, this.frameOpts());
     // Smoothing that feels the same at any frame rate (tuned at 60 fps).

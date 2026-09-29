@@ -268,6 +268,8 @@ export const dialogue = new DialogueBox();
 
 /** Say one or more lines as a character. */
 export async function talk(who: string, lines: string | string[]): Promise<void> {
+  // a script left over from a finished play session never talks over the title screen
+  if (!app.playing) throw new Cancelled();
   const list = Array.isArray(lines) ? lines : [lines];
   const own = !dialogue.inConversation;
   const session = sessionEpoch();
@@ -280,6 +282,7 @@ export async function talk(who: string, lines: string | string[]): Promise<void>
 
 /** Ask a question; resolves with the chosen option's index. */
 export async function ask(who: string, question: string, options: string[]): Promise<number> {
+  if (!app.playing) throw new Cancelled();
   const own = !dialogue.inConversation;
   const session = sessionEpoch();
   try {

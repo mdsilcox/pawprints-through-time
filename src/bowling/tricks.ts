@@ -17,7 +17,7 @@ export const TRICK_SHOTS: TrickShot[] = [
   { id: 'corner', name: 'The Corner Pocket', pins: [10], goal: 'Knock down the lonely corner pin.', tip: 'Stand on the left and aim across the lane.' },
   { id: 'baby-split', name: 'The Baby Split', pins: [3, 10], goal: 'Two pins with a gap between them — get both!', tip: 'Clip the front pin so it flies into the back one.' },
   { id: 'bucket', name: 'The Bucket', pins: [2, 4, 5, 8], goal: 'Four pins in a diamond — every one!', tip: 'Hit the front pin nice and full.' },
-  { id: 'strike', name: 'Strike It Lucky', pins: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], goal: 'All ten pins with one ball — a strike!', tip: 'Aim just beside the head pin — and curve it in.' },
+  { id: 'strike', name: 'Ten-Pin Triumph', pins: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], goal: 'All ten pins with one ball — a strike!', tip: 'Aim just beside the head pin — and curve it in.' },
 ];
 
 export const TRIES_PER_PLAYER = 3;

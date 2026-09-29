@@ -6,6 +6,14 @@ A cozy time-travel adventure for 1 or 2 players that runs in the browser on comp
 Help Pip the time fairy mend the Great Hourglass with Biscuit the corgi, brew magic soups with Clover the bunny chef,
 and hop through history — pirates, pyramids, a 1950s bowling alley and Renaissance Florence.
 
+## What's in the game
+
+- **The story:** a storm cracks the Great Hourglass and its eight Time Sands scatter through history. Travel through the portal in the clocktower (the Map of Time) to **the Golden Age of Piracy**, **Ancient Egypt**, **1950s America** and **Renaissance Florence** — each era has a Time Sand in its story and another found by its three lost Hopkins bunny cousins. Bring all eight home for the finale party.
+- **Tockwood Isle:** neighbours to befriend (chat daily, give them soup), Biscuit the corgi digging up treasure, the museum, a cottage garden, day and night, a warren full of rescued bunnies.
+- **Decorate your cottage:** press the action button just inside your cottage door (or **Pause → Decorate** at home). Drag furniture about on a touchscreen, or use the arrows + **E** to pick up and put down, **R** to turn, **Delete** to put away. Rocco sells furniture at his stall; every era gives you a keepsake.
+- **Wardrobe** (Pause → Wardrobe, or the cottage wardrobe / Bramble's shop) for both players and Biscuit — some people react to what you wear, and a few places need you to dress the part.
+- **Bowling** at the Starlight Lanes and later Tockwood Lanes (ten-pin scoring, 2 players plus a rival, trick-shot challenges), **dancing** in every era (Easy / Medium / Tricky or "Just dance"), **brain-builders** (riddles, logic grids, sliding blocks, patterns, code-breaking, sailing charts — replay favourites from the Puzzle Journal), and **magic soup** at the cauldron (discover recipes from Clover's clues).
+
 ## Run it
 
 ```bash

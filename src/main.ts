@@ -78,6 +78,8 @@ import './puzzles/content/egypt';
 import './story/egyptChapter';
 import './puzzles/content/florence';
 import './story/florenceChapter';
+import { ending as finaleEnding } from './story/finale';
+import { payout, type Reward } from './story/hooks';
 import { EGYPT_PROPS } from './art/egyptProps';
 import { learnNote, openNotes } from './ui/notesScreen';
 import { openWorldMap } from './ui/worldMap';
@@ -254,11 +256,28 @@ registerDebug({
   danceState: () => danceDebug.state(),
   danceAuto: (on = true) => danceDebug.setAuto(on),
   // M8: bowling
-  openBowl: (rival: string | null = null, skill = 0.3, tricks = false) => void bowl({ rival: rival ? { id: rival, skill } : null, tricks }),
+  openBowl: (rival: string | null = null, skill = 0.3, tricks = false, guide = false, alley: 'starlight' | 'tockwood' = 'starlight') => void bowl({ rival: rival ? { id: rival, skill } : null, tricks, guide, alley }),
+  /** hand out rewards the way a story payoff does, and show its card at once (screenshots) */
+  showPayout: (rewards: Reward[], title?: string) => payout([], rewards, { title })(),
   bowlState: () => bowlDebug.state(),
   bowlAuto: (on = true) => bowlDebug.setAuto(on),
   bowlSpeed: (k = 1) => bowlDebug.setSpeed(k),
   bowlThrow: (x: number, angleDeg: number, speed: number, spin = 0) => bowlDebug.throwNow({ x, angle: (angleDeg * Math.PI) / 180, speed, spin }),
+  // M10: frames per second right now (performance checks), the ending storybook and the credits
+  fps: () => Math.round(app.phaser.loop.actualFps),
+  /** how many textures are alive, and their pixels (the performance pass on phones) */
+  texStats: () => {
+    const tm = app.phaser.textures;
+    const keys = tm.getTextureKeys();
+    let px = 0;
+    for (const k of keys) {
+      const src = tm.get(k).source[0];
+      px += (src?.width ?? 0) * (src?.height ?? 0);
+    }
+    return { count: keys.length, megapixels: Math.round(px / 1e5) / 10 };
+  },
+  // M10: the ending storybook and the credits
+  playEnding: () => void finaleEnding(),
   // M8 checkpoint: home decorating
   openPlanner: () => void openPlanner(() => world().reloadRoom()),
   plannerState: () => plannerState(),

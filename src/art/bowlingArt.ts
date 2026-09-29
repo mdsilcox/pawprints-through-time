@@ -53,6 +53,115 @@ export function drawAlley(kind: AlleyKind, w: number, h: number): HTMLCanvasElem
   }
   ctx.fillText(starlight ? '★ STARLIGHT LANES ★' : '⚙ TOCKWOOD LANES ⚙', w / 2, my + mh / 2);
   ctx.shadowBlur = 0;
+  // left of the sign: the big glowing scoreboard
+  const sbx = w * 0.05;
+  const sby = h * 0.125;
+  const sbw = w * 0.2;
+  const sbh = h * 0.12;
+  ctx.fillStyle = '#1d1834';
+  ctx.strokeStyle = PAL.ink;
+  ctx.lineWidth = Math.max(2, 3 * u);
+  ctx.beginPath();
+  ctx.roundRect(sbx, sby, sbw, sbh, 8 * u);
+  ctx.fill();
+  ctx.stroke();
+  const marks = ['X', '9', '/', 'X', '7', '-'];
+  const cw = (sbw - 12 * u) / marks.length;
+  ctx.font = `700 ${Math.round(17 * u)}px Fredoka, sans-serif`;
+  marks.forEach((m, i) => {
+    const bx = sbx + 6 * u + cw * i;
+    ctx.strokeStyle = 'rgba(247, 198, 90, 0.45)';
+    ctx.lineWidth = Math.max(1, 1.5 * u);
+    ctx.strokeRect(bx + 2 * u, sby + 7 * u, cw - 4 * u, sbh * 0.46);
+    ctx.fillStyle = '#ffd76a';
+    ctx.shadowColor = '#ffb13b';
+    ctx.shadowBlur = 8 * u;
+    ctx.fillText(m, bx + cw / 2, sby + 7 * u + sbh * 0.23);
+    // the running-total lights underneath
+    ctx.beginPath();
+    ctx.arc(bx + cw / 2, sby + sbh * 0.78, 3 * u, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  });
+  // right of the sign: a neon star (Starlight) or a big clock (Tockwood), with pennants
+  const rx = w * 0.84;
+  const ry = h * 0.185;
+  const rr = Math.min(w * 0.065, h * 0.07);
+  if (starlight) {
+    const starPath = (r: number) => {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const rad = i % 2 === 0 ? r : r * 0.45;
+        ctx.lineTo(rx + Math.cos(a) * rad, ry + Math.sin(a) * rad);
+      }
+      ctx.closePath();
+    };
+    ctx.lineWidth = Math.max(2, 5 * u);
+    ctx.strokeStyle = '#ff8fd1';
+    ctx.shadowColor = '#ff8fd1';
+    ctx.shadowBlur = 16 * u;
+    starPath(rr);
+    ctx.stroke();
+    ctx.strokeStyle = '#7ff0ff';
+    ctx.shadowColor = '#7ff0ff';
+    starPath(rr * 0.55);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.fillStyle = '#fff4e0';
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineWidth = Math.max(2, 4 * u);
+    ctx.beginPath();
+    ctx.arc(rx, ry, rr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.lineWidth = Math.max(1.5, 2.5 * u);
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      ctx.beginPath();
+      ctx.moveTo(rx + Math.cos(a) * rr * 0.78, ry + Math.sin(a) * rr * 0.78);
+      ctx.lineTo(rx + Math.cos(a) * rr * 0.9, ry + Math.sin(a) * rr * 0.9);
+      ctx.stroke();
+    }
+    // (every clock on the island ticks the right way here)
+    ctx.lineWidth = Math.max(2, 4 * u);
+    ctx.beginPath();
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx + rr * 0.45, ry - rr * 0.2);
+    ctx.moveTo(rx, ry);
+    ctx.lineTo(rx - rr * 0.1, ry - rr * 0.68);
+    ctx.stroke();
+  }
+  // pennants on a string, either side of the star (or clock)
+  const pennant = ['#e46a6a', '#f7c65a', '#6fb3e0', '#7cc47f', '#f4a3b4'];
+  for (const [x0, x1] of [
+    [w * 0.7, rx - rr * 1.15],
+    [rx + rr * 1.15, w * 0.98],
+  ]) {
+    const n = Math.max(2, Math.floor((x1 - x0) / (22 * u)));
+    ctx.strokeStyle = 'rgba(255, 244, 224, 0.6)';
+    ctx.lineWidth = Math.max(1, 1.5 * u);
+    ctx.beginPath();
+    ctx.moveTo(x0, h * 0.13);
+    ctx.quadraticCurveTo((x0 + x1) / 2, h * 0.15, x1, h * 0.13);
+    ctx.stroke();
+    for (let i = 0; i < n; i++) {
+      const px = x0 + ((i + 0.5) * (x1 - x0)) / n;
+      const t = (px - x0) / (x1 - x0);
+      const py = h * 0.13 + 4 * t * (1 - t) * h * 0.01;
+      ctx.beginPath();
+      ctx.moveTo(px - 7 * u, py);
+      ctx.lineTo(px + 7 * u, py);
+      ctx.lineTo(px, py + 18 * u);
+      ctx.closePath();
+      ctx.fillStyle = pennant[i % pennant.length];
+      ctx.fill();
+      ctx.lineWidth = Math.max(1, 1.5 * u);
+      ctx.strokeStyle = PAL.ink;
+      ctx.stroke();
+    }
+  }
   // neon tubes (Starlight) or bunting (Tockwood) along the top
   if (starlight) {
     ctx.strokeStyle = '#7ff0ff';

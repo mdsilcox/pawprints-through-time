@@ -918,6 +918,174 @@ const SCENARIOS = [
       await wait(600);
     },
   },
+  // ---------------------------------------------------------------- review fixes (M6–M8 re-reviews)
+  {
+    name: 'reward-card',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 24]);
+      await g(page, 'showPayout', [{ sand: 'fifties' }, { item: 'starlight-cup' }, { item: 'bowling-pin' }, { clothes: 'bowling-shirt' }, { clothes: 'letter-jacket' }, { tockens: 40 }], '🏆 The Starlight Junior Cup!');
+      await wait(900);
+    },
+  },
+  {
+    name: 'bowl-guide',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 24]);
+      await g(page, 'openBowl', 'duke', 0.2, false, true);
+      await page.waitForSelector('[data-testid="bowl-setup"]');
+      await wait(500);
+      await page.click('[data-testid="bowl-start"]');
+      await wait(2200);
+    },
+  },
+  {
+    name: 'bowl-tockwood',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players, [30.5, 24]);
+      await g(page, 'setFlag', 'bowling:open', true);
+      await g(page, 'goTo', 'bowling', 'in');
+      await wait(1500);
+      await g(page, 'openBowl', 'rollo', 0.45, true, false, 'tockwood');
+      await page.waitForSelector('[data-testid="bowl-setup"]');
+      await wait(500);
+      await page.click('[data-testid="bowl-start"]');
+      await wait(2000);
+    },
+  },
+  {
+    name: 'dance-lanes',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players, [26.4, 22.4]);
+      await g(page, 'openDance', 'jig', null, ['bramble', 'juniper']);
+      await page.waitForSelector('[data-testid="dance-setup"]');
+      await wait(500);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(6500);
+    },
+  },
+  {
+    name: 'sail-calm',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 24]);
+      await g(page, 'drink', 'pirates-gumbo');
+      await g(page, 'openPuzzle', 'marigold-chart', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'farm-stand',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'setFlag', 'maple:arrived', true);
+      await g(page, 'goTo', 'fifties', 'portal');
+      await wait(2200);
+      await g(page, 'teleport', 25.5, 21, 0);
+      await wait(1200);
+    },
+  },
+  // ---------------------------------------------------------------- M10: the finale and polish
+  {
+    name: 'hourglass-whole',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'hourglassRestored']) await g(page, 'setFlag', f, true);
+      for (const s of ['pirate', 'pirate-cousins', 'fifties', 'fifties-cousins', 'egypt', 'egypt-cousins', 'florence', 'florence-cousins']) {
+        await g(page, 'addSand', s);
+        await g(page, 'setFlag', `sand:${s}:placed`, true);
+      }
+      await g(page, 'goTo', 'clocktower', 'in');
+      await wait(2000);
+      await g(page, 'teleport', 6.5, 6.6, 0);
+      await wait(800);
+    },
+  },
+  {
+    name: 'finale-party',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['finale:party', 'finale:welcomed', 'hourglassRestored', 'bowling:open', 'rosita:arrived', 'marigold:friend', 'lucia:arrived']) await g(page, 'setFlag', f, true);
+      for (const id of ['skipper', 'shelly', 'bosun', 'poppy', 'dot', 'zippy', 'nibbles', 'sandy', 'lotus', 'pesto', 'sketch', 'twirl']) await g(page, 'rescueBunny', id);
+      await g(page, 'goTo', 'tockwood', 'plaza');
+      await wait(2200);
+      await g(page, 'teleport', 26.8, 22.6, 0);
+      if (players === 2) await g(page, 'teleport', 27.8, 22.9, 1);
+      await wait(1400);
+    },
+  },
+  {
+    name: 'dance-bunnyhop',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const id of ['skipper', 'shelly', 'bosun', 'poppy', 'dot', 'zippy']) await g(page, 'rescueBunny', id);
+      await g(page, 'openDance', 'bunnyhop', null, ['marigold', 'neb', 'lucia']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(7400);
+    },
+  },
+  {
+    name: 'ending',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'playEnding');
+      await wait(1200);
+      await page.click('[data-testid="story-next"]');
+      await wait(700);
+      await page.click('[data-testid="story-next"]');
+      await wait(1200);
+    },
+  },
+  {
+    name: 'credits',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'playEnding');
+      await wait(900);
+      for (let i = 0; i < 4; i++) {
+        await page.click('[data-testid="story-next"]');
+        await wait(500);
+      }
+      await wait(900);
+    },
+  },
+  {
+    name: 'museum-catalogue',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const id of ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'bowling-pin', 'spyglass']) {
+        await g(page, 'give', id, 1);
+      }
+      await g(page, 'goTo', 'museum', 'in');
+      await wait(1500);
+      await g(page, 'openSell');
+      await wait(500);
+      for (const id of ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'bowling-pin', 'spyglass']) {
+        const btn = page.locator(`[data-testid="sell-one-${id}"]`);
+        if (await btn.count()) await btn.first().click();
+        await wait(150);
+      }
+      await page.keyboard.press('Escape');
+      await wait(500);
+      await g(page, 'openNotes');
+      await wait(500);
+      await page.locator('[data-testid="museum-catalogue"]').scrollIntoViewIfNeeded();
+      await wait(500);
+    },
+  },
   // ---------------------------------------------------------------- M9: Ancient Egypt and Renaissance Florence
   {
     name: 'giza',

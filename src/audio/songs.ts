@@ -408,6 +408,31 @@ S.court = () => {
   };
 };
 
+// ---------------------------------------------------------------- the finale: the Bunny Hop (bouncy, in G, marimba and claps)
+S.bunnyhop = () => {
+  const bars = ['G', 'C', 'G', 'D', 'G', 'C', 'D', 'G'];
+  return {
+    id: 'bunnyhop',
+    bpm: 120,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'marimba',
+        vol: 0.82,
+        lead: true,
+        notes: mel(`
+          G5 - B5 D6 G6 - D6 - | E6 - C6 - G5 - E5 - | D5 G5 B5 D6 B5 - G5 - | A5 - F#5 - D5 - . . |
+          G5 - G5 B5 D6 - B5 - | C6 - E6 - C6 - G5 - | A5 B5 C6 A5 F#5 - D5 - | G5 - D5! - G5! - . . `),
+      },
+      { inst: 'piano', vol: 0.34, notes: comp(bars, 8, 'offbeat', 4, 0.5) },
+      { inst: 'bass', vol: 0.68, notes: bassline(bars, 8, 'rootfifth', 2) },
+      { vol: 0.5, drums: [...beat('x...x...', 'kick', 0.55, 8), ...beat('..x...x.', 'clap', 0.45, 8), ...beat('xxxxxxxx', 'shaker', 0.3, 8)] },
+    ],
+  };
+};
+
 void loop;
 
 const cache = new Map<string, Song>();

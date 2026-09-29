@@ -19,6 +19,8 @@ export interface PadState {
   dir: Dir | null;
   /** that direction is a held d-pad/stick repeating (menus want it; a rhythm game must not) */
   dirRepeat: boolean;
+  /** when that direction was pressed (performance.now ms — the key's own moment, not the next frame's) */
+  dirAt: number;
   /** last device that produced input for this player */
   source: 'kb' | 'pad' | 'touch' | 'none';
 }
@@ -57,7 +59,7 @@ export interface TouchSource {
 }
 
 function emptyPad(): PadState {
-  return { x: 0, y: 0, a: false, b: false, aPressed: false, bPressed: false, dir: null, dirRepeat: false, source: 'none' };
+  return { x: 0, y: 0, a: false, b: false, aPressed: false, bPressed: false, dir: null, dirRepeat: false, dirAt: 0, source: 'none' };
 }
 
 const DEAD = 0.28;
@@ -92,6 +94,8 @@ export class InputManager {
 
   private keys = new Set<string>();
   private pressedKeys = new Set<string>();
+  /** when each key of this frame went down (so a rhythm game can judge the press itself, not the next frame) */
+  private pressedAt = new Map<string, number>();
   private padMem = new Map<number, PadMemory>();
   private attached = false;
   private lastDevice: 'kb' | 'pad' | 'touch' = 'kb';
@@ -134,7 +138,10 @@ export class InputManager {
     if (!e.repeat) {
       this.keys.add(e.code);
       // A press that goes to a menu must not also count as a gameplay press next frame.
-      if (!inMenu) this.pressedKeys.add(e.code);
+      if (!inMenu) {
+        this.pressedKeys.add(e.code);
+        this.pressedAt.set(e.code, performance.now());
+      }
     }
     if (inMenu) {
       // We activate the focused button ourselves; stop the browser's own Enter/Space click
@@ -185,7 +192,10 @@ export class InputManager {
       if (kp(map.a)) p.aPressed = true;
       if (kp(map.b)) p.bPressed = true;
       for (const [code, d] of Object.entries(DIR_KEYS)) {
-        if ((code === map.up || code === map.down || code === map.left || code === map.right) && kp(code)) p.dir = d;
+        if ((code === map.up || code === map.down || code === map.left || code === map.right) && kp(code)) {
+          p.dir = d;
+          p.dirAt = this.pressedAt.get(code) ?? now;
+        }
       }
       if (p.a || p.b || p.aPressed || p.bPressed) p.source = 'kb';
     };
@@ -198,6 +208,7 @@ export class InputManager {
     if (k('Enter') || k('NumpadEnter')) enterP.a = true;
     if (kp('Enter') || kp('NumpadEnter')) enterP.aPressed = true;
     this.pressedKeys.clear();
+    this.pressedAt.clear();
 
     // ---------- gamepads
     const pads = typeof navigator !== 'undefined' && navigator.getGamepads ? [...navigator.getGamepads()].filter((g): g is Gamepad => !!g && g.connected) : [];
@@ -246,6 +257,7 @@ export class InputManager {
       if (padDir) {
         p.dir = padDir;
         p.dirRepeat = repeat;
+        p.dirAt = now;
       }
       mem.heldDir = d;
       if (this.menuMode) {

@@ -59,6 +59,21 @@ export function pinsStanding(rolls: number[]): number {
   return 0;
 }
 
+/**
+ * Is the next ball thrown at a fresh rack of ten? (Ten down on a fresh rack is a strike; ten down
+ * after a gutter ball is a spare.)
+ */
+export function onFreshRack(rolls: number[]): boolean {
+  const f = toFrames(rolls);
+  if (!f.length) return true;
+  const last = f[f.length - 1];
+  if (f.length < 10) return last[0] === 10 || last.length === 2;
+  // the tenth frame: a fresh rack after a strike or a spare
+  if (last.length === 1) return last[0] === 10;
+  if (last.length === 2) return last[0] === 10 ? last[1] === 10 : last[0] + last[1] === 10;
+  return false;
+}
+
 /** Which frame (1–10) and which ball of it comes next. */
 export function nextBall(rolls: number[]): { frame: number; ball: number } {
   const f = toFrames(rolls);
@@ -88,13 +103,18 @@ export function scorecard(rolls: number[]): FrameView[] {
         if (fr.length > 1) marks.push(fr[0] + fr[1] === 10 ? '/' : fr[1] === 0 ? '-' : String(fr[1]));
       }
     } else {
-      // tenth frame: a fresh rack after each strike or spare
+      // tenth frame: a fresh rack after each strike or spare (a gutter ball leaves ten standing,
+      // but the next ball is still the spare ball)
       let standing = 10;
+      let fresh = true;
       for (const n of fr) {
-        if (standing === 10) marks.push(mark(n));
+        if (fresh) marks.push(mark(n));
         else marks.push(n === standing ? '/' : n === 0 ? '-' : String(n));
         standing -= n;
-        if (standing <= 0) standing = 10;
+        if (standing <= 0) {
+          standing = 10;
+          fresh = true;
+        } else fresh = !fresh;
       }
     }
     let frameScore: number | null = null;

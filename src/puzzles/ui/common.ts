@@ -28,6 +28,8 @@ export interface PuzzleView {
   /** put the keyboard focus back on the puzzle itself (e.g. after asking Pip for a hint) */
   refocus?: () => void;
   destroy?: () => void;
+  /** something Pip should say first on a short screen, where the view's own notes are hidden */
+  pipLine?: string;
 }
 
 export type ViewFactory<K extends PuzzleKind = PuzzleKind> = (ctx: ViewCtx<K>) => PuzzleView;

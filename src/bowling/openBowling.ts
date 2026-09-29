@@ -11,6 +11,8 @@ import type { AlleyKind } from '../art/bowlingArt';
 import type { WorldScene } from '../scenes/WorldScene';
 import { TRICK_SHOTS, allTricksCleared, trickCleared, trickUnlocked, type TrickShot } from './tricks';
 import { give } from '../story/hooks';
+import { onFreshRack, pinsStanding } from './score';
+import { isTouchDevice } from '../core/display';
 import { toast } from '../ui/ui';
 
 /**
@@ -24,6 +26,12 @@ export interface BowlInvite {
   blurb?: string;
   /** friendly games offer the trick-shot challenges too */
   tricks?: boolean;
+  /** a tip for the card after a loss to the rival */
+  tip?: string;
+  /** show the glowing "stand here, roll into the pocket" guide on the lane */
+  guide?: boolean;
+  /** the story's payoff, run once, the moment the rival is beaten — before the results card, so a break over the card can't lose it */
+  settle?: (o: BowlOutcome) => void;
 }
 
 interface BowlPick {
@@ -66,8 +74,10 @@ function openBowlSetup(inv: BowlInvite): Promise<BowlPick | null> {
       h(
         'ul',
         { class: 'ds-how small' },
-        h('li', null, two ? 'Take turns! Player 1: A/D and E · Player 2: ←/→ and /' : 'Step with ← →, press E to set your spot, aim, then press E at the right power'),
-        h('li', null, 'While the ball rolls, hold ← or → to curve it · on a touchscreen, swipe up (curve your swipe to spin it)'),
+        isTouchDevice()
+          ? h('li', null, 'Drag sideways to step, then swipe up the lane to bowl — curve your swipe to spin it!')
+          : h('li', null, two ? 'Take turns! Player 1: A/D and E · Player 2: ←/→ and /' : 'Step with ← →, press E to set your spot, aim, then press E at the right power'),
+        h('li', null, isTouchDevice() ? 'A faster swipe rolls a faster ball' : 'While the ball rolls, hold ← or → to curve it · on a touchscreen, swipe up (curve your swipe to spin it)'),
         rival ? h('li', null, `Beat ${rival}’s score to win!`) : null,
       ),
       h('div', { class: 'ds-row' }, bump),
@@ -123,7 +133,7 @@ function openBowlSetup(inv: BowlInvite): Promise<BowlPick | null> {
   });
 }
 
-function openBowlResults(o: BowlOutcome, rival: string | null): Promise<'again' | 'done'> {
+function openBowlResults(o: BowlOutcome, rival: string | null, canRetry: boolean, tip?: string): Promise<'again' | 'done'> {
   return new Promise((resolve) => {
     let settled = false;
     const finish = (v: 'again' | 'done') => {
@@ -131,6 +141,7 @@ function openBowlResults(o: BowlOutcome, rival: string | null): Promise<'again' 
       settled = true;
       audio.sfx('select');
       ui.pop('bowl-results');
+      scorecardBehind(false);
       resolve(v);
     };
     const best = Math.max(...o.bowlers.map((b) => b.total));
@@ -144,10 +155,13 @@ function openBowlResults(o: BowlOutcome, rival: string | null): Promise<'again' 
       ),
     );
     const humans = o.bowlers.filter((b) => !b.npc);
+    const gap = Math.max(...o.bowlers.filter((b) => b.npc).map((b) => b.total), 0) - Math.max(...humans.map((b) => b.total));
     const verdict = rival
       ? o.won
         ? `You beat ${rival}! What a game!`
-        : `${rival} wins this time — so close! Want a rematch?`
+        : gap <= 15
+          ? `${rival} wins this time — so close! Want a rematch?`
+          : `${rival} wins this time. Every bowler starts somewhere — want a rematch?`
       : humans.length > 1
         ? `${humans.reduce((a, b) => (b.total > a.total ? b : a)).name} wins — great bowling, both of you!`
         : 'Great bowling!';
@@ -156,31 +170,29 @@ function openBowlResults(o: BowlOutcome, rival: string | null): Promise<'again' 
       { class: 'panel dance-results', attrs: { 'data-testid': 'bowl-results', 'data-won': String(o.won) } },
       h('h2', null, o.won ? '🎉 Hooray!' : '🎳 Good game!'),
       h('p', { class: 'dr-verdict' }, verdict),
+      rival && !o.won && tip ? h('p', { class: 'dr-tip small', attrs: { 'data-testid': 'bowl-tip' } }, `💡 Tip: ${tip}`) : null,
       h('div', { class: 'dr-cards' }, cards),
-      h('div', { class: 'row end sticky-foot' }, button('Play again', () => finish('again'), { cls: 'secondary', icon: '🔁', testid: 'bowl-again' }), button('Done', () => finish('done'), { icon: '✔', autofocus: true, testid: 'bowl-done' })),
+      h('div', { class: 'row end sticky-foot' }, canRetry ? button('Play again', () => finish('again'), { cls: 'secondary', icon: '🔁', testid: 'bowl-again' }) : null, button('Done', () => finish('done'), { icon: '✔', autofocus: true, testid: 'bowl-done' })),
     );
     ui.push({ id: 'bowl-results', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: () => finish('done'), onClose: () => finish('done') });
+    scorecardBehind(true);
     ui.lock(700);
   });
 }
 
+/** The lane's scorecard steps back while a results card is up (the card has the totals). */
+function scorecardBehind(on: boolean): void {
+  document.querySelector('.bowl-card')?.classList.toggle('behind', on);
+}
+
 function countStrikes(rolls: number[]): number {
-  let n = 0;
-  let standing = 10;
-  for (const r of rolls) {
-    if (standing === 10 && r === 10) n++;
-    standing = standing === 10 ? (r === 10 ? 10 : 10 - r) : 10;
-  }
-  return n;
+  return rolls.filter((r, i) => r === 10 && onFreshRack(rolls.slice(0, i))).length;
 }
 function countSpares(rolls: number[]): number {
-  let n = 0;
-  let standing = 10;
-  for (const r of rolls) {
-    if (standing < 10 && r === standing) n++;
-    standing = standing === 10 ? (r === 10 ? 10 : 10 - r) : 10;
-  }
-  return n;
+  return rolls.filter((r, i) => {
+    const before = rolls.slice(0, i);
+    return !onFreshRack(before) && r > 0 && r === pinsStanding(before);
+  }).length;
 }
 
 function runBowl(setup: BowlSetup): Promise<BowlOutcome> {
@@ -206,6 +218,7 @@ function openTrickResults(o: BowlOutcome, trick: TrickShot, firstClear: boolean)
       settled = true;
       audio.sfx('select');
       ui.pop('bowl-results');
+      scorecardBehind(false);
       resolve(v);
     };
     const flags = app.data!.flags;
@@ -229,6 +242,7 @@ function openTrickResults(o: BowlOutcome, trick: TrickShot, firstClear: boolean)
       ),
     );
     ui.push({ id: 'bowl-results', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: () => finish('done'), onClose: () => finish('done') });
+    scorecardBehind(true);
     ui.lock(700);
   });
 }
@@ -248,7 +262,12 @@ function rewardTrick(trick: TrickShot): boolean {
   return true;
 }
 
-/** Invite everyone to bowl: setup → a ten-frame game (or a trick shot) → results (→ again?). */
+/**
+ * Invite everyone to bowl: setup → a ten-frame game (or a trick shot) → results (→ again?).
+ * Beating a story rival settles at once (the card has no "Play again" that could throw the win
+ * away); returns the win if there was one, else the last game — or null if nobody bowled, or if
+ * play ended meanwhile (so a story script waiting on it stops instead of paying out on the title).
+ */
 export async function bowl(inv: BowlInvite = {}): Promise<BowlOutcome | null> {
   const pick = await openBowlSetup(inv);
   if (!pick) return null;
@@ -259,6 +278,7 @@ export async function bowl(inv: BowlInvite = {}): Promise<BowlOutcome | null> {
   hud.setDancing(true);
   const session = sessionEpoch();
   let trick = pick.trick;
+  let won: BowlOutcome | null = null;
   try {
     for (;;) {
       const o = await runBowl({
@@ -268,18 +288,27 @@ export async function bowl(inv: BowlInvite = {}): Promise<BowlOutcome | null> {
         alley: inv.alley ?? 'starlight',
         seed: (app.data!.day * 7919 + Math.floor(Math.random() * 1e6)) >>> 0,
         trick,
+        guide: !trick && !!inv.guide,
       });
-      if (!o.finished) return o;
+      if (session !== sessionEpoch()) return null;
+      if (!o.finished) return won ?? o;
       if (trick) {
         const first = o.cleared ? rewardTrick(trick) : false;
         const next = await openTrickResults(o, trick, first);
+        if (session !== sessionEpoch()) return null;
         if (next === 'done') return o;
         if (next === 'next') trick = TRICK_SHOTS[TRICK_SHOTS.indexOf(trick) + 1] ?? trick;
         continue;
       }
       app.data!.flags['bowled'] = true;
-      const next = await openBowlResults(o, inv.rival ? character(inv.rival.id).name : null);
-      if (next === 'done') return o;
+      if (o.won && !won) {
+        won = o;
+        if (inv.rival) inv.settle?.(o);
+      }
+      // (a story challenge won is settled: no "Play again" — friendly games always offer one)
+      const next = await openBowlResults(o, inv.rival ? character(inv.rival.id).name : null, !(inv.settle && inv.rival && o.won), inv.tip);
+      if (session !== sessionEpoch()) return null;
+      if (next === 'done') return won ?? o;
     }
   } finally {
     if (game.scene.isActive(BowlScene.KEY) || game.scene.isPaused(BowlScene.KEY)) game.scene.stop(BowlScene.KEY);

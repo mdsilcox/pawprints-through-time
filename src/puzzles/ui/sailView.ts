@@ -34,7 +34,9 @@ registerView('sail', (ctx) => {
   );
   const boat = h('div', { class: 'sa-boat', attrs: { 'data-testid': 'sail-boat', 'aria-label': 'toy boat' } }, h('span', { class: 'sa-sail' }), h('span', { class: 'sa-hull' }));
   board.append(boat);
-  if (chart.wind) board.append(h('div', { class: `sa-wind w-${chart.wind}`, attrs: { 'aria-label': `wind blowing ${chart.wind}` } }, `💨 wind: ${chart.wind}`));
+  // (the wind's badge sits by the move counter — on the chart it hid the ship's first square)
+  const WIND_ARROW: Record<string, string> = { up: '↑', down: '↓', left: '←', right: '→' };
+  const wind = chart.wind ? h('span', { class: `sa-wind w-${chart.wind}`, attrs: { 'aria-label': `wind blowing ${chart.wind}`, title: `Wind: ${chart.wind}`, 'data-testid': 'sail-wind' } }, `💨 ${WIND_ARROW[chart.wind] ?? chart.wind}`) : null;
   const placeBoat = () => {
     boat.style.left = `${(at.x / W) * 100}%`;
     boat.style.top = `${(at.y / H) * 100}%`;
@@ -113,11 +115,12 @@ registerView('sail', (ctx) => {
     'div',
     { class: 'sa' },
     board,
-    h('div', { class: 'sa-side' }, counter, pad, button('Start over', () => reset(), { icon: '↺', cls: 'secondary small-btn', testid: 'sail-reset' }), calm ? h('div', { class: 'small sa-calm' }, '🍲 Calm seas: the whirlpools have settled — sail right over them!') : null),
+    h('div', { class: 'sa-side' }, h('div', { class: 'sa-count-row' }, counter, wind), pad, button('Start over', () => reset(), { icon: '↺', cls: 'secondary small-btn', testid: 'sail-reset' }), calm ? h('div', { class: 'small sa-calm' }, '🍲 Calm seas: the whirlpools have settled — sail right over them!') : null),
   );
   updateCount();
   return {
     el,
+    pipLine: calm ? '🍲 Calm seas: the whirlpools have settled — sail right over them!' : undefined,
     refocus: () => board.focus({ preventScroll: true }),
     onBack: () => {
       // step out of the chart to the buttons instead of leaving the puzzle

@@ -28,6 +28,20 @@ test.describe('wardrobe & tailor', () => {
     expect(errors).toEqual([]);
   });
 
+  test('an outfit changed in the middle of a dance shows on the dance floor straight away', async ({ page }) => {
+    const errors = watchErrors(page);
+    await startGame(page, [26.4, 22.4]);
+    await hook(page, 'openDance', 'jig');
+    await press(page, '[data-testid="dance-start"]');
+    await expect.poll(async () => (await hook<any>(page, 'danceState'))?.running, { timeout: 10_000 }).toBe(true);
+    const before = (await hook<any>(page, 'danceState')).players[0].tex as string;
+    await hook(page, 'grant', 'sunhat');
+    await hook(page, 'equip', 0, 'sunhat', 1);
+    await expect.poll(async () => (await hook<any>(page, 'danceState')).players[0].tex, { timeout: 5000 }).not.toBe(before);
+    expect((await hook<any>(page, 'danceState')).players[0].tex).toContain('sunhat:1');
+    expect(errors).toEqual([]);
+  });
+
   test('player 2 and Biscuit have their own outfits and looks', async ({ page }) => {
     await startGame(page, [30.5, 24]);
     await hook(page, 'joinP2');

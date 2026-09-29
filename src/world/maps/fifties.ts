@@ -5,7 +5,7 @@ import { defineRoom, fur } from './interiors';
 
 /**
  * 1950s America: Maple Street (a little American town around 1957), the Starlight Lanes
- * bowling alley and the Rock-a-Roll Diner with its roller rink and jukebox.
+ * bowling alley and the Rock-a-Roll Diner with its skating waitress and jukebox.
  */
 export const MAPLE = {
   portal: { x: 8, y: 24 },
@@ -31,7 +31,7 @@ function mapleObjects(): MapObject[] {
   const add = (kind: MapObject['kind'], id: string, x: number, y: number, extra: Partial<MapObject> = {}) => o.push({ id, kind, x, y, ...extra });
   // the buildings along the north side
   add('building', 'diner', MAPLE.diner.x, MAPLE.diner.y, { texture: 'bld-diner', foot: { dx: -3, dy: -3, w: 6, h: 3 }, p: { door: 'diner-in', label: 'Rock-a-Roll Diner' } });
-  add('building', 'records', MAPLE.records.x, MAPLE.records.y, { texture: 'bld-records', foot: { dx: -2, dy: -3, w: 4, h: 3 }, p: { label: 'Spin City Records' } });
+  add('building', 'records', MAPLE.records.x, MAPLE.records.y, { texture: 'bld-records', foot: { dx: -2, dy: -3, w: 4, h: 3 }, p: { label: 'Platter Palace Records' } });
   add('building', 'lanes', MAPLE.lanes.x, MAPLE.lanes.y, { texture: 'bld-lanes', foot: { dx: -3, dy: -3, w: 7, h: 3 }, p: { door: 'lanes-in', label: 'Starlight Lanes' } });
   add('building', 'house-lemon', 42.5, 10.6, { texture: 'bld-house-lemon', foot: { dx: -2, dy: -3, w: 4, h: 3 } });
   // south side: pastel houses and the park
@@ -41,6 +41,8 @@ function mapleObjects(): MapObject[] {
   add('prop', 'car-teal', 16, 14, { texture: 'prop-car-teal', foot: { dx: -1, dy: -1, w: 3, h: 1 } });
   add('prop', 'car-cherry', 44, 16, { texture: 'prop-car-cherry', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
   add('use', 'milk-truck', 26, 16, { texture: 'prop-milktruck', foot: { dx: -1, dy: -1, w: 3, h: 1 }, p: { action: 'milk-truck', label: 'Milk truck', range: 1.5 } });
+  // a farm stand on the corner: 1950s tomatoes and sweet corn for the soup pot
+  add('use', 'farm-stand', 25.5, 19.6, { texture: 'prop-stall-green', foot: { dx: -1, dy: -1, w: 2, h: 1 }, p: { action: 'farm-stand', label: 'Farm stand', range: 1.4 } });
   // street lamps, benches, trees
   for (const [x, y] of [
     [4, 12.9],
@@ -70,7 +72,7 @@ function mapleObjects(): MapObject[] {
     [35, 21],
   ])
     add('tree', `tree-${x}-${y}`, x + (r() - 0.5) * 0.3, y, { texture: r() < 0.3 ? 'tree-pine' : 'tree-round', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
-  add('sign', 'maple-sign', 11, 25.2, { texture: 'prop-sign', p: { text: ['MAPLE STREET — welcome, neighbour!', 'North: the Rock-a-Roll Diner, Spin City Records and the Starlight Lanes.'] } });
+  add('sign', 'maple-sign', 11, 25.2, { texture: 'prop-sign', p: { text: ['MAPLE STREET — welcome, neighbour!', 'North: the Rock-a-Roll Diner, Platter Palace Records and the Starlight Lanes.'] } });
   // the way home
   add('use', 'portal-home', MAPLE.portal.x, MAPLE.portal.y - 0.6, { texture: 'fur-portalring', p: { action: 'portal-home', label: 'Portal home', range: 1.3 } });
   return o;
@@ -90,6 +92,7 @@ registerMap({
     { x: 21, y: 6.8, icon: '💿', label: 'Records' },
     { x: 33, y: 5.8, icon: '🎳', label: 'Starlight Lanes' },
     { x: 26, y: 18.2, icon: '🥛', label: 'Milk truck' },
+    { x: 25.5, y: 20.4, icon: '🌽', label: 'Farm stand' },
     { x: 8, y: 26.2, icon: '🌀', label: 'Portal home' },
   ],
   zones: [{ id: 'maple-park', x: 4, y: 19, w: 12, h: 9 }],

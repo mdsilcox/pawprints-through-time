@@ -3,7 +3,7 @@ import { makeCanvas, rrPath, circlePath, paint, softShade, OUTLINE, sparkle } fr
 import type { PropArt } from './props';
 
 /**
- * 1950s America: Maple Street's buildings (Starlight Lanes, the Rock-a-Roll Diner, Spin City
+ * 1950s America: Maple Street's buildings (Starlight Lanes, the Rock-a-Roll Diner, Platter Palace
  * Records, pastel houses), shiny cars and the milk truck, plus the furniture inside the lanes
  * and the diner (bowling lanes, the trophy case, a jukebox, booths and the counter).
  */
@@ -182,7 +182,7 @@ function recordShop(): PropArt {
     ctx.font = '700 22px Fredoka, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('SPIN CITY RECORDS', 190, 194);
+    ctx.fillText('PLATTER PALACE', 190, 194);
     glassWindow(ctx, 60, 270, 90, 70);
     glassDoor(ctx, 250, base, 90, 110, TEAL);
   });

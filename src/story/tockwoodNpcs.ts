@@ -3,7 +3,7 @@ import { audio } from '../audio/audio';
 import { talk, ask, conversation } from '../ui/dialogue';
 import { toast } from '../ui/ui';
 import { MORNING, sleepUntilMorning, nightAmount } from '../world/clock';
-import { befriend, count, flag, give, giveTockens, hearts, oncePerDay, onTalk, onUse, registerNpcName, setFlag, take, cutscene, wait } from './hooks';
+import { befriend, count, flag, give, giveTockens, hearts, oncePerDay, onTalk, onUse, payout, registerNpcName, setFlag, take, cutscene, wait } from './hooks';
 import { registerQuest, flagDone } from './quests';
 import { TW } from '../world/maps/tockwood';
 import { openWardrobe } from '../ui/wardrobe';
@@ -81,10 +81,9 @@ onTalk('quill', async () => {
     if (pick === 0) {
       take(fossils[0]);
       app.data!.museum.push(fossils[0]);
-      setFlag('quill:first-fossil');
+      const show = payout(['quill:first-fossil'], [{ tockens: 25 }, { friend: 'quill', pts: 20 }], { title: '🦔 Dr. Quill’s thank-you' });
       await talk('quill', 'Splendid! Spectacular! The very first treasure of the new Museum of Time! Here — a thank-you for our finest finders.');
-      giveTockens(25);
-      befriend('quill', 20);
+      show();
     }
   }
   if (sellable().length) {
@@ -112,8 +111,8 @@ async function brambleNotices(): Promise<boolean> {
       const it = w ? CLOTHES_BY_ID.get(w.id) : undefined;
       if (!it?.era || flag(`bramble:saw:${it.id}`)) continue;
       setFlag(`bramble:saw:${it.id}`);
-      await talk('bramble', ERA_REMARK[it.era].replace('{item}', it.name));
       befriend('bramble', 4);
+      await talk('bramble', ERA_REMARK[it.era].replace('{item}', it.name));
       return true;
     }
   return false;
@@ -173,13 +172,13 @@ onTalk('finnegan', async () => {
     { nightLine: 'Night fishing’s the best. The stars jump right into the water to say hello.' },
   );
   if (!first && oncePerDay('gift:finnegan')) {
-    if ((app.data?.day ?? 1) % 2 === 0) {
-      await talk('finnegan', 'Caught a few too many sardines this morning — they’re yours! Good in a soup, I hear.');
-      give('sardine', 2, { from: 'Finnegan gave you' });
-    } else {
-      await talk('finnegan', 'Here, take some kelp for your soup pot. I’d eat it myself, but I’m more of a fly frog.');
-      give('kelp', 2, { from: 'Finnegan gave you' });
-    }
+    const sardines = (app.data?.day ?? 1) % 2 === 0;
+    const show = payout([], [{ item: sardines ? 'sardine' : 'kelp', n: 2 }], { title: '🐸 Finnegan gave you' });
+    await talk(
+      'finnegan',
+      sardines ? 'Caught a few too many sardines this morning — they’re yours! Good in a soup, I hear.' : 'Here, take some kelp for your soup pot. I’d eat it myself, but I’m more of a fly frog.',
+    );
+    show();
   }
   if (!first && !puzzleSolved('finnegan-boat')) await talk('finnegan', 'Say — have you seen my toy racing boat in the tub by the beach? She’s itching for a skipper!');
 });
@@ -201,14 +200,15 @@ onTalk('juniper', async () => {
     ],
   );
   if (first) {
+    const show = payout([], [{ item: 'seed-carrot', n: 3 }, { item: 'seed-radish', n: 2 }], { title: '🐐 Juniper gave you' });
     await talk('juniper', 'Here — a welcome gift! Carrot seeds! Plant them in your garden and watch them grow!');
-    give('seed-carrot', 3, { from: 'Juniper gave you' });
-    give('seed-radish', 2, { quiet: true });
+    show();
     return;
   }
   if (oncePerDay('gift:juniper')) {
+    const show = payout([], [{ item: 'honey' }], { title: '🐐 Juniper gave you' });
     await talk('juniper', 'Ooh, and have a little honey from my bees! Sweet as sunshine.');
-    give('honey', 1, { from: 'Juniper gave you' });
+    show();
   }
   const crates = !puzzleSolved('juniper-crates');
   const pick = await ask('juniper', crates ? 'Need anything? (And — um — my wheelbarrow’s stuck behind the crates again...)' : 'Need anything for your garden?', [
@@ -256,7 +256,7 @@ onTalk('rocco', async () => {
     const pick = await ask('rocco', 'Are those... CLOCK GEARS? Three of them?!', ['They’re for you!', 'Not yet']);
     if (pick === 0) {
       take('clock-gear', 3);
-      setFlag('rocco:gears');
+      const show = payout(['rocco:gears'], [{ tockens: 30 }, { friend: 'rocco', pts: 25 }], { title: '⚙️ Rocco’s thank-you' });
       await cutscene(async () => {
         await talk('rocco', 'Yes yes YES! Hold on, hold on... *clink* *clank* *boing*...');
         audio.sfx('success');
@@ -266,8 +266,7 @@ onTalk('rocco', async () => {
           'Well — until you fix the Great Hourglass. Then they ALL will! Here, take some Tockens for your trouble.',
         ]);
       });
-      giveTockens(30);
-      befriend('rocco', 25);
+      show();
     }
   }
 });

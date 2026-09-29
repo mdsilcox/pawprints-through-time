@@ -11,7 +11,7 @@ import { openStall } from '../ui/stallShop';
 import { openPuzzle } from '../puzzles/ui/screen';
 import { EGYPT_RIDDLES } from '../puzzles/content/egypt';
 import { dance } from '../dance/openDance';
-import { befriend, cutscene, flag, give, giveTockens, oncePerDay, onEnterMap, onTalk, onUse, registerNpcName, setFlag, take, wait } from './hooks';
+import { befriend, cutscene, flag, give, oncePerDay, onEnterMap, onTalk, onUse, payout, registerNpcName, setFlag, take, wait } from './hooks';
 import { registerQuest } from './quests';
 import { registerSandHome, rescueBunny } from './pirateChapter';
 import { HOPKINS_BY_ID } from '../data/bunnies';
@@ -132,16 +132,15 @@ async function sphinxGauntlet(world: WorldScene): Promise<void> {
       return;
     }
   }
-  setFlag('sphinx:passed');
-  await cutscene(async () => {
-    audio.sfx('fanfare');
-    await talk('sphinx', ['MAGNIFICENT! Three in a row!', 'The old tomb is yours to explore. And take these — headdresses just like mine!']);
-    await talk('sphinx', 'Oh — and someone small has been napping between my paws all morning. Wearing a very royal hat...');
-  });
+  const show = payout(['sphinx:passed'], [{ clothes: 'nemes' }, { clothes: 'gold-collar' }, { tockens: 20 }], { title: '🦁 The Sphinx’s gifts' });
   world.removeObject('tomb-gate');
   world.spawnLostBunny({ id: 'nibbles', kind: 'lostbunny', x: GIZA.sphinx.x + 1.4, y: GIZA.sphinx.y + 0.9, p: { id: 'nibbles' } });
-  if (grant(d, 'nemes')) toast('You got the Striped Nemes! (Wardrobe → Hats)', { icon: '🦁' });
-  giveTockens(20);
+  await cutscene(async () => {
+    audio.sfx('fanfare');
+    await talk('sphinx', ['MAGNIFICENT! Three in a row!', 'The old tomb is yours to explore. And take these — headdresses just like mine! And a golden collar for your brave dog.']);
+    await talk('sphinx', 'Oh — and someone small has been napping between my paws all morning. Wearing a very royal hat...');
+  });
+  show();
 }
 
 // ------------------------------------------------------------------ the old builders' tomb (pitch dark without Glowbroth)
@@ -210,8 +209,7 @@ onUse('ramp', async ({ world }) => {
   }
   const r = await openPuzzle('ramp-stones');
   if (!r.solved) return;
-  setFlag('capstone:placed');
-  const d = app.data!;
+  const show = payout(['capstone:placed'], [{ sand: 'egypt' }, { tockens: 40 }, { friend: 'neb', pts: 20 }], { title: '🔺 The pyramid is finished!', world });
   world.celebrate(6500);
   await cutscene(async () => {
     audio.sfx('fanfare');
@@ -222,11 +220,7 @@ onUse('ramp', async ({ world }) => {
     await talk('narrator', 'As the capstone settles into place, a swirl of glowing sand lifts off it... and floats down into your hands!');
     await talk('pip', ['A Time Sand! Hooray!', 'And listen — drums! Neb says there’s a festival in the village tonight. Egyptians LOVED festivals, with music and dancing!']);
   });
-  if (!d.sands.includes('egypt')) d.sands.push('egypt');
-  toast(`Time Sand ${d.sands.length} of 8!`, { icon: '⏳', cls: 'quest', ms: 3600 });
-  befriend('neb', 20);
-  d.tockens += 40;
-  app.autosave.request();
+  show();
 });
 
 // ------------------------------------------------------------------ the village: Ankhi the scribe, Sesi the baker, the festival
@@ -264,8 +258,9 @@ onTalk('sesi', async () => {
     return;
   }
   if (oncePerDay('gift:sesi')) {
+    const show = payout([], [{ item: 'dates', n: 2 }], { title: '🍞 Sesi gave you' });
     await talk('sesi', 'Have some dates, fresh from the palms — sweet as honey!');
-    give('dates', 2, { from: 'Sesi gave you' });
+    show();
     return;
   }
   const lines = ['My stall has everything a cook needs. And my pot is always warm!', 'The oven is shaped like a beehive. That’s how bread likes it.', 'Radishes! Onions! Lentils! A builder’s best friends.'];
@@ -300,20 +295,34 @@ onUse('festival-floor', async ({ world }) => {
   }
   const first = !flag('festival:danced');
   if (first) await talk('neb', 'The pyramid is finished — let the festival BEGIN! Drums! Flutes! Everybody dance!');
-  const o = await dance({ style: 'festival', audience: ['neb', 'ankhi', 'sesi'], bunnies: d.bunnies.slice(0, 4), title: '💃 The Builders’ Festival', blurb: 'The whole village is dancing — walk like a builder, reach for the sun and spin like the Nile!' });
+  const paid = { show: () => undefined as void };
+  const o = await dance(
+    {
+      style: 'festival',
+      audience: ['neb', 'ankhi', 'sesi'],
+      bunnies: d.bunnies.slice(0, 4),
+      title: '💃 The Builders’ Festival',
+      blurb: 'The whole village is dancing — walk like a builder, reach for the sun and spin like the Nile!',
+      settle: first
+        ? () => {
+            paid.show = payout(
+              ['festival:danced'],
+              [{ item: 'egypt-lamp' }, { clothes: 'linen-tunic' }, { clothes: 'shendyt' }, { clothes: 'reed-sandals' }, { clothes: 'broad-collar' }, { friend: 'ankhi', pts: 20 }],
+              { title: '🏺 From the festival', world },
+            );
+          }
+        : undefined,
+    },
+    { retry: !first },
+  );
   if (!o?.finished || !first) return;
-  setFlag('festival:danced');
   world.celebrate(5000);
   await cutscene(async () => {
-    await talk('ankhi', ['What dancers! I shall write this festival down forever.', 'And this is for your home — a little lamp, so you always have light. Like the lamps that lit the tomb painters’ work!']);
+    await talk('ankhi', ['What dancers! I shall write this festival down forever.', 'And this is for your home — a little lamp, so you always have light. Like the lamps that lit the tomb painters’ work!', 'And broad collars of bright beads — everyone wears them at a festival!']);
     await talk('neb', 'And linen clothes, cool as the river. You are honorary builders now!');
     await talk('pip', 'Time to take the sand home! The portal is by the river.');
   });
-  give('egypt-lamp', 1, { from: 'Ankhi gave you' });
-  for (const id of ['linen-tunic', 'shendyt', 'reed-sandals']) grant(d, id);
-  toast('You got a Linen Tunic, a Shendyt and Reed Sandals! (Wardrobe)', { icon: '🏺' });
-  befriend('ankhi', 20);
-  app.autosave.request();
+  paid.show();
 });
 
 // ------------------------------------------------------------------ three Hopkins cousins of ancient Egypt

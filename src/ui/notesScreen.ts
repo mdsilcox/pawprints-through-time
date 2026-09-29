@@ -1,6 +1,8 @@
 import { app } from '../app';
 import { audio } from '../audio/audio';
 import { ERA_TITLE, NOTES, NOTE_BY_ID } from '../data/notes';
+import { ITEMS } from '../data/items';
+import { iconUrl } from '../art/icons';
 import { h } from './dom';
 import { button, closeOnBackdrop, toast, ui } from './ui';
 import { registerPauseEntry } from './pause';
@@ -43,10 +45,33 @@ export function openNotes(): void {
         ),
       ),
     ),
+    museumCatalogue(),
     h('div', { class: 'row end sticky-foot' }, button('Close', close, { cls: 'secondary', autofocus: true, testid: 'notes-close' })),
   );
   ui.push({ id: 'notes', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), close), onBack: close });
   audio.sfx('page');
 }
 
-registerPauseEntry({ id: 'notes', icon: '📜', label: 'History Notes', order: 45, open: openNotes, visible: () => (app.data?.notes.length ?? 0) > 0 });
+/** Everything given to the Museum of Time (the cases show the latest; the catalogue keeps them all). */
+function museumCatalogue(): HTMLElement {
+  const d = app.data!;
+  const pieces = ITEMS.filter((it) => it.museum);
+  const from: Record<string, string> = { tockwood: 'Tockwood Isle', pirate: 'the Golden Age of Piracy', egypt: 'Ancient Egypt', fifties: '1950s America', florence: 'Renaissance Florence' };
+  return h(
+    'div',
+    { class: 'nt-era', attrs: { 'data-testid': 'museum-catalogue' } },
+    h('h3', null, `🏛️ In the Museum of Time — ${d.museum.filter((id) => pieces.some((p) => p.id === id)).length} of ${pieces.length}`),
+    h('p', { class: 'small' }, 'Sell your first find of each kind to Dr. Quill and it goes into the museum with your names on its card.'),
+    h(
+      'div',
+      { class: 'nt-finds' },
+      pieces.map((it) =>
+        d.museum.includes(it.id)
+          ? h('div', { class: 'nt-find', attrs: { 'data-testid': `museum-${it.id}` } }, h('img', { attrs: { src: iconUrl(it.id), alt: '' } }), h('div', null, h('div', { class: 'nt-title' }, it.name), h('div', { class: 'small' }, it.desc)))
+          : h('div', { class: 'nt-find locked' }, h('div', { class: 'nt-q' }, '?'), h('div', { class: 'small' }, `Something from ${from[it.origin] ?? 'somewhere'}...`)),
+      ),
+    ),
+  );
+}
+
+registerPauseEntry({ id: 'notes', icon: '📜', label: 'History Notes', order: 45, open: openNotes, visible: () => (app.data?.notes.length ?? 0) > 0 || (app.data?.museum.length ?? 0) > 0 });

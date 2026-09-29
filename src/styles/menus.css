@@ -648,3 +648,53 @@ table.keys td {
 .btn.saved {
   filter: saturate(1.2) brightness(1.05);
 }
+
+/* ---------- the credits at the end ---------- */
+.credits-panel {
+  width: min(94vw, 34rem);
+  text-align: center;
+}
+.credits-list {
+  text-align: left;
+  line-height: 1.45;
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 1.2rem;
+}
+.credits-thanks {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+/* ---------- the museum catalogue (in History Notes) ---------- */
+.nt-finds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 0.45rem;
+}
+.nt-find {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 0.8rem;
+  padding: 0.3rem 0.5rem;
+}
+.nt-find img {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+}
+.nt-find.locked {
+  opacity: 0.6;
+  border-style: dashed;
+}
+.nt-q {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 1.3rem;
+}

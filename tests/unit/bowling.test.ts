@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameOver, nextBall, pinsStanding, scorecard, toFrames, totalScore } from '../../src/bowling/score';
+import { gameOver, nextBall, onFreshRack, pinsStanding, scorecard, toFrames, totalScore } from '../../src/bowling/score';
 import { freshRack, simulateRoll, LANE_HALF, PIN_SPOTS } from '../../src/bowling/physics';
 import { npcThrow, rng } from '../../src/bowling/npc';
 import { TRICK_SHOTS, allTricksCleared, trickUnlocked } from '../../src/bowling/tricks';
@@ -42,6 +42,21 @@ describe('bowling scoring', () => {
     expect(gameOver([...nine, 9, 0])).toBe(true);
     expect(gameOver([...nine, 9, 1])).toBe(false); // a spare earns a third ball
     expect(toFrames([...nine, 10, 10, 10])).toHaveLength(10);
+  });
+
+  it('ten down after a gutter ball is a spare, not a strike — the lane knows which ball meets a fresh rack', () => {
+    const nine = Array(18).fill(0);
+    expect(scorecard([0, 10, 5, 0])[0].marks).toEqual(['-', '/']);
+    expect(scorecard([...nine, 0, 10, 5])[9].marks).toEqual(['-', '/', '5']);
+    expect(scorecard([...nine, 10, 0, 10])[9].marks).toEqual(['X', '-', '/']);
+    expect(onFreshRack([])).toBe(true);
+    expect(onFreshRack([0])).toBe(false);
+    expect(onFreshRack([10])).toBe(true);
+    expect(onFreshRack([3, 4])).toBe(true);
+    expect(onFreshRack([...nine, 10])).toBe(true);
+    expect(onFreshRack([...nine, 10, 4])).toBe(false);
+    expect(onFreshRack([...nine, 0])).toBe(false);
+    expect(onFreshRack([...nine, 0, 10])).toBe(true);
   });
 
   it('which ball comes next, and how many pins are standing for it', () => {

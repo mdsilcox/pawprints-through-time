@@ -9,7 +9,8 @@ import { CLOTHES_BY_ID } from '../data/clothes';
 import { hasEffect } from '../soup/effects';
 import { bowl } from '../bowling/openBowling';
 import { dance } from '../dance/openDance';
-import { befriend, count, cutscene, flag, give, giveTockens, oncePerDay, onEnterMap, onTalk, onUse, registerNpcName, setFlag, take, wait } from './hooks';
+import { openStall } from '../ui/stallShop';
+import { befriend, count, cutscene, flag, give, oncePerDay, onEnterMap, onTalk, onUse, payout, registerNpcName, setFlag, take, wait } from './hooks';
 import { registerQuest } from './quests';
 import { rescueBunny } from './pirateChapter';
 import { HOPKINS_BY_ID } from '../data/bunnies';
@@ -21,7 +22,7 @@ for (const [id, name] of Object.entries({ rollo: 'Rollo', duke: 'Duke', mabel: '
  * Chapter 2: 1950s America (Maple Street, around 1957). The Time Sand has landed in the
  * Starlight Junior Cup — the bowling trophy of tonight's tournament. Borrow bowling shoes, beat
  * Duke (the three-time champion) in a ten-frame final, then celebrate at the diner's sock hop.
- * Along the way: three Hopkins cousins, a roller rink and the best jukebox in town.
+ * Along the way: three Hopkins cousins, a skating waitress and the best jukebox in town.
  */
 const activePlayers = (): (0 | 1)[] => (input.twoPlayer ? [0, 1] : [0]);
 const wearingEra = (p: 0 | 1, slot: 'shoes' | 'any' = 'any') =>
@@ -41,7 +42,7 @@ function wearShoes(id: string): void {
 // ------------------------------------------------------------------ arriving on Maple Street
 onEnterMap('fifties', async () => {
   if (flag('maple:arrived')) return;
-  setFlag('maple:arrived');
+  const show = payout(['maple:arrived'], [{ note: 'fifties-rock' }]);
   await cutscene(async () => {
     await wait(400);
     await talk('narrator', 'Whoosh! Warm pavement, shiny cars, and music drifting out of every doorway...');
@@ -50,8 +51,8 @@ onEnterMap('fifties', async () => {
       'Hear that? Rock and roll! Everybody’s crazy about it here.',
       'And the Time Sand... I can feel it glowing somewhere near that big sparkly sign. STARLIGHT LANES!',
     ]);
-    learnNote('fifties-rock');
   });
+  show();
 });
 
 // ------------------------------------------------------------------ the Starlight Lanes
@@ -97,16 +98,17 @@ onUse('shoes', async () => {
     return;
   }
   const had = owns(d, 'saddle-shoes');
-  if (!had) {
-    grant(d, 'saddle-shoes');
-    toast('You got Saddle Shoes! (Wardrobe → Shoes)', { icon: '👞' });
+  const fresh = [grant(d, 'saddle-shoes') && 'Saddle Shoes', grant(d, 'cuffed-jeans') && 'Cuffed Jeans'].filter(Boolean);
+  if (fresh.length) {
+    toast(`You got ${fresh.join(' and ')}! (Wardrobe)`, { icon: '👞' });
+    app.autosave.request();
   }
   if (allInBowlingShoes()) {
     setFlag('lanes:shoes');
     await talk('rollo', 'Lookin’ sharp! Now you’re ready to bowl.');
     return;
   }
-  await talk('rollo', had ? 'Swap into those saddle shoes and you’re good to go!' : 'Here you go — two-tone saddle shoes, the finest in 1957!');
+  await talk('rollo', had ? 'Swap into those saddle shoes and you’re good to go!' : 'Here you go — two-tone saddle shoes, the finest in 1957! And cuffed jeans, rolled up just so. Very bowler.');
   const pick = await ask('pip', 'Shall we put them on?', ['Yes, lace them up!', 'I’ll use the Wardrobe']);
   if (pick === 0) {
     wearShoes('saddle-shoes');
@@ -158,31 +160,60 @@ onUse('lanes-bowl', async ({ world }) => {
   }
   if (pick !== 0) return;
   setFlag('cup:tried');
-  const o = await bowl({ alley: 'starlight', rival: { id: 'duke', skill: 0.25 }, title: '🏆 The Starlight Junior Cup', blurb: 'The final! Beat Duke’s score to win the cup.' });
+  const losses = Number(app.data!.flags['cup:losses'] ?? 0);
+  // the Cup and everything that comes with it land the moment Duke is beaten — then the ceremony
+  const paid = { show: () => undefined as void };
+  const o = await bowl({
+    alley: 'starlight',
+    // (Duke gets a little wobblier after every loss — nobody's first cup should be out of reach)
+    rival: { id: 'duke', skill: dukeSkill(losses) },
+    title: '🏆 The Starlight Junior Cup',
+    blurb: 'The final! Beat Duke’s score to win the cup.',
+    tip: POCKET_TIP,
+    guide: losses > 0,
+    settle: () => {
+      paid.show = payout(
+        ['cup:won'],
+        [
+          { sand: 'fifties' },
+          { item: 'starlight-cup' },
+          { item: 'bowling-pin' },
+          { clothes: 'bowling-shirt' },
+          { clothes: 'letter-jacket' },
+          { tockens: 40 },
+          { friend: 'rollo', pts: 20 },
+          { friend: 'duke', pts: 15 },
+        ],
+        { title: '🏆 The Starlight Junior Cup!', world },
+      );
+    },
+  });
   if (!o?.finished) return;
   if (!o.won) {
-    await talk('duke', ['Good game! That was close.', 'Rematch? Lane two’s all yours whenever you want.']);
+    setFlag('cup:losses', losses + 1);
+    await talk('duke', ['Good game! Rematch? Lane two’s all yours whenever you want.']);
+    await talk('rollo', losses === 0 ? 'Psst — see the glowing arrow on the lane next time? Stand there and roll into the pocket!' : 'You’re getting closer every game, pals. Keep rolling into that pocket!');
     return;
   }
-  setFlag('cup:won');
+  world.celebrate(7000);
   await cutscene(async () => {
     audio.sfx('fanfare');
     await talk('rollo', ['WE HAVE NEW CHAMPIONS! The Starlight Junior Cup goes to... {players}!']);
-    await talk('duke', 'Aw, shucks. You earned it. Congratulations!');
-    await talk('narrator', 'As Rollo lifts the cup, the glowing sand rises out of it... and floats straight into your hands!');
+    await talk('duke', ['Aw, shucks. You earned it. Congratulations!', 'Here — Alley Cats letter jackets. Every champion needs one!']);
+    await talk('narrator', 'Rollo lifts the cup out of the trophy case... and the glowing sand rises out of it!');
+    world.setPropTexture('trophy', 'fur-trophycase-empty');
+    await world.raiseTimeSand(2.2, 3.4);
+    await talk('rollo', 'Take the cup home, champs — and Starlight Lanes bowling shirts to go with it!');
     await talk('pip', ['The second Time Sand! Hooray!', 'And listen — everyone’s going to the sock hop at the diner to celebrate. Let’s go!']);
   });
-  const d = app.data!;
-  if (!d.sands.includes('fifties')) d.sands.push('fifties');
-  toast(`Time Sand ${d.sands.length} of 8!`, { icon: '⏳', cls: 'quest', ms: 3600 });
-  give('bowling-pin', 1, { from: 'Rollo gave you' });
-  give('starlight-cup', 1, { from: 'The champions take home' });
-  giveTockens(40);
-  befriend('rollo', 20);
-  befriend('duke', 15);
-  world.setPropTexture('trophy', 'fur-trophycase-empty');
-  app.autosave.request();
+  paid.show();
 });
+
+const POCKET_TIP = 'Stand a little to the right of the middle and roll into the “pocket”, just beside the front pin.';
+/** Duke's skill for the Cup: a notch wobblier after each loss (he's a good sport about it). */
+export function dukeSkill(losses: number): number {
+  return Math.max(0, 0.25 - 0.07 * losses);
+}
 
 // ------------------------------------------------------------------ the Rock-a-Roll Diner
 onTalk('mabel', async ({ world }) => {
@@ -199,9 +230,13 @@ onTalk('mabel', async ({ world }) => {
     if (!flag('mabel:milk')) {
       if (count('milk') > 0) {
         take('milk', 1);
-        setFlag('mabel:milk');
-        await talk('mabel', ['Milk! You’re a lifesaver, hon. Now I can make milkshakes again!', 'Say... a teeny bunny in a headscarf has been helping in my kitchen. So shy! She hides in the pantry whenever the bell rings.']);
-        setFlag('dot:told');
+        const show = payout(['mabel:milk', 'dot:told'], [{ clothes: 'sock-hop-cap' }], { title: '🥤 Mabel gave you' });
+        await talk('mabel', [
+          'Milk! You’re a lifesaver, hon. Now I can make milkshakes again!',
+          'And a soda jerk cap for that sweet pup of yours — every milkshake needs a helper!',
+          'Say... a teeny bunny in a headscarf has been helping in my kitchen. So shy! She hides in the pantry whenever the bell rings.',
+        ]);
+        show();
         return;
       }
       await talk('mabel', ['Oh, hon, I’m all out of milk for the milkshakes! The milk truck’s parked right out on Maple Street...', 'Bring me a bottle and I’ll tell you a secret. A fuzzy little secret.']);
@@ -232,6 +267,17 @@ onUse('milk-truck', async () => {
   }
   audio.sfx('pickup');
   give('milk', 1, { from: 'The milkman handed you' });
+});
+
+onUse('farm-stand', async () => {
+  await openStall(
+    '🌽 Maple Street Farm Stand',
+    [
+      { id: 'tomato', price: 3 },
+      { id: 'corn', price: 3 },
+    ],
+    'Fresh from the farms outside town. Tomato soup and corn on the cob — 1950s favourites!',
+  );
 });
 
 onUse('jukebox', async () => {
@@ -277,18 +323,32 @@ onTalk('rosita', async ({ world }) => {
   if (!flag('sockhop:danced')) {
     await talk('rosita', ['The champions are here! Everybody, shoes off — socks on! It’s a SOCK HOP!']);
     learnNote('fifties-sockhop');
-    const o = await dance({ style: 'sockhop', audience: ['mabel', 'duke', 'rollo'], bunnies: d.bunnies.slice(0, 4), title: '💃 The Sock Hop!', blurb: 'The whole diner is dancing — twist, stroll and hand-jive to the rock and roll!' });
+    const paid = { show: () => undefined as void };
+    const o = await dance(
+      {
+        style: 'sockhop',
+        audience: ['mabel', 'duke', 'rollo'],
+        bunnies: d.bunnies.slice(0, 4),
+        title: '💃 The Sock Hop!',
+        blurb: 'The whole diner is dancing — twist, stroll and hand-jive to the rock and roll!',
+        settle: () => {
+          paid.show = payout(
+            ['sockhop:danced', 'rosita:invited'],
+            [{ item: 'jukebox' }, { clothes: 'poodle-skirt' }, { clothes: 'cateye-glasses' }, { clothes: 'pearls' }, { friend: 'rosita', pts: 20 }],
+            { title: '💃 From the sock hop', world },
+          );
+        },
+      },
+      { retry: false },
+    );
     if (!o?.finished) return;
-    setFlag('sockhop:danced');
-    befriend('rosita', 20);
     await cutscene(async () => {
-      await talk('rosita', ['What dancing! You kids are naturals.', 'Say... I’d love to teach dancing somewhere brand new. Is your Tockwood a dancing kind of town?']);
+      await talk('rosita', ['What dancing! You kids are naturals.', 'Here — poodle skirts and cat-eye glasses, so you can twirl like a real 1950s dancer!', 'Say... I’d love to teach dancing somewhere brand new. Is your Tockwood a dancing kind of town?']);
       await talk('pip', 'The MOST dancing kind of town! There’s a dance floor right on the plaza.');
       await talk('rosita', 'Then save me a spot — I’ll be there!');
-      await talk('mabel', ['Before you go, hon — take our spare jukebox home. Every home needs music!']);
+      await talk('mabel', ['Before you go, hon — take our spare jukebox home. Every home needs music!', 'And some pop-bead pearls. Sock hop style!']);
     });
-    give('jukebox', 1, { from: 'Mabel gave you' });
-    setFlag('rosita:invited');
+    paid.show();
     // someone else was twirling to the music...
     if (!d.bunnies.includes('poppy')) world.spawnLostBunny({ id: 'poppy', kind: 'lostbunny', x: 8.6, y: 7.4, p: { id: 'poppy' } });
     return;
@@ -308,7 +368,12 @@ async function cousin(id: string, world: WorldScene, extra?: () => Promise<void>
 }
 
 onTalk('lost:poppy', async ({ world }) => cousin('poppy', world));
-onTalk('lost:dot', async ({ world }) => cousin('dot', world));
+onTalk('lost:dot', async ({ world }) =>
+  cousin('dot', world, async () => {
+    await talk('hop-dot', 'Th-thank you... Here — a spare headscarf. Polka dots, just like mine!');
+    payout([], [{ clothes: 'headscarf' }], { title: '🐰 Dot gave you' })();
+  }),
+);
 onTalk('lost:zippy', async ({ world }) => {
   if (!onWheels()) {
     await talk('hop-zippy', 'Wheee! Can’t catch me! Nobody’s as fast as me — unless they’re on wheels too!');

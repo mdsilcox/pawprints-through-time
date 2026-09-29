@@ -8,13 +8,15 @@ import { flag, give, setFlag } from './hooks';
 import type { WorldScene } from '../scenes/WorldScene';
 
 /** Found a treasure-map scrap: its X becomes a dig spot (and a mark on your Map). */
-export function findScrap(id: string, world?: WorldScene): boolean {
+export function findScrap(id: string, world?: WorldScene, opts: { quiet?: boolean } = {}): boolean {
   const s = SCRAP_BY_ID.get(id);
   if (!s || flag(`scrap:${id}`)) return false;
   setFlag(`scrap:${id}`);
   give(id, 1, { quiet: true });
-  audio.sfx('page');
-  toast(`${s.name}: X marks the spot! It’s on your Map now.`, { icon: '🗺️', cls: 'quest', ms: 3800 });
+  if (!opts.quiet) {
+    audio.sfx('page');
+    toast(`${s.name}: X marks the spot! It’s on your Map now.`, { icon: '🗺️', cls: 'quest', ms: 3800 });
+  }
   if (world && world.def.id === s.map) world.buildDigSpots();
   app.autosave.request();
   return true;

@@ -512,10 +512,19 @@ export function openPlanner(onDone: () => void): Promise<void> {
         if (held) cancelHeld();
         else finish();
       },
+      // closed from outside (Pip's break, Save & quit): the room stays the way you arranged it, as with Done
       onClose: () => {
+        if (closed) return;
+        if (held && !putDown()) cancelHeld();
         closed = true;
         cancelAnimationFrame(raf);
         window.removeEventListener('keydown', onKey);
+        window.removeEventListener('resize', refresh);
+        if (dirty) {
+          d!.home.items = items;
+          d!.flags['home:decorated'] = true;
+        }
+        resolve();
       },
     });
     audio.sfx('open');

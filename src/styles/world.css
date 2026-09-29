@@ -52,6 +52,70 @@
   font-size: 1.1rem;
 }
 
+/* ---------- a story payoff, summed up in one card ---------- */
+.reward-card {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  width: max-content;
+  min-width: min(18rem, 86vw);
+  max-width: min(30rem, 92vw);
+  background: var(--paper);
+  border: var(--border) solid var(--ink);
+  border-radius: 1.2rem;
+  padding: 0.55rem 1rem 0.65rem;
+  box-shadow: 0 0.3rem 0 var(--shadow);
+  transform: translate(-50%, 1rem) scale(0.7);
+  opacity: 0;
+  transition:
+    transform 0.35s cubic-bezier(0.3, 1.7, 0.6, 1),
+    opacity 0.25s;
+  pointer-events: none !important;
+}
+.reward-card.show {
+  transform: translate(-50%, 0) scale(1);
+  opacity: 1;
+}
+.reward-card .rc-title {
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+.reward-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.reward-card li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.reward-card .rc-icon {
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.35rem;
+}
+@media (max-height: 460px) {
+  .reward-card {
+    top: 3%;
+    font-size: 0.82rem;
+    padding: 0.4rem 0.8rem 0.5rem;
+  }
+  .reward-card .rc-icon {
+    width: 1.4rem;
+    height: 1.4rem;
+    font-size: 1rem;
+  }
+}
+
 /* ---------- cutscene letterbox ---------- */
 .cutscene-bars {
   position: absolute;

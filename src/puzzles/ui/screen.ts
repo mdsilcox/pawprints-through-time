@@ -179,6 +179,7 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
     const short = typeof window.matchMedia === 'function' && window.matchMedia('(max-height: 460px)').matches;
     // (small phones: the rules wait on their card behind ❔ How to play, so the board gets the room)
     if (opts.preview) say(opts.preview, 'think');
+    else if (short && view.pipLine) say(view.pipLine, 'happy');
     else if (short && def.kind !== 'riddle') say('New to this one? Tap ❔ How to play — or ask me for a hint!', 'happy');
     else say(def.kind === 'riddle' ? 'Read it out loud together — riddles love to be heard!' : 'Take your time. Ask me for a hint whenever you like!', 'happy');
   });

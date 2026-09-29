@@ -1,5 +1,6 @@
 /** The persistent save-data model and helpers. Everything that must survive a reload lives here. */
 import { furnish, tidyHome } from './home';
+import { repairStory } from './repair';
 
 export const SAVE_VERSION = 2;
 
@@ -194,6 +195,7 @@ export function migrateSave(raw: unknown): SaveData {
   if (!Array.isArray(out.home.items)) out.home.items = [];
   furnish(out); // saves from before decorating get their furnished cottage (once)
   tidyHome(out);
+  repairStory(out); // prizes a mid-celebration break used to lose, era clothes added since
   out.version = SAVE_VERSION;
   return out;
 }
@@ -226,6 +228,8 @@ export interface SlotSummary {
   location: string;
   p1Name: string;
   p2Name: string;
+  /** the story is finished (the Great Hourglass is whole and the party is over) */
+  complete?: boolean;
 }
 
 export function summarize(slot: number, data: SaveData | null): SlotSummary {
@@ -243,5 +247,6 @@ export function summarize(slot: number, data: SaveData | null): SlotSummary {
     location: data.location.map,
     p1Name: data.players[0].name,
     p2Name: data.players[1].name,
+    complete: !!data.flags['finale:done'],
   };
 }

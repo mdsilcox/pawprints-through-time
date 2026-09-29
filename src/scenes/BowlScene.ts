@@ -10,7 +10,7 @@ import { character } from '../data/characters';
 import { FEET_Y, FH } from '../art/character';
 import { drawAlley, drawBall, drawPin, type AlleyKind } from '../art/bowlingArt';
 import { BALL_R, HEAD_PIN_Y, LANE_HALF, LaneSim, PIN_H, PIT_Y, WALL, freshRack, type PinState, type Throw } from '../bowling/physics';
-import { gameOver, nextBall, pinsStanding, scorecard, totalScore } from '../bowling/score';
+import { gameOver, nextBall, pinsStanding, scorecard, totalScore, onFreshRack } from '../bowling/score';
 import { npcThrow, rng } from '../bowling/npc';
 import { TRIES_PER_PLAYER, type TrickShot } from '../bowling/tricks';
 
@@ -24,6 +24,8 @@ import { TRIES_PER_PLAYER, type TrickShot } from '../bowling/tricks';
 export interface BowlSetup {
   players: (0 | 1)[];
   rival: { id: string; skill: number } | null;
+  /** a glowing "stand here, roll into the pocket" guide (after a loss in a story game) */
+  guide?: boolean;
   bumpers: boolean;
   alley: AlleyKind;
   seed: number;
@@ -62,6 +64,10 @@ interface Bowler {
 
 const CAM_BACK = 95;
 const STAND_MAX = 15;
+/** where to stand to roll straight into the pocket, just right of the head pin (as the computer bowlers do) */
+const POCKET_X = 2;
+/** how much a swipe's slant turns the throw (gentle: a thumb is never perfectly straight) */
+const SWIPE_AIM = 0.045;
 const AIM_MAX = (3.2 * Math.PI) / 180;
 const POWER_PERIOD = 1.35;
 
@@ -95,6 +101,12 @@ export class BowlScene extends Phaser.Scene {
   private rack: PinState[] = freshRack();
   private phase: Phase = 'intro';
   private phaseT = 0;
+  private alleyKey = '';
+  private offOutfit: (() => void) | null = null;
+  private hintWho: number | null = null;
+  private hintTwo = false;
+  /** the aim of a swipe in progress (touch), drawn as it moves */
+  private swipeAngle: number | null = null;
   private standX = 0;
   private angle = 0;
   private power = 0.5;
@@ -189,6 +201,8 @@ export class BowlScene extends Phaser.Scene {
     ui.hud.appendChild(this.card);
     this.renderCard();
     this.events.once('shutdown', () => this.teardown());
+    // a change in the wardrobe (pause → Wardrobe) shows on the lane straight away
+    this.offOutfit = app.events.on('outfit-changed', () => this.refreshLooks());
     app.busy = true;
     audio.music('bowling');
     this.startTurn();
@@ -206,8 +220,24 @@ export class BowlScene extends Phaser.Scene {
     if (this.onUp) window.removeEventListener('pointerup', this.onUp);
     this.card?.remove();
     this.card = null;
+    this.offOutfit?.();
+    this.offOutfit = null;
     app.busy = false;
     if (current === this) current = null;
+  }
+
+  /** The bowlers (and Biscuit) in what they're wearing right now. */
+  private refreshLooks(): void {
+    const d = app.data;
+    if (!d || !this.bowlerImg) return;
+    for (const b of this.bowlers) {
+      if (b.npc || b.player === null) continue;
+      const prof = d.players[b.player];
+      b.tex = ensureCharacterTexture(this, `pc-${lookKey(prof)}`, specForPlayer(prof));
+    }
+    this.biscuit?.setTexture(ensureBiscuitTexture(this, biscuitPieces(d.biscuit.outfit)), 'sit');
+    this.syncBowler();
+    this.refreshWaiting();
   }
 
   // ------------------------------------------------------------------ views
@@ -219,12 +249,17 @@ export class BowlScene extends Phaser.Scene {
     this.children.list.filter((o) => o !== this.bg).forEach((o) => o.destroy());
     if (this.bg) this.bg.setTexture(key);
     else this.bg = this.add.image(0, 0, key).setOrigin(0, 0).setDepth(-1000);
+    // (one picture per screen size: the last size's is let go)
+    if (this.alleyKey && this.alleyKey !== key && this.textures.exists(this.alleyKey)) this.textures.remove(this.alleyKey);
+    this.alleyKey = key;
     this.pinImgs = new Map();
     this.lane = this.add.graphics().setDepth(-900);
     this.overlay = this.add.graphics().setDepth(900);
     this.ballImg = this.add.image(0, 0, 'bowl-ball').setDepth(0).setVisible(false);
     const d = this.dpr;
-    const style = (size: number) => ({ fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(size * d)}px`, fontStyle: '700', color: '#fff8ec', stroke: '#4a3b35', strokeThickness: Math.round(6 * d) });
+    // (text grows on a big screen: 1280×720 and smaller keep their size)
+    const k = Math.max(1, Math.min(1.7, W / d / 1280, H / d / 720));
+    const style = (size: number) => ({ fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(size * d * k)}px`, fontStyle: '700', color: '#fff8ec', stroke: '#4a3b35', strokeThickness: Math.round(6 * d * k) });
     this.banner = this.add.text(W / 2, H * 0.29, '', style(20)).setOrigin(0.5).setDepth(950);
     this.hint = this.add.text(W / 2, H - 16 * d, '', { ...style(15), strokeThickness: Math.round(5 * d) }).setOrigin(0.5, 1).setDepth(950);
     this.big = this.add.text(W / 2, H * 0.45, '', style(56)).setOrigin(0.5).setDepth(960).setAlpha(0);
@@ -351,6 +386,11 @@ export class BowlScene extends Phaser.Scene {
     this.updateHint();
   }
 
+  /** Who plays a player's turn: themselves — or, if Player 2 has left the game, Player 1. */
+  private controller(p: number): 0 | 1 {
+    return p === 1 && input.twoPlayer ? 1 : 0;
+  }
+
   private updateHint(): void {
     const b = this.bowler;
     if (!b || b.npc || this.phase === 'result' || this.phase === 'done' || this.phase === 'intro') {
@@ -358,14 +398,18 @@ export class BowlScene extends Phaser.Scene {
       return;
     }
     const p = b.player ?? 0;
-    const dev = input.p[p].source !== 'none' ? input.p[p].source : input.device;
-    const two = this.setup.players.length === 2;
-    const lr = dev === 'pad' ? '◀ ▶' : two ? (p === 0 ? 'A / D' : '← / →') : '← →';
-    const act = dev === 'pad' ? 'Ⓐ' : two ? (p === 0 ? 'E' : '/') : 'E';
-    if (dev === 'touch') this.hint.setText(this.phase === 'rolling' ? '' : 'Drag to step left or right · swipe up to bowl (curve your swipe to spin it!)');
-    else if (this.phase === 'position') this.hint.setText(`${lr}: step left or right · ${act}: that's the spot`);
-    else if (this.phase === 'aim') this.hint.setText(`${lr}: aim · ${act}: lock it in`);
-    else if (this.phase === 'power') this.hint.setText(`${act}: throw when the power is just right!`);
+    const who = this.controller(p);
+    const dev = input.p[who].source !== 'none' ? input.p[who].source : input.device;
+    // (the keys follow who's playing right now: Player 2 can join or leave mid-game)
+    const two = input.twoPlayer;
+    const lr = dev === 'pad' ? '◀ ▶' : two ? (who === 0 ? 'A / D' : '← / →') : '← →';
+    const act = dev === 'pad' ? 'Ⓐ' : two ? (who === 0 ? 'E' : '/') : 'E';
+    const pre = who !== p ? `Bowl for ${b.name}! ` : '';
+    const guide = this.setup.guide && this.phase === 'position' && !this.trick ? '✨ Stand on the glowing spot · ' : '';
+    if (dev === 'touch') this.hint.setText(this.phase === 'rolling' ? '' : `${pre}${guide}Drag to step left or right · swipe up to bowl (curve your swipe to spin it!)`);
+    else if (this.phase === 'position') this.hint.setText(`${pre}${guide}${lr}: step left or right · ${act}: that's the spot`);
+    else if (this.phase === 'aim') this.hint.setText(`${pre}${lr}: aim · ${act}: lock it in`);
+    else if (this.phase === 'power') this.hint.setText(`${pre}${act}: throw when the power is just right!`);
     else if (this.phase === 'rolling') this.hint.setText(`Hold ${lr} to curve the ball!`);
   }
 
@@ -412,10 +456,11 @@ export class BowlScene extends Phaser.Scene {
     }
     const knocked = r.down.length;
     const before = pinsStanding(b.rolls);
+    const fresh = onFreshRack(b.rolls);
     b.rolls.push(knocked);
     this.rack = r.standing;
-    const strike = knocked === 10 && before === 10;
-    const spare = !strike && knocked === before && before < 10;
+    const strike = knocked === 10 && fresh;
+    const spare = !fresh && knocked === before && before > 0;
     this.shout(strike ? 'STRIKE!' : spare ? 'SPARE!' : r.gutter ? 'Gutter ball!' : knocked === 0 ? 'Missed!' : `${knocked} pin${knocked === 1 ? '' : 's'}!`, strike || spare);
     if (strike || spare) {
       audio.sfx('cheer');
@@ -543,17 +588,19 @@ export class BowlScene extends Phaser.Scene {
       const p = toGame(e);
       const prev = this.swipe.pts[this.swipe.pts.length - 1];
       this.swipe.pts.push(p);
-      // a sideways drag steps the bowler left or right
+      // a sideways drag steps the bowler left or right; an upward one shows where it will go
       const s0 = this.swipe.pts[0];
       if (Math.abs(p.x - s0.x) > Math.abs(p.y - s0.y) * 1.5) {
         this.standX = Phaser.Math.Clamp(this.standX + ((p.x - prev.x) / this.scale.width) * 60, -STAND_MAX, STAND_MAX);
+        this.swipeAngle = null;
         if (this.phase !== 'position') this.setPhase('position');
-      }
+      } else if (s0.y - p.y > 20 * this.dpr) this.swipeAngle = swipeAim(s0, p);
     };
     this.onUp = (e: PointerEvent) => {
       if (!this.swipe || e.pointerId !== this.swipe.id) return;
       const pts = this.swipe.pts;
       this.swipe = null;
+      this.swipeAngle = null;
       pts.push(toGame(e));
       const th = swipeToThrow(pts, this.standX, this.dpr);
       if (th) this.release(th);
@@ -577,8 +624,14 @@ export class BowlScene extends Phaser.Scene {
     const dt = (Math.min(deltaMs, 100) / 1000) * timeScale;
     this.phaseT += dt;
     const b = this.bowler;
+    const who = b && b.player !== null ? this.controller(b.player) : null;
+    if (who !== this.hintWho || input.twoPlayer !== this.hintTwo) {
+      this.hintWho = who;
+      this.hintTwo = input.twoPlayer;
+      this.updateHint();
+    }
     // (a moment's grace at each step, so the press that started it doesn't also end it)
-    const pad = b && b.player !== null && this.phaseT > 0.25 ? input.p[b.player] : null;
+    const pad = who !== null && this.phaseT > 0.25 ? input.p[who] : null;
     switch (this.phase) {
       case 'intro':
         if (this.phaseT > 0.9) {
@@ -680,10 +733,30 @@ export class BowlScene extends Phaser.Scene {
     // aim guide & power meter
     const g = this.overlay;
     g.clear();
-    if (this.phase === 'aim' || this.phase === 'power') {
+    const human = !!b && !b.npc && !this.finished;
+    // the pocket guide (after a loss in a story game): the spot to stand on, straight into the pocket
+    if (human && this.setup.guide && !this.trick && this.rack.length === 10 && (this.phase === 'position' || this.phase === 'aim')) {
+      const on = Math.abs(this.standX - POCKET_X) < 1.6;
+      const col = on ? 0x7cc47f : 0xf7c65a;
+      const glow = 0.55 + 0.3 * Math.sin(this.time.now / 230);
+      for (let y = 40; y < HEAD_PIN_Y - 60; y += 52) {
+        const a = this.proj(POCKET_X, y);
+        const c = this.proj(POCKET_X, y + 24);
+        if (a && c) g.lineStyle(Math.max(3, 9 * d * a.s * 0.1), col, glow * 0.8).lineBetween(a.x, a.y, c.x, c.y);
+      }
+      const tip = this.proj(POCKET_X, HEAD_PIN_Y - 26);
+      const l = this.proj(POCKET_X - 5, HEAD_PIN_Y - 48);
+      const r = this.proj(POCKET_X + 5, HEAD_PIN_Y - 48);
+      if (tip && l && r) g.fillStyle(col, glow).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
+      const spot = this.proj(POCKET_X, 4);
+      if (spot) g.fillStyle(col, 0.3 + glow * 0.4).fillEllipse(spot.x, spot.y, 16 * spot.s, 6 * spot.s);
+    }
+    const aiming = this.phase === 'aim' || this.phase === 'power' || (this.swipeAngle !== null && human);
+    if (aiming) {
+      const angle = this.swipeAngle ?? this.angle;
       for (let y = 20; y < 420; y += 36) {
-        const a = this.proj(this.standX + Math.tan(this.angle) * y, y);
-        const c = this.proj(this.standX + Math.tan(this.angle) * (y + 18), y + 18);
+        const a = this.proj(this.standX + Math.tan(angle) * y, y);
+        const c = this.proj(this.standX + Math.tan(angle) * (y + 18), y + 18);
         if (a && c) g.lineStyle(Math.max(3, 6 * d * a.s * 0.1), 0xfff4e0, 0.9).lineBetween(a.x, a.y, c.x, c.y);
       }
     }
@@ -730,6 +803,11 @@ function autoThrow(rack: PinState[], r: () => number): Throw {
   return npcThrow(0.85, rack, r);
 }
 
+/** The aim of a swipe from `a` to `b` (up the screen). */
+function swipeAim(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.max(-AIM_MAX, Math.min(AIM_MAX, Math.atan2(b.x - a.x, Math.max(1, a.y - b.y)) * SWIPE_AIM));
+}
+
 /**
  * Turn a touch swipe into a throw: where the swipe points is the aim, how fast it moves is
  * the power, and how much it bends is the spin. Returns null if it wasn't an upward swipe.
@@ -740,9 +818,13 @@ export function swipeToThrow(pts: { x: number; y: number; t: number }[], standX:
   const b = pts[pts.length - 1];
   const up = a.y - b.y;
   if (up < 50 * dpr || up < Math.abs(b.x - a.x)) return null;
-  const angle = Math.max(-AIM_MAX, Math.min(AIM_MAX, Math.atan2(b.x - a.x, up) * 0.09));
-  const ms = Math.max(1, b.t - a.t);
-  const pxPerMs = Math.hypot(b.x - a.x, up) / dpr / ms;
+  const angle = swipeAim(a, b);
+  // power: how fast the finger was moving at the end — a finger that rests before flicking still throws hard
+  let k = pts.length - 2;
+  while (k > 0 && b.t - pts[k - 1].t <= 120) k--;
+  const from = pts[Math.max(0, k)];
+  const ms = Math.max(1, b.t - from.t);
+  const pxPerMs = Math.hypot(b.x - from.x, b.y - from.y) / dpr / ms;
   const power = Math.max(0, Math.min(1, (pxPerMs - 0.25) / 1.6));
   // spin: how far the middle of the path bends away from the straight line
   const len = Math.hypot(b.x - a.x, b.y - a.y);

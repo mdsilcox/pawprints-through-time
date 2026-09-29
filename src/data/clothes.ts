@@ -123,7 +123,7 @@ export const BISCUIT_ITEMS: BiscuitItem[] = [
   { id: 'pirate-hat', name: 'Tiny Pirate Hat', slot: 'hat', kind: 'tricorn', colors: [['#4a3b35', '#f7c65a'], ['#3f5a8a', '#f7c65a']], colorNames: ['Classic', 'Navy'], era: 'pirate', source: 'era', desc: 'Captain Biscuit reporting for duty!' },
   { id: 'party-bow', name: 'Party Bow', slot: 'hat', kind: 'bow', colors: [['#f4a3b4', '#fff'], ['#6fb3e0', '#fff'], ['#f7c65a', '#fff']], colorNames: ['Pink', 'Blue', 'Gold'], source: 'start', desc: 'Every day is a party with Biscuit.' },
   { id: 'bunny-ear-hat', name: 'Bunny-Ear Hat', slot: 'hat', kind: 'bunnyears', colors: [['#ffffff', '#f4a3b4']], colorNames: ['Snowy'], source: 'bunny', desc: 'A corgi who thinks he is a bunny.' },
-  { id: 'sock-hop-cap', name: 'Soda Jerk Cap', slot: 'hat', kind: 'paper', colors: [['#ffffff', '#e46a6a']], colorNames: ['Diner'], era: 'fifties', source: 'era', desc: 'From the Rocket Diner, with love.' },
+  { id: 'sock-hop-cap', name: 'Soda Jerk Cap', slot: 'hat', kind: 'paper', colors: [['#ffffff', '#e46a6a']], colorNames: ['Diner'], era: 'fifties', source: 'era', desc: 'From the Rock-a-Roll Diner, with love.' },
 ];
 
 export const CLOTHES_BY_ID = new Map(CLOTHES.map((c) => [c.id, c]));

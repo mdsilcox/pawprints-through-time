@@ -5,6 +5,7 @@ import { getSong } from '../audio/songs';
 import type { Sequencer, Song } from '../audio/music';
 import { input } from '../input/input';
 import { ui } from '../ui/ui';
+import { isTouchDevice } from '../core/display';
 import { addCanvasTexture, ensureBiscuitTexture, ensureBunnyTexture, ensureCharacterTexture } from '../art/textures';
 import { biscuitPieces, lookKey, specForPlayer } from '../data/clothes';
 import { character } from '../data/characters';
@@ -84,6 +85,8 @@ interface PlayerLanes {
   score: DanceScore;
   x: number;
   laneW: number;
+  /** the centre of each lane (left, down, up, right) — split into two thumb pairs on a phone */
+  laneX: number[];
   receptors: Phaser.GameObjects.Image[];
   glow: Phaser.GameObjects.Image[];
   pop: Phaser.GameObjects.Text;
@@ -110,9 +113,19 @@ export const danceDebug = {
   setAuto(on: boolean): void {
     autoplay = on;
   },
-  state(): { running: boolean; pos: number; notes: DanceNote[]; players: { player: number; points: number; combo: number; counts: Record<Judgement, number>; frame: string; moves: number }[]; rival: number | null } | null {
+  state(): { running: boolean; pos: number; notes: DanceNote[]; players: { player: number; points: number; combo: number; counts: Record<Judgement, number>; frame: string; moves: number; tex: string }[]; rival: number | null } | null {
     return current ? current.debugState() : null;
   },
+};
+
+/** What the crowd shouts at a 30-move combo, dance by dance. */
+const COMBO_CHEER: Record<string, string> = {
+  hornpipe: 'Shiver me timbers!',
+  jig: 'Tockwood’s finest!',
+  sockhop: 'Real gone, daddy-o!',
+  festival: 'The Nile is dancing!',
+  court: 'Bravissimo!',
+  bunnyhop: 'Hop-tastic!',
 };
 
 export class DanceScene extends Phaser.Scene {
@@ -138,10 +151,13 @@ export class DanceScene extends Phaser.Scene {
   private beatLen = 0.5;
   private songLen = 0;
   private lastBeat = -99;
+  private clapLeft = -1;
   private paused = false;
   private finished = false;
   private dpr = 1;
   private topY = 0;
+  private stageKey = '';
+  private offOutfit: (() => void) | null = null;
   private hitY = 0;
   private onPointer: ((e: PointerEvent) => void) | null = null;
   /** the song clock: the audio clock when sound is running, else a performance clock started with it */
@@ -171,6 +187,7 @@ export class DanceScene extends Phaser.Scene {
     this.finished = false;
     this.paused = false;
     this.lastBeat = -99;
+    this.clapLeft = -1;
   }
 
   create(): void {
@@ -187,17 +204,21 @@ export class DanceScene extends Phaser.Scene {
       const x = ((e.clientX - r.left) / r.width) * this.scale.width;
       const y = ((e.clientY - r.top) / r.height) * this.scale.height;
       if (y < this.topY) return;
-      for (const pl of this.lanes) {
-        const i = Math.floor((x - pl.x) / pl.laneW);
-        if (i >= 0 && i < 4) {
-          e.preventDefault();
-          this.press(pl, LANES[i]);
-          return;
-        }
-      }
+      // each dancer's thumb zone: the whole screen for one player, your own half for two
+      const W = this.scale.width;
+      const pl = this.lanes.length === 2 ? this.lanes[x < W / 2 ? 0 : 1] : this.lanes[0];
+      if (!pl) return;
+      let best = 0;
+      pl.laneX.forEach((lx, i) => {
+        if (Math.abs(lx - x) < Math.abs(pl.laneX[best] - x)) best = i;
+      });
+      e.preventDefault();
+      this.press(pl, LANES[best], e.timeStamp);
     };
     canvas.addEventListener('pointerdown', this.onPointer);
     this.events.once('shutdown', () => this.teardown());
+    // a change in the wardrobe (pause → Wardrobe) shows on the dance floor straight away
+    this.offOutfit = app.events.on('outfit-changed', () => this.refreshLooks());
     // the count-in, then the music (the song's clock drives everything)
     const countIn = COUNT_IN_BEATS * this.beatLen + 0.35;
     this.seq = audio.playSong(this.song, { loops: this.style.loops, fadeIn: 0, at: audio.time + countIn });
@@ -213,8 +234,22 @@ export class DanceScene extends Phaser.Scene {
     this.onPointer = null;
     this.seq?.stop(0.4);
     this.seq = null;
+    this.offOutfit?.();
+    this.offOutfit = null;
     app.busy = false;
     if (current === this) current = null;
+  }
+
+  /** The dancers (and Biscuit) in what they're wearing right now, mid-move. */
+  private refreshLooks(): void {
+    const d = app.data;
+    if (!d) return;
+    for (const pl of this.lanes) {
+      const prof = d.players[pl.player];
+      const key = ensureCharacterTexture(this, `pc-${lookKey(prof)}`, specForPlayer(prof));
+      pl.dancer.sprite.setTexture(key, String(pl.dancer.sprite.frame.name));
+    }
+    if (this.biscuit) this.biscuit.sprite.setTexture(ensureBiscuitTexture(this, biscuitPieces(d.biscuit.outfit)), String(this.biscuit.sprite.frame.name));
   }
 
   // ------------------------------------------------------------------ textures & layout
@@ -275,11 +310,15 @@ export class DanceScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
     const d = this.dpr;
-    // backdrop
+    // (text grows on a big screen: 1280×720 and smaller keep their size)
+    const k = Math.max(1, Math.min(1.7, W / d / 1280, H / d / 720));
+    // backdrop (one per screen size: the last size's picture is let go)
     const stageKey = `dance-stage-${this.style.stage}-${W}x${H}`;
     if (!this.textures.exists(stageKey)) addCanvasTexture(this, stageKey, drawDanceStage(this.style.stage as StageKind, W, H));
     if (this.bg) this.bg.setTexture(stageKey);
     else this.bg = this.add.image(0, 0, stageKey).setOrigin(0, 0).setDepth(-100);
+    if (this.stageKey && this.stageKey !== stageKey && this.textures.exists(this.stageKey)) this.textures.remove(this.stageKey);
+    this.stageKey = stageKey;
 
     // keep the scores/notes we had (on a resize), rebuild views
     const old = this.lanes;
@@ -287,7 +326,11 @@ export class DanceScene extends Phaser.Scene {
     this.dancers = [];
     this.lanes = [];
     const two = this.setup.players.length === 2;
-    const laneW = Math.min(W * (two ? 0.062 : 0.07), H * 0.13);
+    // one player on a touchscreen: two lanes under each thumb (left + down on the left, up + right on the right)
+    const split = !two && isTouchDevice();
+    // two players on a short screen: each score tag sits under its rings, clear of the ⏸ button
+    const tagsBelow = two && H / d < 460;
+    const laneW = split ? Math.min(W * 0.1, H * 0.17) : Math.min(W * (two ? 0.062 : 0.07), H * 0.13);
     const panelW = laneW * 4;
     const margin = Math.max(10 * d, W * 0.02);
     this.topY = Math.max(44 * d, H * 0.08);
@@ -297,7 +340,7 @@ export class DanceScene extends Phaser.Scene {
     // dancers: the players in the middle, Biscuit in front, the rival and audience behind
     const floorY = H * 0.86;
     const personScale = Math.min((H * 0.44) / FH, (W * (two ? 0.13 : 0.16)) / 96);
-    const cx = two ? W / 2 : margin + panelW + (W - margin - panelW) / 2;
+    const cx = two || split ? W / 2 : margin + panelW + (W - margin - panelW) / 2;
     const playerXs = two ? [W / 2 - W * 0.085, W / 2 + W * 0.085] : [cx - W * 0.03];
     (this.setup.audience ?? []).forEach((id, i, arr) => {
       const def = character(id);
@@ -330,6 +373,8 @@ export class DanceScene extends Phaser.Scene {
       const dancer = this.makeDancer(key, 'down-idle', playerXs[i], floorY, personScale, 'person', 10);
       this.dancers.push(dancer);
       const x = two ? (i === 0 ? margin : W - margin - panelW) : margin;
+      const rightPair = W - margin - laneW * 2;
+      const laneX = split ? [margin + laneW * 0.5, margin + laneW * 1.5, rightPair + laneW * 0.5, rightPair + laneW * 1.5] : [0, 1, 2, 3].map((l) => x + laneW * (l + 0.5));
       const prev = old.find((o) => o.player === p);
       const pl: PlayerLanes = {
         player: p,
@@ -338,14 +383,15 @@ export class DanceScene extends Phaser.Scene {
         score: prev?.score ?? emptyScore(),
         x,
         laneW,
+        laneX,
         receptors: [],
         glow: [],
         pop: this.add
-          .text(x + panelW / 2, this.hitY - laneW * 1.05, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(22 * d)}px`, fontStyle: '700', color: '#4a3b35', stroke: '#fff8ec', strokeThickness: Math.round(6 * d) })
+          .text(split ? W / 2 : x + panelW / 2, this.hitY - laneW * 1.05, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(22 * d * k)}px`, fontStyle: '700', color: '#4a3b35', stroke: '#fff8ec', strokeThickness: Math.round(6 * d) })
           .setOrigin(0.5)
           .setDepth(50),
         scoreText: this.add
-          .text(x + panelW / 2, this.topY - 8 * d, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(15 * d)}px`, fontStyle: '700', color: '#4a3b35', backgroundColor: '#fff8ecdd', padding: { x: Math.round(8 * d), y: Math.round(3 * d) }, align: 'center' })
+          .text(split ? margin + laneW : x + panelW / 2, tagsBelow ? H - 3 * d : this.topY - 8 * d, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(15 * d * k)}px`, fontStyle: '700', color: '#4a3b35', backgroundColor: '#fff8ecdd', padding: { x: Math.round(8 * d), y: Math.round(3 * d) }, align: 'center' })
           .setOrigin(0.5, 1)
           .setDepth(50),
         dancer,
@@ -354,9 +400,13 @@ export class DanceScene extends Phaser.Scene {
       };
       // lane track + rings
       const track = this.add.graphics().setDepth(1);
-      track.fillStyle(0x4a3b35, 0.32).fillRoundedRect(x - 4 * d, this.topY, panelW + 8 * d, this.hitY - this.topY + laneW * 0.75, 14 * d);
+      const trackH = this.hitY - this.topY + laneW * 0.75;
+      if (split) {
+        track.fillStyle(0x4a3b35, 0.32).fillRoundedRect(margin - 4 * d, this.topY, laneW * 2 + 8 * d, trackH, 14 * d);
+        track.fillStyle(0x4a3b35, 0.32).fillRoundedRect(rightPair - 4 * d, this.topY, laneW * 2 + 8 * d, trackH, 14 * d);
+      } else track.fillStyle(0x4a3b35, 0.32).fillRoundedRect(x - 4 * d, this.topY, panelW + 8 * d, trackH, 14 * d);
       for (let l = 0; l < 4; l++) {
-        const lx = x + laneW * (l + 0.5);
+        const lx = laneX[l];
         track.lineStyle(Math.max(1, 2 * d), 0xfff8ec, 0.25).lineBetween(lx, this.topY + 8 * d, lx, this.hitY);
         const lane = LANES[l];
         pl.glow.push(this.add.image(lx, this.hitY, 'dance-glow').setDisplaySize(laneW * 1.3, laneW * 1.3).setTint(colors[lane]).setAlpha(0).setDepth(2));
@@ -373,16 +423,16 @@ export class DanceScene extends Phaser.Scene {
     this.progress = this.add.graphics().setDepth(60);
     this.rivalText = this.setup.rival && !this.setup.relaxed
       ? this.add
-          .text(W / 2, this.topY + 26 * d, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(15 * d)}px`, fontStyle: '700', color: '#4a3b35', backgroundColor: '#fff8ecdd', padding: { x: Math.round(8 * d), y: Math.round(3 * d) } })
+          .text(W / 2, this.topY + 26 * d, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(15 * d * k)}px`, fontStyle: '700', color: '#4a3b35', backgroundColor: '#fff8ecdd', padding: { x: Math.round(8 * d), y: Math.round(3 * d) } })
           .setOrigin(0.5, 0)
           .setDepth(60)
       : null;
     this.countText = this.add
-      .text(cx, H * 0.36, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(64 * d)}px`, fontStyle: '700', color: '#fff8ec', stroke: '#4a3b35', strokeThickness: Math.round(10 * d) })
+      .text(cx, H * 0.36, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(64 * d * k)}px`, fontStyle: '700', color: '#fff8ec', stroke: '#4a3b35', strokeThickness: Math.round(10 * d) })
       .setOrigin(0.5)
       .setDepth(70);
     this.callout = this.add
-      .text(cx, H * 0.2, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(24 * d)}px`, fontStyle: '700', color: '#4a3b35', stroke: '#fff8ec', strokeThickness: Math.round(7 * d) })
+      .text(cx, H * 0.2, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(24 * d * k)}px`, fontStyle: '700', color: '#4a3b35', stroke: '#fff8ec', strokeThickness: Math.round(7 * d) })
       .setOrigin(0.5)
       .setDepth(70)
       .setAlpha(0);
@@ -399,10 +449,20 @@ export class DanceScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ time
-  /** Seconds into the song (negative during the count-in). */
-  private songPos(): number {
+  /** Seconds into the song on the audio clock — what is being sent to the speakers right now. */
+  private rawPos(): number {
     if (this.clock.audio && this.seq) return this.seq.position();
     return (this.clock.pausedAt ?? performance.now() / 1000) - this.clock.start;
+  }
+
+  /**
+   * Seconds into the song as it's heard (negative during the count-in). The speakers play a little
+   * after the audio clock, so the arrows, the beat and the judging all run on the heard time: an
+   * arrow reaches its ring just as its note comes out of the speakers.
+   */
+  private songPos(): number {
+    const heard = this.clock.audio && this.seq ? Math.min(0.08, audio.ctx?.outputLatency || audio.ctx?.baseLatency || 0) : 0;
+    return this.rawPos() - heard;
   }
 
   update(): void {
@@ -430,11 +490,20 @@ export class DanceScene extends Phaser.Scene {
       if (this.countText.text !== label) {
         this.countText.setText(label).setAlpha(1).setScale(1.25);
         this.tweens.add({ targets: this.countText, scale: 1, duration: 220, ease: 'Back.easeOut' });
-        if (label && label !== 'Ready?') audio.sfx('clap', { vol: 0.6 });
       }
     } else if (this.countText.text && this.countText.text !== 'Dance!') {
       this.countText.setText('Dance!').setAlpha(1).setScale(1.2);
       this.tweens.add({ targets: this.countText, alpha: 0, scale: 1.5, delay: 350, duration: 400 });
+    }
+
+    // the count-in claps go by the audio clock, so they come out of the speakers in time with the music
+    const raw = this.rawPos();
+    if (raw < 0) {
+      const left = Math.ceil(-raw / this.beatLen);
+      if (left !== this.clapLeft) {
+        this.clapLeft = left;
+        if (left > 0 && left < COUNT_IN_BEATS) audio.sfx('clap', { vol: 0.6 });
+      }
     }
 
     // the beat: everyone bobs, Biscuit and the bunnies bounce, the rival shows off
@@ -448,7 +517,7 @@ export class DanceScene extends Phaser.Scene {
     for (const pl of this.lanes) {
       // (a held d-pad repeats for menus — in a dance, only a fresh press counts)
       const pad = input.p[pl.player];
-      if (pad.dir && !pad.dirRepeat) this.press(pl, pad.dir as Lane);
+      if (pad.dir && !pad.dirRepeat) this.press(pl, pad.dir as Lane, pad.dirAt);
     }
     if (autoplay) for (const pl of this.lanes) for (let i = pl.next; i < pl.notes.length && pl.notes[i].n.t <= now + 0.005; i++) if (pl.notes[i].state === 'live') this.press(pl, pl.notes[i].n.lane);
 
@@ -474,7 +543,7 @@ export class DanceScene extends Phaser.Scene {
         const li = LANES.indexOf(nv.n.lane);
         if (!nv.img)
           nv.img = this.add
-            .image(pl.x + pl.laneW * (li + 0.5), this.topY, 'dance-arrow')
+            .image(pl.laneX[li], this.topY, 'dance-arrow')
             .setDisplaySize(pl.laneW * 0.8, pl.laneW * 0.8)
             .setAngle(LANE_ANGLE[nv.n.lane])
             .setTint(colors[nv.n.lane])
@@ -527,9 +596,11 @@ export class DanceScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ hits
-  private press(pl: PlayerLanes, lane: Lane): void {
+  private press(pl: PlayerLanes, lane: Lane, atMs = 0): void {
     if (this.finished || this.paused) return;
-    const now = this.songPos();
+    // judge the moment the key went down, not the frame that noticed it
+    const late = atMs > 0 ? Math.max(0, Math.min(0.1, (performance.now() - atMs) / 1000)) : 0;
+    const now = this.songPos() - late;
     const li = LANES.indexOf(lane);
     const ring = pl.receptors[li];
     if (ring) {
@@ -579,7 +650,7 @@ export class DanceScene extends Phaser.Scene {
       audio.sfx(j === 'perfect' ? 'perfect' : 'hit', { vol: 0.35 });
       if (pl.score.combo > 0 && pl.score.combo % 10 === 0) {
         this.pose(pl.dancer, 'dance-clap', 420);
-        this.shout(pl.score.combo >= 30 ? 'Shiver me timbers!' : `${pl.score.combo} in a row!`);
+        this.shout(pl.score.combo >= 30 ? (COMBO_CHEER[this.style.id] ?? 'Unstoppable!') : `${pl.score.combo} in a row!`);
         if (this.biscuit) this.tweens.add({ targets: this.biscuit.sprite, y: { from: -40 * this.dpr, to: 0 }, duration: 380, ease: 'Quad.easeOut' });
       } else if (pl.hits % 6 === 0) this.shout(this.style.moves[lane]);
     }
@@ -644,7 +715,7 @@ export class DanceScene extends Phaser.Scene {
       running: !this.finished,
       pos: this.songPos(),
       notes: this.chart.slice(),
-      players: this.lanes.map((pl) => ({ player: pl.player, points: pl.score.points, combo: pl.score.combo, counts: { ...pl.score.counts }, frame: String(pl.dancer.sprite.frame.name), moves: pl.moves })),
+      players: this.lanes.map((pl) => ({ player: pl.player, points: pl.score.points, combo: pl.score.combo, counts: { ...pl.score.counts }, frame: String(pl.dancer.sprite.frame.name), moves: pl.moves, tex: pl.dancer.sprite.texture.key })),
       rival: this.setup.rival ? this.rivalFinal : null,
     };
   }

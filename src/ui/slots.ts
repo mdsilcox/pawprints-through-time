@@ -1,4 +1,5 @@
 import { app } from '../app';
+import { getMap } from '../world/mapdef';
 import type { SlotSummary } from '../core/state';
 import { h } from './dom';
 import { button, ui } from './ui';
@@ -16,7 +17,12 @@ const PLACE_NAMES: Record<string, string> = {
 };
 
 export function placeName(map: string): string {
-  return PLACE_NAMES[map] ?? map.replace(/[-_]/g, ' ');
+  if (PLACE_NAMES[map]) return PLACE_NAMES[map];
+  try {
+    return getMap(map).name;
+  } catch {
+    return map.replace(/[-_]/g, ' ');
+  }
 }
 
 /** "Maisie & Theo" — siblings can tell their saves apart at a glance. */
@@ -44,7 +50,7 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
             'div',
             { class: 'slot-info' },
             h('div', { class: 'slot-title' }, `${slotNames(s)} · Day ${s.day}`),
-            h('div', { class: 'slot-sub' }, `${placeName(s.location)} · ⌛ ${s.sands} sands · 🐰 ${s.bunnies}`),
+            h('div', { class: 'slot-sub' }, `${s.complete ? '🏆 Story complete · ' : ''}${placeName(s.location)} · ⌛ ${s.sands} sands · 🐰 ${s.bunnies}`),
             h('div', { class: 'slot-sub small' }, formatPlayTime(s.playTimeMs)),
           )
         : h('div', { class: 'slot-info' }, h('div', { class: 'slot-title' }, 'Empty slot'), h('div', { class: 'slot-sub' }, 'A brand-new adventure'));

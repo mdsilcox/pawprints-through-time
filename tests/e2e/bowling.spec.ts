@@ -108,6 +108,40 @@ test.describe('bowling', () => {
     await expect(page.getByTestId('bowl-result-2')).toContainText('Rollo');
   });
 
+  test('Player 2 can leave in the middle of a game: Player 1 bowls their turns — and the pause menu can leave the lane', async ({ page }) => {
+    test.setTimeout(180_000);
+    const errors = watchErrors(page);
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'joinP2');
+    await startBowling(page);
+    // Player 1 bowls their frame (E: the spot, the aim, the power — for each ball)
+    await expect
+      .poll(
+        async () => {
+          const s = (await st(page))!;
+          if (s.turn === 0 && ['position', 'aim', 'power'].includes(s.phase)) await page.keyboard.press('KeyE');
+          return s.turn;
+        },
+        { timeout: 90_000, intervals: [450] },
+      )
+      .toBe(1);
+    await expect.poll(async () => (await st(page))!.phase, { timeout: 10_000 }).toBe('position');
+    // Player 2 leaves (the pause menu's "Player 2: Leave"): Player 1's keys bowl Player 2's turn
+    await hook(page, 'leaveP2');
+    await page.waitForTimeout(400);
+    await page.keyboard.press('KeyE');
+    await expect.poll(async () => (await st(page))!.phase, { timeout: 5000 }).toBe('aim');
+    expect((await st(page))!.turn).toBe(1);
+    // and a game can be left from the pause menu without quitting play
+    await press(page, '[data-testid="hud-pause"]');
+    await press(page, '[data-testid="pause-leave-game"]');
+    await expect.poll(() => hook<string[]>(page, 'scenes')).not.toContain('bowl');
+    await expect(page.getByTestId('bowl-card')).toHaveCount(0);
+    await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+    expect(await hook<string[]>(page, 'ui')).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
   test('trick shots unlock after a whole game: clear “Hello, Head Pin”, then the next one opens (three tries each)', async ({ page }) => {
     const errors = watchErrors(page);
     await startGame(page, [30.5, 24]);

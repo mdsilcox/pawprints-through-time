@@ -1,148 +1,159 @@
-# M7 Review — d311889
+# M7 Review — a5c3ed5 (re-review 1)
 
 **Verdict:** REVISE
 
-The dance mini-game itself is good:
-- Arrows fall on the song's own clock, and there's a count-in ("Ready? 3, 2, 1, Dance!").
-- Everyone dances in their real outfits. Biscuit bounces and leaps on combos, the neighbours watch, and rescued cousins hop along.
-- It has three levels plus a genuine no-fail "Just dance".
-- Two players each get their own lanes and their own scores.
-- The hornpipe dance-off sits exactly where the story needs it (map whole → dance with Cookie → her gumbo secret → sail).
+Both earlier blockers are fixed. But checking the fix turned up a worse bug in the same area:
+- If Pip's "Take a break" (or "Say goodnight") lands during a story payoff, the save keeps the "done" flag but never gets the prize.
+- At the treasure chest and the Starlight Cup, the prize is a Time Sand. That save can never finish the adventure.
 
-I played it by keyboard, touch, gamepad and in 2P, and it all works while you stay on the dance floor. Two problems appear when you leave or arrive at the wrong moment.
+## Previous blockers
+
+1. **Leaving mid-dance broke the title screen, and a phone lost its controls. Fixed.**
+   - **What changed:**
+     - `returnToTitle` now also stops paused and sleeping scenes.
+     - The setup and results cards settle when something else closes them.
+     - `dance()` only resumes the world if the play session is unchanged.
+   - **How I checked:** on the phone (667×375, touch) and on desktop, starting each dance from the plaza floor in normal play (A button or E).
+   - **Pip over the results card, after her real 60 s wait → Take a break → Bye for now:**
+     - The title shows the clocktower art.
+     - The world and dance scenes are shut down, not paused, and the HUD is hidden.
+     - **Continue** brings back the place and objective pills, 👥, ⏸, the joystick and A/B.
+     - A real joystick drag walks about 7 tiles, and the floor opens again.
+   - **Mid-song, three ways out, all clean on both screen sizes:**
+     - ⏸ → Save & quit.
+     - The late-night "Say goodnight".
+     - Pip after her wait → Take a break.
+   - **"Five more minutes" mid-song** still freezes the song clock (4.54 → 4.54 s), then carries on to the results.
+2. **Pip spoke at the dance floor before the players had met her. Fixed.**
+   - I started a real new game on the phone: storybook → ferry → "Follow Biscuit to the clocktower". The only story flag at that point is `met:biscuit`.
+   - On the star-marked floor, the hello now comes from the storyteller (italic narration, no portrait).
+   - Pip's clocktower scene still plays normally afterwards.
+   - Nit: the line says "Biscuit wags his whole back end", but Biscuit is away at the dock leading the way.
+   - Nit: no test covers this fix.
 
 ## Blockers
 
-1. **Pip's "Take a break" (or "Save & quit") during a dance breaks the title screen. If it happens over the results card, a phone loses all its touch controls.**
-   - **Why it happens:**
-     - `dance()` pauses the world scene (`src/dance/openDance.ts:176`).
-     - `returnToTitle` stops only *running* scenes (`src/flow.ts:46`). Phaser's `getScenes(true)` skips paused ones, so the paused world survives.
-     - The results card is pushed with only `onBack` (`openDance.ts:144`). `ui.closeAll()` → `pop()` only calls `onClose` (`src/ui/ui.ts:110-125`), so the card's promise never settles.
-     - That means `dance()`'s `finally` (`hud.setDancing(false)`, resume world) never runs.
-   - **Over the results card, phone (667×375, touch):**
-     - Finish any dance on the plaza floor.
-     - While the results card is up, Pip appears (I used `triggerReminder`) → Take a break → Bye for now.
-     - The title shows the frozen plaza and the in-game pause button instead of the clocktower title art.
-     - After **Continue**, the HUD keeps `class="hud dancing"`. There is no joystick and no A/B buttons (`[data-testid^=touch-]` → none), no location/objective pills and no 👥 button.
-     - The players cannot move at all until the page is reloaded.
-     - On desktop the same run leaves the pills and 👥 hidden until another dance finishes.
-   - **Mid-song:**
-     - Pip mid-song → Take a break, or ⏸ → Save & quit.
-     - `finally` does run here, and it *resumes* the world behind the title: `scenes()` = `["title","world"]`.
-     - The live plaza, the player, Biscuit and the full HUD (time pill, objective pill, 👥, ⏸) all sit over the title logo.
+1. **Pip's "Take a break" during a story payoff can lose the payoff forever. When the payoff is a Time Sand, the adventure is soft-locked.**
+   - **The first way it happens:**
+     - Payoff scripts set the progress flag, play the celebration lines, and only then hand out the reward.
+     - A break during those lines cancels the script at the next line.
+     - The break's own save keeps the flag without the reward.
+   - **The M7 fix added a second way:**
+     - The results card's `onClose` now resolves `'done'` (`openDance.ts:153`; bowling copies it at `openBowling.ts:162, 231`).
+     - So after a break over a story mini-game's results card, the old script carries on after play has ended.
+     - Its dialogue box and cutscene letterbox bars appear on the title screen. They can't be tapped away, because the title screen takes the taps; they only go on Continue.
+     - The autosave 1.5 s later writes the flag to the slot.
+   - **How I verified it:** all by play on desktop (nothing here depends on screen size). I stood in for Pip's 60 s wait by moving `Date.now` forward 61 s. Each time: Take a break → Bye for now → Continue.
+     - **Treasure chest (M6):**
+       - Break during "The lid swings open…".
+       - The save has `chest:treasure-chest` true and `sands: []`.
+       - The chest now says "The treasure chest is empty now".
+       - The first Time Sand can never be had, so the pirate chapter can't end and 1950s America never opens.
+     - **Starlight Cup final (M8):**
+       - Break over the results card, or over Rollo's "WE HAVE NEW CHAMPIONS!". Over the results card, that line shows on the title.
+       - The save has `cup:won` true, `sands: ["pirate"]`, no Starlight Cup and no Tockens.
+       - The lane now only offers "A friendly game", so the 1950s sand can never be won. Tockwood Lanes, Rosita and Florence never come.
+     - **Cookie's hornpipe dance-off (M7):**
+       - Break over the results card, or over "SQUEAK! What footwork!".
+       - The save has `crew:respect` true, but no hornpipe History Note (this is its only source) and no +15 Tockens.
+       - After a *lost* dance-off, the title shows Cookie's "Squeak! Good try!" box instead.
+     - **Sock Hop (M8):**
+       - The save has `sockhop:danced` but no jukebox (the era's keepsake), and Rosita never offers it again.
+     - **Crew party (read in the code, not played):**
+       - The same order appears at `pirateChapter.ts:153` → `167`.
+       - A break there would lose the ship's wheel, the Captain's Coat and `marigold:friend`, which is Marigold's Tockwood visit from spec §4.
    - **This happens in normal play:**
-     - Pip gives up waiting after 60 s.
-     - The hornpipe plus count-in lasts about 56 s, and the results card still counts as busy (the story script is awaiting it).
-     - So a reminder that falls due as a dance starts lands mid-song or on the results card.
-     - The late-night "Say goodnight" nudge takes the same path.
+     - Pip waits at most 60 s for a calm moment.
+     - The whole script counts as busy: the puzzle or mini-game, its results card and the celebration.
+     - So a reminder that falls due in the last minute of the chest's gear lock, Cookie's ~56 s hornpipe or the cup final lands on the payoff.
+     - "Take a break" is the big green button, and it has the focus.
+     - Breaks mid-song are fine. I checked with the dance-off: it aborts as unfinished and can be retried. From the code, mid-game and mid-puzzle breaks should be fine too.
    - **Fix:**
-     - Give the setup and results cards an `onClose` that settles their promise.
-     - Stop paused scenes in `returnToTitle`.
-     - Only resume the world in `finally` while `app.playing`.
-     - Add e2e tests for "Save & quit mid-song" and "Pip's break over the results card → Continue shows touch controls on the phone".
-
-2. **Pip talks at the dance floor before the players have met her.**
-   - **Repro:**
-     1. Start a new game with the opening.
-     2. After the ferry, while the objective is "Follow Biscuit to the clocktower" (flags: only `met:biscuit`), step onto the star-marked stage in the plaza.
-     3. "Dance!" appears. Press E.
-   - **What you see:** Pip's portrait says "Tockwood's dance floor! On warm evenings the whole village dances here." That spoils her introduction at the Great Hourglass a minute later.
-   - **The cause:** `src/story/dancing.ts:22` uses `talk('pip', …)` with no `met:pip` check. The Riddle Stone next to it uses the narrator.
-   - **Fix:** use the narrator or Biscuit for the first-time lines before `met:pip`, or open the floor after Pip's scene. The Jig is still "there from the start" of real play.
+     1. Hand out the reward and set the flag in one step, before the first `await`. The celebration lines can describe what you already got; alternatively, set the flag last. Places to change:
+        - `pirateChapter.ts:397→406` (dance-off), `572→583` (chest), `153→167` (party).
+        - `fiftiesChapter.ts:167→176` (cup), `282→290` (sock hop).
+        - Check for other `setFlag(…)` → `await cutscene/talk` → reward sequences.
+     2. `dance()` and `bowl()` should return `null` if `sessionEpoch()` changed while they were open. Every caller already stops on `!o?.finished`.
+     3. `talk`, `ask` and `cutscene` should throw `Cancelled` when `!app.playing`, so nothing can open a dialogue on the title screen.
+     4. `returnToTitle` should call `app.autosave.cancel()` after its final save.
+     5. Add e2e tests: `toTitle` during each payoff (the results card and the celebration lines) → Continue → the reward is in the save, or the payoff can be replayed.
+   - **Why the tests missed it:** the new "leaving play mid-song or at the results card" test opens the dance with the debug `openDance`, so no story script is waiting on it.
 
 ## Top improvements
 
-1. **Make the lanes fit fingers on a phone.**
-   - In 1P, all four lanes are 47 px strips squeezed into the left 30% of a 667 px screen.
-     - One thumb has to hit four adjacent strips.
-     - The right thumb has nothing to do.
-     - Taps outside the panel are ignored.
-   - In 2P each lane is 41 px.
+1. **Make the lanes fit fingers on a phone. Unchanged since the last review, and still the biggest fun issue.**
+   - **What's wrong:**
+     - In 1P, the lanes are four 47 px strips in the left 30% of the screen, all under one thumb, and the right thumb has nothing to do.
+     - In 2P, each lane is 41 px.
+     - On a phone, the setup card still leads with "Arrow keys or W A S D".
    - **Fix:**
-     - On touch in 1P, split the lanes: ←↓ under the left thumb, ↑→ under the right, dancers in the middle.
-     - In 2P, make each player's whole half of the screen their four tap zones.
-     - Say so on the setup card: on a phone it currently leads with "W A S D · arrow keys".
-2. **Make timing feel right on real devices.**
-   - A press is judged at the *next frame's* song position, not when it happened, and audio output latency is ignored.
-   - At phone frame rates plus 50–100 ms speaker latency, on-time taps will score Great/Good.
-   - **Fix:** judge with `e.timeStamp` mapped to song time, and subtract `audioCtx.outputLatency`.
-   - **The e2e timing test is lenient:** "≥8 of 10 hits" counts Good (up to 0.18–0.22 s off), so an offset bug of about 150 ms would still pass. Assert mostly Perfect/Great instead.
-3. **Make winning (and losing) the dance-off feel like a moment.**
-   - **On a win:** after "You out-danced Cookie!" there are two dialogue lines in the world. Reuse the M6 deck party instead (crew cheering, confetti, dance-cheer poses).
-   - **On a loss:**
-     - 0 points against 5,113 still says "So close!".
-     - On Easy, a child who is consistently a bit early and misses 1 arrow in 5 loses (3,791 vs 5,113).
-     - Say "Cookie's quick! Try Easy or Just dance", or lower Easy Cookie a little.
+     - In 1P, split the lanes: ←↓ under the left thumb, ↑→ under the right.
+     - In 2P, make each player's half of the screen their four tap zones.
+     - Word the setup card for touch on a phone.
+2. **Judge presses by when they happened. Also unchanged.**
+   - A press is still judged at the next frame's song position, and speaker latency is ignored. Phone frame times plus 50–100 ms of audio latency will turn on-time taps into Greats and Goods.
+   - Judge key and touch presses at `e.timeStamp` mapped to song time, and subtract `audioCtx.outputLatency`.
+   - Make the timing test assert mostly Perfect/Great.
+3. **Cheap wording and layout fixes:**
+   - A big loss on Easy says "try Easy". Offer "Just dance" or Cookie's tip instead.
+   - The 30-combo "Shiver me timbers!" also plays in the Tockwood Jig, and now in the 1950s Sock Hop. Give each style its own cheer.
+   - On phones, Player 2's score tag still sits under ⏸ (visible in `review/M8/dance-sockhop-2p-phone.png` too).
 
 **Smaller notes:**
-- **2P phone:** Player 2's score tag is partly under the ⏸ button ("Player 2 · 1,230 ×" is cut off).
-- **Large screens:** dance-floor text is fixed at 15/22 px. On 1920×1080 the score tags and "Cookie: 559" are tiny next to the huge lanes. Scale the text with the stage height.
-- **Gamepad:** holding the d-pad auto-repeats (the menu repeat, every 115 ms). Holding ← for a whole song hit all 9 left arrows (139 "moves"). Use edge presses only while dancing.
-- **History Notes:** the pirate era now has 6 notes; spec §4 says 3–5 per era. Merge one, or log a decision.
-- **Wording:** the "Shiver me timbers!" 30-combo callout also plays in the Tockwood Jig.
-- **Textures:** every resize adds a new full-screen stage texture that is never freed.
-- **Deck art:** the deck's "furled sail" reads as a floating white disc.
-- **Test gaps:** nothing covers lane *taps* on the phone, leaving mid-dance (where blocker 1 lives), Tick-Tock in a dance, or colour-blind lanes.
-- **Flaky test:** `core.spec.ts:344` ("press too soon") failed once in the full run under load. It passed 4/4 on its own. Its "too soon" press relies on a round trip under 1.5 s.
+- The pirate era still has 6 History Notes. Spec §4 says 3–5, and DECISIONS.md doesn't log it.
+- Still open from the last review:
+  - Dance-floor text stays a fixed size on big screens.
+  - Every resize adds a stage texture that is never freed.
+  - The deck's "furled sail" still looks like a floating disc.
+- Test gaps: lane taps on the phone, Tick-Tock Tomato in a dance, and colour-blind lanes.
 
 ## Fun score
 
-7/10. The dance floor is the most charming screen so far:
-- the sunset deck and the lantern-lit plaza;
-- the crew and neighbours watching;
-- callouts like "Haul the rope!";
-- Biscuit bouncing in his tiny tricorn.
+7/10. The dance-off win now gets confetti and a cheering crew, a crushing loss is kind about it, and holding the d-pad no longer machine-guns the arrows.
 
-Biggest thing holding it back: on a phone (where the family will likely play) you tap four narrow strips in one corner with one thumb. The dancers only swap between a few poses, and the songs are one 8-bar tune looped 2–3 times.
+Biggest thing holding it back: on a phone (where the family will likely play), one thumb taps four narrow strips in one corner.
 
 ## Required features tally
 
-Working 10 · partial 3 · missing 1.
+At a5c3ed5, which includes M8: working 12 · partial 2 · missing 0.
 
-1. **Adventure story** — partial. The opening plus a complete pirate chapter, now with the dance-off; no ending yet.
-2. **Village life** — partial. Neighbours, collecting, the garden and the new plaza dance floor; no home decorating yet.
-3. **Time travel** — partial. One of four eras.
-4. **Outfits** — working. They now show on the dance floor: tricorn, coat and parrot; bandana and eye patch; Biscuit's Tiny Pirate Hat.
-5. **Bowling** — missing (M8).
-6. **Corgi** — working. Biscuit dances in every dance and leaps on combos.
-7. **Dancing** — working, but see blocker 1: the hornpipe dance-off and the plaza Jig/Hornpipe, Easy/Medium/Tricky plus Just dance, and 2P side by side.
+1. **Adventure story** — partial. The opening, the pirate chapter and the 1950s chapter are in; the ending is not (M10). The blocker can strand either chapter's Time Sand.
+2. **Village life** — working. Neighbours, collecting, the garden, the plaza dance floor, and now home decorating (M8).
+3. **Time travel** — partial. Two of four eras.
+4. **Outfits** — working. They show on the dance floor.
+5. **Bowling** — working (M8). I only drove the cup final on autopilot. See the blocker.
+6. **Corgi** — working. Biscuit dances in every dance.
+7. **Dancing** — working. See the blocker for the dance-off payoff.
 8. **Riddles, logic, strategy** — working.
-9. **Playtime reminder** — working in the world, and mid-dance "Five more minutes" freezes and resumes the song correctly. "Take a break" during a dance is broken (blocker 1).
-10. **Map and pirates** — working. The dance step has an objective and a map star at Cookie.
-11. **Fairy** — working, but blocker 2 spoils her introduction.
-12. **1 or 2 players** — working. Separate lanes and scores; in the dance-off either player can win.
-13. **Bunnies** — working. Rescued cousins hop along on the plaza floor.
-14. **Magic soup** — working. Tick-Tock Tomato widens the dance timing.
+9. **Playtime reminder** — working, but see the blocker. I ran 45 min → two "Five more minutes" → firm → Keep playing → firm again after 5 min → Take a break → the 2P goodbye → title. Mid-song, it freezes and resumes the dance.
+10. **Map and pirates** — working.
+11. **Fairy** — working. The previous blocker 2 is fixed.
+12. **1 or 2 players** — working. In the 2P phone dance, taps on each player's lanes count for that player, and the scores are separate.
+13. **Bunnies** — working.
+14. **Magic soup** — working.
 
 ## Verified
 
-- **Tests:** `npm test` (PW_WORKERS=2) took 48 min.
-  - Unit: 139/139.
-  - e2e: 170 passed, 4 skipped (the same viewport-specific skips as before), 1 failed (the flaky reminder test above, 4/4 green when re-run alone).
-  - There is no `.only` or `fixme`.
-  - The M7 tests are real: in-page key timing, P2-only scoring, the pause freeze, and the dance-off lost then won.
-- **Desktop keyboard:**
-  1. Walked onto the floor; the "Dance!" prompt appeared, then Pip's hello.
-  2. The setup card works by keyboard: focus starts on Let's dance, arrows move between the level buttons.
-  3. Judged hits, the results card, then back to the world with music and walking.
-  4. Story flow:
-     - The jigsaw → Marigold's new hornpipe lines → the objective and map star.
-     - The wheel refuses to sail, and Marigold's line changes.
-     - Cookie's dance-off lost on Easy (0 vs 5,113), then won on Medium (35,025 vs 16,812).
-     - Then the cheers, +15 Tockens, the hornpipe History Note (accurate), the gumbo clue, and the objective moves to "Brew Pirate's Gumbo".
-  5. Played the same flow as a pair on the phone.
-- **2P, only Player 2 dancing:** P1 scored 0 and P2 32,441, and the dance-off was won.
-- **Phone touch:**
-  - Real taps on each lane register for the right player in 1P and 2P.
-  - Taps between the panels do nothing.
-  - The canvas is the top element at every lane point.
-- **Gamepad:** d-pad taps scored 18 Perfect and 6 Great out of 24; pad A closes the results card.
-- **Pause and Pip mid-dance:** the pause menu freezes the song (4.75 s → 4.75 s). Pip mid-song freezes it too, and "Five more minutes" resumes to a full combo.
-- **Tick-Tock Tomato:** pressing about 0.2 s late on Medium gave 7/16 hits without the soup and 16/16 with it. The card mentions it, and the effect doesn't drain while dancing.
-- **Colour-blind:** the lanes switch to the Okabe–Ito palette and the stars turn orange.
-- **Plaza after the chapter:** it offers both dances.
-- **Other checks, no errors:** rotating the phone mid-dance, P2 joining from the pause menu mid-dance, and opening the Wardrobe mid-dance.
+- **Tests:** `npm test` with 2 workers took 1.8 h, with four other Playwright runs on the machine.
+  - Unit: 170/170.
+  - e2e: 194 passed, 7 skipped (the usual viewport-only skips; no `.only` or `fixme`), 2 failed.
+  - Both failures pass when re-run on their own, so they are load flakes:
+    - `core.spec.ts:172` (phone) expects instant text within 300 ms of an un-awaited hook call. That's a wall-clock check; do it inside the page.
+    - `pirates.spec.ts:82` (phone): Skipper's "Talk" prompt took more than 8 s after the sniff.
+  - The new M7 test ("leaving play mid-song or at the results card") passes on both viewports and would fail on the old bug.
+- **2P on the phone:**
+  - A real tap on each panel registered for the right player.
+  - Timed taps scored P1 6/6 Perfect, and P2 5 Perfect + 1 Great.
+  - The results card showed both players.
+  - Back in the world, both players' sticks and buttons were there.
+- **Cookie's dance-off won as a pair on the phone (Medium):**
+  - Confetti, and the "✓ Win the crew's respect" step.
+  - The hornpipe note and +15 Tockens, then the gumbo clue.
+  - The objective moved to "Brew Pirate's Gumbo".
+- **Gamepad:** holding the d-pad ← for 14 s counts as one move, where before every left arrow was hit.
 - **Tone and originality:**
-  - The songs have original melodies.
-  - The characters are original.
-  - The tone is gentle; losing gets "Try again whenever you like".
+  - The Sock Hop's moves (twist, stroll, hand jive) are real 1950s dances.
+  - The five 1950s notes are accurate: rock and roll, pinsetters and pinboys, railway-car diners, 45 rpm records, sock hops in socks.
+  - Nothing is scary or borrowed.
+- **Colour-blind and Tick-Tock:** the colour-blind lanes still switch to the Okabe–Ito colours, and with Tick-Tock Tomato in effect the setup card says so.
+- **1920×1080:** the score tag and "Cookie: 866" are still tiny, and the Cookie score floats inside the sail disc.

@@ -49,6 +49,15 @@ export const DANCE_STYLES: Record<string, DanceStyleDef> = {
     moves: { left: 'Twist!', down: 'Hand jive!', up: 'Jump for joy!', right: 'Stroll!' },
     stage: 'diner',
   },
+  bunnyhop: {
+    id: 'bunnyhop',
+    name: 'The Bunny Hop',
+    era: 'tockwood',
+    song: 'bunnyhop',
+    loops: 2,
+    moves: { left: 'Hop to the left!', down: 'Kick, kick!', up: 'Big bunny jump!', right: 'Hop to the right!' },
+    stage: 'plaza',
+  },
   court: {
     id: 'court',
     name: 'The Duchess’s Court Dance',

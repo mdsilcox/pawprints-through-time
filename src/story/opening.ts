@@ -7,6 +7,7 @@ import { toast } from '../ui/ui';
 import { TILE } from '../world/collision';
 import { TW } from '../world/maps/tockwood';
 import { placeSands, useTimePortal } from './pirateChapter';
+import { allSandsHome, restoreHourglass } from './finale';
 import { registerQuest, type QuestDef } from './quests';
 import { cutscene, flag, onEnterMap, onTalk, onUse, setFlag, wait, give, background } from './hooks';
 import type { WorldScene } from '../scenes/WorldScene';
@@ -195,16 +196,26 @@ function metNeighboursDone(): boolean {
 }
 
 onUse('hourglass', async ({ world }) => {
-  if (await placeSands()) {
-    world.refreshHourglass();
-    return;
+  // the sockets around the top stay in view the whole time (on a short phone screen too)
+  world.frameAlso(6.5, 1.0);
+  try {
+    const placed = await placeSands();
+    if (placed) world.refreshHourglass();
+    // (checked even when nothing new went in: a break right after the eighth sand must not strand the ending)
+    if (allSandsHome(app.data!) && !flag('hourglassRestored')) {
+      await restoreHourglass(world);
+      return;
+    }
+    if (placed) return;
+    const n = app.data?.sands.length ?? 0;
+    await talk('narrator', [
+      n === 0
+        ? 'The Great Hourglass. A jagged crack runs down the glass, and all eight sand sockets around the top are empty.'
+        : `The Great Hourglass. ${n} of its 8 sockets glow with Time Sand.`,
+    ]);
+  } finally {
+    world.frameAlso(null);
   }
-  const n = app.data?.sands.length ?? 0;
-  await talk('narrator', [
-    n === 0
-      ? 'The Great Hourglass. A jagged crack runs down the glass, and all eight sand sockets around the top are empty.'
-      : `The Great Hourglass. ${n} of its 8 sockets glow with Time Sand.`,
-  ]);
 });
 
 onUse('portal', async ({ world }) => {

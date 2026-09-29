@@ -327,15 +327,56 @@ export function drawDanceStage(kind: StageKind, w: number, h: number): HTMLCanva
     ctx.strokeStyle = PAL.ink;
     ctx.lineWidth = Math.max(2, 3 * u);
     ctx.strokeRect(-4, top - 26 * u, w + 8, 12 * u);
-    // the mast and a furled sail behind the dancers
+    // the mast behind the dancers, with its yard and the sail furled along it
     ctx.fillStyle = '#8a5a3a';
     ctx.fillRect(w * 0.5 - 12 * u, 0, 24 * u, top - 20 * u);
     ctx.strokeRect(w * 0.5 - 12 * u, -4, 24 * u, top - 16 * u);
-    ctx.fillStyle = '#fff4e0';
+    const yardY = h * 0.12;
+    const yardW = 400 * u;
+    const yx = w * 0.5 - yardW / 2;
+    // ropes from the yard's ends down to the rail
+    ctx.lineWidth = Math.max(1.5, 2 * u);
     ctx.beginPath();
-    ctx.ellipse(w * 0.5, h * 0.12, 190 * u, 22 * u, 0, 0, Math.PI * 2);
+    ctx.moveTo(yx + 6 * u, yardY + 12 * u);
+    ctx.lineTo(w * 0.5 - yardW * 0.72, top - 26 * u);
+    ctx.moveTo(yx + yardW - 6 * u, yardY + 12 * u);
+    ctx.lineTo(w * 0.5 + yardW * 0.72, top - 26 * u);
+    ctx.stroke();
+    ctx.lineWidth = Math.max(2, 3 * u);
+    // the yard (a spar across the mast)
+    ctx.fillStyle = '#8a5a3a';
+    ctx.beginPath();
+    ctx.roundRect(yx, yardY + 6 * u, yardW, 12 * u, 6 * u);
     ctx.fill();
     ctx.stroke();
+    // a few soft folds of sail hanging below it...
+    ctx.fillStyle = '#f2e6cf';
+    for (let i = 0; i < 5; i++) {
+      const fx = yx + yardW * 0.1 + i * yardW * 0.16;
+      ctx.beginPath();
+      ctx.moveTo(fx, yardY + 14 * u);
+      ctx.quadraticCurveTo(fx + yardW * 0.08, yardY + 34 * u, fx + yardW * 0.16, yardY + 14 * u);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    // ...and the rolled-up sail on top, tied in bundles
+    ctx.fillStyle = '#fff4e0';
+    ctx.beginPath();
+    ctx.roundRect(yx + yardW * 0.05, yardY - 14 * u, yardW * 0.9, 24 * u, 12 * u);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = '#8a5a3a';
+    ctx.lineWidth = Math.max(2, 4 * u);
+    for (let i = 1; i < 6; i++) {
+      const tx = yx + yardW * 0.05 + (i * yardW * 0.9) / 6;
+      ctx.beginPath();
+      ctx.moveTo(tx, yardY - 13 * u);
+      ctx.lineTo(tx, yardY + 9 * u);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineWidth = Math.max(2, 3 * u);
     bunting(ctx, w, h * 0.2, h * 0.05, 34 * u, ['#e46a6a', '#f7c65a', '#fff4e0', '#6fb3e0']);
     for (const x of [0.2, 0.8]) lantern(ctx, w * x, h * 0.34, 16 * u);
   } else {

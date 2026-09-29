@@ -135,17 +135,16 @@ test.describe('brain-builders', () => {
     await expect(page.getByTestId('puzzle')).toBeVisible();
   });
 
-  test('on a short phone the whole Shoals chart fits: the ship, the island and Start over are all on screen', async ({ page }, info) => {
+  test('on a short phone the whole Shoals chart fits — rough seas and calm ones (after the gumbo), and the first look from the ship’s wheel', async ({ page }, info) => {
     test.skip(info.project.name !== 'phone', 'the small screen is the point');
     await startGame(page, [30.5, 24]);
-    for (const level of ['easy', 'medium', 'hard'] as const) {
-      await openPz(page, 'marigold-chart', level);
-      const vh = page.viewportSize()!.height;
+    const vh = page.viewportSize()!.height;
+    const fits = async (what: string) => {
       for (const sel of ['.sa-board', '.sa-boat', '[data-testid="sail-reset"]']) {
         const b = (await page.locator(sel).first().boundingBox())!;
-        expect(b, `${level} ${sel}`).toBeTruthy();
-        expect(b.y, `${level} ${sel} top`).toBeGreaterThanOrEqual(0);
-        expect(b.y + b.height, `${level} ${sel} bottom`).toBeLessThanOrEqual(vh);
+        expect(b, `${what} ${sel}`).toBeTruthy();
+        expect(b.y, `${what} ${sel} top`).toBeGreaterThanOrEqual(0);
+        expect(b.y + b.height, `${what} ${sel} bottom`).toBeLessThanOrEqual(vh);
       }
       // nothing hidden inside a scrolled-away corner of the panel either
       const clipped = await page.locator('.sa-board').evaluate((el) => {
@@ -161,9 +160,33 @@ test.describe('brain-builders', () => {
         }
         return false;
       });
-      expect(clipped, `${level}: the chart is cut off`).toBe(false);
-      await press(page, '[data-testid="pz-leave"]');
+      expect(clipped, `${what}: the chart is cut off`).toBe(false);
+    };
+    for (const calm of [false, true]) {
+      if (calm) await hook(page, 'drink', 'pirates-gumbo');
+      for (const level of ['easy', 'medium', 'hard'] as const) {
+        await openPz(page, 'marigold-chart', level);
+        await fits(`${calm ? 'calm' : 'rough'} ${level}`);
+        // (calm seas: Pip says so — the note that pushed the chart off the screen stays hidden)
+        if (calm) await expect(page.getByTestId('pz-bubble')).toContainText('Calm seas');
+        await press(page, '[data-testid="pz-leave"]');
+      }
     }
+    // the first look, from the ship's wheel, before any gumbo
+    await hook(page, 'clearEffects');
+    for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'met:marigold', 'map:search', 'map:whole', 'met:cookie', 'crew:respect']) await hook(page, 'setFlag', f, true);
+    await hook(page, 'goTo', 'cove', 'from-isle');
+    await expect.poll(() => hook<string>(page, 'mapId')).toBe('cove');
+    await page.waitForTimeout(900);
+    await hook(page, 'teleport', 40.9, 24.3, 0);
+    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Set sail');
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    await advanceDialogue(page);
+    await expect(page.getByTestId('pz-preview')).toBeVisible();
+    await fits('the first look');
+    const bubble = (await page.getByTestId('pz-bubble').boundingBox())!;
+    expect(bubble.y + bubble.height).toBeLessThanOrEqual(vh);
+    await press(page, '[data-testid="pz-leave"]');
   });
 
   test('sliding blocks: pick a crate up and slide it with the arrow keys until the wheelbarrow rolls out', async ({ page }) => {

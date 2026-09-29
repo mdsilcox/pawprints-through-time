@@ -41,8 +41,11 @@ export async function returnToTitle(reason = 'quit'): Promise<void> {
   ui.closeAll();
   ui.clearToasts();
   resetStory();
-  if (app.data) await app.saveNow();
+  // play is over before the last save: a story script from the old session can't start another
+  // line or cutscene, and no autosave from it lands afterwards
   app.markPlayEnd(reason);
+  if (app.data) await app.saveNow();
+  app.autosave.cancel();
   const sm = app.phaser.scene;
   // every scene that's running, paused (the world behind a dance or a bowling game) or asleep
   for (const s of sm.getScenes(false)) {

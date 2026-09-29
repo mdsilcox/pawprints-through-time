@@ -4,6 +4,7 @@ import { makeCanvas, sparkle } from './draw';
 import { PAL } from './palette';
 import { PROP_ART } from './props';
 import { FURNITURE_ART } from './furniture';
+import type { PropArt } from './props';
 import { TERRAIN_LAYERS, drawDecorAtlas, DECOR_FRAMES, DECOR_SIZE } from './decor';
 import { drawLayerTileset, drawPlankTile, drawFloorTile, extrudeTileset } from './terrainTiles';
 import { FRAMES, FW, FH, renderCharacterSheet, type CharSpec } from './character';
@@ -124,12 +125,24 @@ function registerTerrain(scene: Phaser.Scene) {
   DECOR_FRAMES.forEach((f, i) => tex?.add(f, 0, i * DECOR_SIZE, 0, DECOR_SIZE, DECOR_SIZE));
 }
 
-function registerProps(scene: Phaser.Scene) {
-  for (const [key, make] of Object.entries({ ...PROP_ART, ...Object.fromEntries(Object.entries(FURNITURE_ART).map(([k, v]) => [`fur-${k}`, v])) })) {
-    const art = make();
-    addCanvasTexture(scene, key, art.cv.c);
-    TEXTURE_ORIGIN[key] = { ox: art.ox, oy: art.oy };
-  }
+let propMakers: Record<string, () => PropArt> | null = null;
+
+/**
+ * Props, buildings and furniture are drawn the first time a map needs them rather than all at
+ * boot: phones start faster and keep far less canvas memory (a pyramid alone is a megapixel).
+ */
+export function ensurePropTexture(scene: Phaser.Scene, key: string): boolean {
+  if (scene.textures.exists(key)) return true;
+  propMakers ??= { ...PROP_ART, ...Object.fromEntries(Object.entries(FURNITURE_ART).map(([k, v]) => [`fur-${k}`, v])) };
+  const make = propMakers[key];
+  if (!make) return false;
+  const art = make();
+  addCanvasTexture(scene, key, art.cv.c);
+  TEXTURE_ORIGIN[key] = { ox: art.ox, oy: art.oy };
+  return true;
+}
+
+function registerProps(_scene: Phaser.Scene) {
   TEXTURE_ORIGIN.clocktower = { ox: 0.5, oy: 1 };
   TEXTURE_ORIGIN['clocktower-fixed'] = { ox: 0.5, oy: 1 };
 }

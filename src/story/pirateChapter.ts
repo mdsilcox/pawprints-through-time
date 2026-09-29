@@ -25,7 +25,7 @@ const SCRAP_SOURCE: Record<string, { map: string; x: number; y: number }> = {
 import { HOPKINS_BY_ID, BUNNY_REWARDS } from '../data/bunnies';
 import { hasEffect } from '../soup/effects';
 import { learnClue } from '../soup/kitchen';
-import { count, cutscene, flag, give, giveTockens, befriend, oncePerDay, onEnterMap, onTalk, onUse, setFlag, take, wait } from './hooks';
+import { count, cutscene, flag, give, giveTockens, befriend, oncePerDay, onEnterMap, onTalk, onUse, setFlag, take, wait, payout } from './hooks';
 import { registerQuest } from './quests';
 import type { WorldScene } from '../scenes/WorldScene';
 import { registerNpcName } from './hooks';
@@ -156,7 +156,7 @@ onTalk('lost:bosun', async ({ world }) => lostBunnyChat('bosun', world, bosunScr
 // ------------------------------------------------------------------ Sandy Cove
 onEnterMap('cove', async ({ world }) => {
   if (!flag('cove:arrived')) {
-    setFlag('cove:arrived');
+    const show = payout(['cove:arrived'], [{ note: 'pirate-golden-age' }]);
     await cutscene(async () => {
       await wait(400);
       await talk('narrator', ['Whoosh! Warm sand, a salty breeze, and the sound of a fiddle drifting over the water...']);
@@ -164,19 +164,22 @@ onEnterMap('cove', async ({ world }) => {
         'We made it! The Golden Age of Piracy — the Caribbean Sea, around the year 1715!',
         'I can feel the Time Sand somewhere nearby... and look — a pirate ship at the pier!',
       ]);
-      learnNote('pirate-golden-age');
       await talk('biscuit', 'Woof! *sniff sniff* ...Woof!');
     });
+    show();
     return;
   }
   // after the treasure: the crew throws a party (and two captains make friends)
   if (app.data!.sands.includes('pirate') && !flag('pirate:party')) {
-    setFlag('pirate:party');
+    const show = payout(['pirate:party', 'marigold:friend'], [{ item: 'ship-wheel' }, { clothes: 'captain-coat' }, { friend: 'marigold', pts: 40 }, { friend: 'saltwhistle', pts: 20 }], {
+      title: '🎉 From the crew of the Sunny Marigold',
+      world,
+    });
     // the whole crew — and Captain Saltwhistle — gather on the deck
     world.bringNpc('saltwhistle', 35, 23.6);
     world.bringNpc('marigold', 36.6, 23.4);
     world.bringNpc('pepper', 34, 22.6);
-    world.bringNpc('coco', 38.2, 23.9);
+    world.bringNpc('coco', 33.2, 23.9);
     world.celebrate(9000);
     audio.music('hornpipe');
     await cutscene(async () => {
@@ -185,11 +188,7 @@ onEnterMap('cove', async ({ world }) => {
       await talk('marigold', ['And I may have shouted “THIEF” a teeny bit too loudly. Friends, Saltwhistle?', 'Friends! And friends of the future too — {players}, you’ll always have a place aboard the Sunny Marigold.']);
       await talk('marigold', ['I’d love to see this Tockwood of yours someday. Save me a spot on your dock!', 'And take this — the wheel from my very first ship. Hang it in your cottage and think of us!']);
     });
-    give('ship-wheel', 1, { from: 'Captain Marigold gave you' });
-    setFlag('marigold:friend');
-    befriend('marigold', 40);
-    befriend('saltwhistle', 20);
-    if (grant(app.data!, 'captain-coat')) toast('You got the Captain’s Coat! (Wardrobe)', { icon: '🧥' });
+    show();
   }
 });
 
@@ -369,12 +368,10 @@ onTalk('pepper', async ({ world }) => {
     const pick = await ask('pepper', 'Squawk! Shiny map piece in my nest! Trade? Trade for... COCONUT?', ['Here’s a coconut!', 'Not now']);
     if (pick !== 0) return;
     take('coconut', 1);
+    const show = payout(['map:pepper'], [{ item: 'map-piece' }, { clothes: 'parrot' }, { friend: 'pepper', pts: 20 }], { title: '🦜 Pepper gave you', world });
     audio.sfx('squeak');
     await talk('pepper', ['COCONUT! Squawk! Here — pretty map, pretty map!', 'And a present! My little cousin Paprika wants to ride on your shoulder!']);
-    give('map-piece', 1, { from: 'Pepper gave you' });
-    setFlag('map:pepper');
-    if (grant(app.data!, 'parrot')) toast('You got a Parrot Pal! (Wardrobe → Extras)', { icon: '🦜' });
-    befriend('pepper', 20);
+    show();
     return;
   }
   await talk('pepper', ['Squawk! Pretty map! Pretty map in my nest!', 'Coconut? COCONUT? Squawk!']);
@@ -408,14 +405,23 @@ async function cookieDanceOff(world: WorldScene, alreadyAsked = false): Promise<
     if (pick !== 0) return false;
   }
   setFlag('hornpipe:tried');
-  const o = await dance({ style: 'hornpipe', rival: 'cookie', audience: ['marigold', 'pepper'], title: '💃 Hornpipe Dance-off!', blurb: 'Dance the Sailor’s Hornpipe against Cookie — the whole crew is watching!' });
+  // the crew's respect (and its prizes) land the moment Cookie is out-danced — then the cheering
+  const paid = { show: () => undefined as void };
+  const o = await dance({
+    style: 'hornpipe',
+    rival: 'cookie',
+    audience: ['marigold', 'pepper'],
+    title: '💃 Hornpipe Dance-off!',
+    blurb: 'Dance the Sailor’s Hornpipe against Cookie — the whole crew is watching!',
+    settle: () => {
+      paid.show = payout(['crew:respect'], [{ note: 'pirate-hornpipe' }, { tockens: 15 }, { friend: 'cookie', pts: 20 }], { title: '💃 The crew’s respect!', world });
+    },
+  });
   if (!o?.finished) return false;
   if (!o.won) {
     await talk('cookie', ['Squeak! Good try! Sailors practise their hornpipe for years, you know.', 'Try again whenever you like — I’ll be right here! (And “Just dance” counts too — it’s the spirit that matters!)']);
     return false;
   }
-  setFlag('crew:respect');
-  befriend('cookie', 20);
   // the whole crew cheers (confetti, dancing on deck)
   world.celebrate(6500);
   await cutscene(async () => {
@@ -423,9 +429,15 @@ async function cookieDanceOff(world: WorldScene, alreadyAsked = false): Promise<
     await talk('cookie', 'SQUEAK! What footwork! You dance like true sailors!');
     await talk('marigold', 'Three cheers for our new crew! Hip hip — HOORAY!');
   });
-  learnNote('pirate-hornpipe');
-  giveTockens(15);
+  paid.show();
   return true;
+}
+
+/** Cookie's famous gumbo: the recipe for calm seas (after the dance-off, whichever way you found her). */
+async function cookieRecipe(): Promise<void> {
+  await talk('cookie', ['Sailing the Swirling Shoals? Then you need my famous Pirate’s Gumbo! It calms the stormiest seas.', 'Here’s the secret...']);
+  learnClue('pirates-gumbo', 'cookie');
+  await talk('cookie', ['“Something spicy, something from the sea, and something from a sunny tropical island.”', 'Coco sells peppers and coconuts, and there’s sea salt drying in the pans on the beach. Use my pot any time!']);
 }
 
 onTalk('cookie', async ({ world }) => {
@@ -441,9 +453,7 @@ onTalk('cookie', async ({ world }) => {
     if (!(await cookieDanceOff(world))) return;
   }
   if (flag('map:whole') && !app.data!.recipes.includes('pirates-gumbo')) {
-    await talk('cookie', ['Sailing the Swirling Shoals? Then you need my famous Pirate’s Gumbo! It calms the stormiest seas.', 'Here’s the secret...']);
-    learnClue('pirates-gumbo', 'cookie');
-    await talk('cookie', ['“Something spicy, something from the sea, and something from a sunny tropical island.”', 'Coco sells peppers and coconuts, and there’s sea salt drying in the pans on the beach. Use my pot any time!']);
+    await cookieRecipe();
     return;
   }
   const pick = await ask('cookie', 'Want to use my galley pot?', ['Let’s cook!', 'Just saying hi']);
@@ -457,7 +467,7 @@ onUse('galley', async ({ world }) => {
   if (flag('map:whole') && !flag('crew:respect')) {
     const pick = await ask('cookie', 'Squeak! Here to cook — or here for our HORNPIPE dance-off? Win it, and the crew will sail with you!', ['Dance-off!', 'Just cook', 'Not now']);
     if (pick === 0) {
-      await cookieDanceOff(world, true);
+      if ((await cookieDanceOff(world, true)) && !app.data!.recipes.includes('pirates-gumbo')) await cookieRecipe();
       return;
     }
     if (pick !== 1) return;
@@ -479,14 +489,12 @@ onUse('map-table', async ({ world }) => {
   const r = await openPuzzle('marigold-map');
   if (!r.solved) return;
   take('map-piece', 4);
-  setFlag('map:whole');
+  const show = payout(['map:whole'], [{ clothes: 'tricorn' }, { clothes: 'pantaloons' }], { title: '🏴‍☠️ True crew now!' });
   await cutscene(async () => {
     audio.sfx('fanfare');
     await talk('marigold', ['Shiver me whiskers — it’s whole again! Look: Treasure Island, past the Swirling Shoals!', 'You’re true crew now. Every one of my crew gets a proper hat!']);
   });
-  const hats = grant(app.data!, 'tricorn');
-  const pants = grant(app.data!, 'pantaloons');
-  if (hats || pants) toast('You got Tricorn Hats and Sailor Pantaloons! (Wardrobe)', { icon: '🏴‍☠️' });
+  show();
   await talk('marigold', [
     'But nobody takes the wheel of the Sunny Marigold until they’ve danced the hornpipe with Cookie — she’s our champion!',
     'Win the crew’s respect, and Cookie will tell you how we get through the Shoals.',
@@ -503,10 +511,15 @@ onUse('ship-wheel', async ({ world }) => {
     await talk('marigold', ['The crew won’t follow a helmsman who hasn’t danced the hornpipe!', 'Show Cookie your best steps — she’s by the galley.']);
     return;
   }
+  if (flag('isle:reached')) {
+    const pick = await ask('marigold', 'Back to Treasure Island? The crew knows the way through the Shoals now!', ['Set sail!', 'Not now']);
+    if (pick === 0) world.goTo('isle', 'landing');
+    return;
+  }
   if (!hasEffect('calm') && !flag('shoals:seen')) {
     setFlag('shoals:seen');
     await talk('marigold', 'Take a look at the chart, shipmate... see those whirlpools? They spin a ship right round and back again!');
-    await openPuzzle('marigold-chart', { preview: 'See the whirlpools? In rough seas they spin the ship right back — nobody can sail this yet. We need calm water: Pirate’s Gumbo!' });
+    await openPuzzle('marigold-chart', { preview: 'Whirlpools spin the ship right back! We need calm seas first: Pirate’s Gumbo.' });
   }
   if (!hasEffect('calm')) {
     const d = app.data!;
@@ -589,7 +602,19 @@ onUse('treasure-chest', async ({ world }) => {
   }
   const r = await openPuzzle('marigold-chest');
   if (!r.solved) return;
-  setFlag('chest:treasure-chest');
+  const scrap = findScrap('scrap-isle-north', world, { quiet: true });
+  const show = payout(
+    ['chest:treasure-chest'],
+    [
+      { sand: 'pirate' },
+      { item: 'doubloon', n: 5 },
+      { item: 'spyglass' },
+      { tockens: 40 },
+      { note: 'pirate-treasure' },
+      ...(scrap ? [{ icon: '🗺️', line: 'A map scrap — X marks the spot on your Map!' }] : []),
+    ],
+    { title: '💰 The treasure!' },
+  );
   world.openChestProp('treasure-chest');
   await cutscene(async () => {
     audio.sfx('fanfare');
@@ -600,17 +625,7 @@ onUse('treasure-chest', async ({ world }) => {
       'Oh, and a fun fact for your notes: real pirates almost never buried their treasure — they spent it! But this one was hidden by the time-tangle.',
     ]);
   });
-  if (!d.sands.includes('pirate')) d.sands.push('pirate');
-  toast('The first Time Sand! (1 of 8)', { icon: '⏳', cls: 'quest', ms: 4200 });
-  give('doubloon', 5, { quiet: true });
-  give('spyglass', 1, { quiet: true });
-  // one line for the whole haul (not a pile of toasts over the players)
-  d.tockens += 40;
-  audio.sfx('coin');
-  toast('From the chest: 5 gold doubloons, a brass spyglass and +40 Tockens', { icon: '🪙', ms: 3600 });
-  learnNote('pirate-treasure');
-  findScrap('scrap-isle-north', world);
-  app.autosave.request();
+  show();
 });
 
 // ------------------------------------------------------------------ back home: the first sand in the Great Hourglass

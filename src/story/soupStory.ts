@@ -8,7 +8,7 @@ import { openStall } from '../ui/stallShop';
 import { CROP_BY_SEED, GARDEN_CROPS, gameNow, GROW_MINUTES, harvest, plant, plotInfo, water } from '../soup/garden';
 import { FAVOURITE_SOUP, SOUP_BY_ID, soupItemId } from '../soup/recipes';
 import { learnClue, magicDiscovered, soupsHeld } from '../soup/kitchen';
-import { befriend, flag, give, npcName, oncePerDay, onEnterMap, onUse, setFlag, take } from './hooks';
+import { befriend, flag, give, npcName, oncePerDay, onEnterMap, onUse, payout, setFlag, take } from './hooks';
 import { hasEffect } from '../soup/effects';
 import { registerQuest } from './quests';
 import type { WorldScene } from '../scenes/WorldScene';
@@ -154,17 +154,15 @@ export async function offerSoupGift(npc: string): Promise<void> {
   const s = shown[pick];
   take(soupItemId(s.id), 1);
   d.lastGift[npc] = d.day;
-  setFlag('soup:gifted');
   const fav = FAVOURITE_SOUP[npc] === s.id;
+  const show = payout(['soup:gifted', ...(fav ? [`fav:${npc}`] : [])], [{ friend: npc, pts: fav ? 40 : 12 }], { title: `🍲 ${npcName(npc)} loved it` });
   if (fav) {
     audio.sfx('cheer');
-    d.flags[`fav:${npc}`] = true;
     await talk(npc, `${s.name}?! That’s my FAVOURITE! How did you know?`);
-    befriend(npc, 40);
   } else {
     await talk(npc, `${s.name}! How kind of you. Slurp!`);
-    befriend(npc, 12);
   }
+  show();
   void npcName;
 }
 
@@ -213,12 +211,9 @@ onUse('grotto-chest', async ({ world }) => {
     await talk('narrator', 'The chest is empty now — but the crystals are still lovely.');
     return;
   }
-  setFlag('grotto:chest');
+  const show = payout(['grotto:chest'], [{ item: 'golden-acorn' }, { item: 'fossil-trilobite' }, { tockens: 25 }], { title: '✨ Inside the chest' });
   audio.sfx('fanfare');
-  await talk('narrator', 'The chest creaks open...');
-  give('golden-acorn', 1, { from: 'Inside the chest:' });
-  give('fossil-trilobite', 1, { quiet: true });
-  app.data!.tockens += 25;
-  toast('+25 Tockens', { icon: '🪙' });
   world.openChestProp('grotto-chest');
+  await talk('narrator', 'The chest creaks open...');
+  show();
 });

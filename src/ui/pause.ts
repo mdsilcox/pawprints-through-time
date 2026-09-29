@@ -87,6 +87,19 @@ export function openPause(): void {
     },
     { icon: '💾', cls: 'gold', testid: 'pause-save' },
   );
+  // mid-game (bowling or dancing): step off the lane / the floor without quitting play
+  const sm = app.phaser.scene;
+  const game = (['bowl', 'dance'] as const).find((k) => sm.isActive(k) && !ui.has(`${k === 'bowl' ? 'bowl' : 'dance'}-results`));
+  const leave = game
+    ? button(
+        game === 'bowl' ? 'Leave the game' : 'Stop dancing',
+        () => {
+          ui.pop('pause');
+          sm.stop(game);
+        },
+        { icon: '🚪', cls: 'secondary', testid: 'pause-leave-game' },
+      )
+    : null;
   const el = h(
     'div',
     { class: 'center-wrap' },
@@ -99,6 +112,7 @@ export function openPause(): void {
         'div',
         { class: 'pause-actions' },
         button('Resume', close, { icon: '▶', autofocus: true, testid: 'pause-resume' }),
+        leave,
         p2,
         saveBtn,
         button('Save & quit', () => void returnToTitle('quit'), { icon: '🏠', cls: 'secondary', testid: 'pause-quit' }),

@@ -10,7 +10,7 @@ import { openCauldron } from '../ui/cauldron';
 import { openStall } from '../ui/stallShop';
 import { openPuzzle } from '../puzzles/ui/screen';
 import { dance } from '../dance/openDance';
-import { befriend, cutscene, flag, give, oncePerDay, onEnterMap, onTalk, onUse, registerNpcName, setFlag, wait } from './hooks';
+import { befriend, cutscene, flag, give, oncePerDay, onEnterMap, onTalk, onUse, payout, registerNpcName, setFlag, wait } from './hooks';
 import { registerQuest } from './quests';
 import { registerSandHome, rescueBunny } from './pirateChapter';
 import { HOPKINS_BY_ID } from '../data/bunnies';
@@ -34,7 +34,7 @@ const ready = () => flag('lion:awake') && flag('fresco:mended');
 // ------------------------------------------------------------------ arriving in Florence
 onEnterMap('florence', async () => {
   if (flag('flor:arrived')) return;
-  setFlag('flor:arrived');
+  const show = payout(['flor:arrived'], [{ note: 'florence-renaissance' }]);
   await cutscene(async () => {
     await wait(400);
     await talk('narrator', 'Whoosh! Warm stone, church bells, and the smell of fresh paint...');
@@ -43,8 +43,8 @@ onEnterMap('florence', async () => {
       'Look at that enormous dome!',
       'I can feel a Time Sand close by... Let’s ask around. That grand lady by the palazzo looks important!',
     ]);
-    learnNote('florence-renaissance');
   });
+  show();
 });
 
 // ------------------------------------------------------------------ Duchess Orsola
@@ -107,14 +107,17 @@ onUse('fresco', async ({ world }) => {
   }
   const r = await openPuzzle('fiorella-fresco');
   if (!r.solved) return;
-  setFlag('fresco:mended');
+  const show = payout(['fresco:mended'], [{ clothes: 'painter-smock' }, { clothes: 'lace-collar' }, { friend: 'fiorella', pts: 20 }], { title: '🎨 Fiorella gave you', world });
   world.setPropTexture('fresco', 'fur-fresco-mended');
   await cutscene(async () => {
     audio.sfx('success');
-    await talk('fiorella', ['Bellissimo! The border is perfect again!', 'Take my spare smock — every painter needs one.', 'Oh, and when the storm hit, I saw a glowing speck zip right into Maestra Lucia’s workshop!']);
+    await talk('fiorella', [
+      'Bellissimo! The border is perfect again!',
+      'Take my spare smock — every painter needs one. And a lace collar for your dog: he has the face of a portrait!',
+      'Oh, and when the storm hit, I saw a glowing speck zip right into Maestra Lucia’s workshop!',
+    ]);
   });
-  if (grant(app.data!, 'painter-smock')) toast('You got a Painter’s Smock! (Wardrobe)', { icon: '🎨' });
-  befriend('fiorella', 20);
+  show();
 });
 
 // ------------------------------------------------------------------ Maestra Lucia and the mechanical lion
@@ -161,8 +164,7 @@ onUse('lion', async ({ world }) => {
   }
   const r = await openPuzzle('lucia-lion');
   if (!r.solved) return;
-  setFlag('lion:awake');
-  const d = app.data!;
+  const show = payout(['lion:awake'], [{ sand: 'florence' }, { clothes: 'gold-chain' }, { tockens: 40 }, { friend: 'lucia', pts: 20 }], { title: '🦁 The lion walks!', world });
   await cutscene(async () => {
     world.setPropTexture('lion', 'fur-mechlion-awake');
     audio.sfx('fanfare');
@@ -170,13 +172,10 @@ onUse('lion', async ({ world }) => {
     await talk('narrator', 'The lion blinks, stretches its brass legs and lets out a mighty clockwork ROAR!');
     await world.raiseTimeSand(7, 5.4);
     await talk('narrator', 'With a whirr and a click, a swirl of glowing sand pops out of the lion’s chest... and floats into your hands!');
+    await talk('lucia', 'Bravissimi! Wear these guild chains — you are members of the inventors’ guild now.');
     await talk('pip', ['A Time Sand! Hooray!', 'Now nothing can stop the Duchess’s court dance!']);
   });
-  if (!d.sands.includes('florence')) d.sands.push('florence');
-  toast(`Time Sand ${d.sands.length} of 8!`, { icon: '⏳', cls: 'quest', ms: 3600 });
-  d.tockens += 40;
-  befriend('lucia', 20);
-  app.autosave.request();
+  show();
 });
 
 // ------------------------------------------------------------------ Beppe the grocer, his herb garden and his cooking pot
@@ -189,8 +188,9 @@ onTalk('beppe', async () => {
     return;
   }
   if (oncePerDay('gift:beppe')) {
+    const show = payout([], [{ item: 'basil' }], { title: '🌿 Beppe gave you' });
     await talk('beppe', 'For you — a bunch of basil. Smell that!');
-    give('basil', 1, { from: 'Beppe gave you' });
+    show();
     return;
   }
   const lines = ['My pot over the fire is always bubbling. Help yourself!', 'A little cousin keeps sniffing my basil. Ears like this! Very sweet.', 'Beans, beans, good for your... bones!'];
@@ -226,19 +226,33 @@ onUse('court-floor', async ({ world }) => {
   }
   const first = !flag('court:danced');
   if (first) await talk('orsola', 'Musicians — play! Everyone, to the floor! Bow to your partner...');
-  const o = await dance({ style: 'court', audience: ['orsola', 'lucia', 'fiorella', 'beppe'], bunnies: d.bunnies.slice(0, 4), title: '💃 The Duchess’s Court Dance', blurb: 'Glide, bow, raise your hands and turn — and the mechanical lion dances too!' });
+  const paid = { show: () => undefined as void };
+  const o = await dance(
+    {
+      style: 'court',
+      audience: ['orsola', 'lucia', 'fiorella', 'beppe'],
+      bunnies: d.bunnies.slice(0, 4),
+      title: '💃 The Duchess’s Court Dance',
+      blurb: 'Glide, bow, raise your hands and turn — and the mechanical lion dances too!',
+      settle: first
+        ? () => {
+            paid.show = payout(
+              ['court:danced'],
+              [{ item: 'globe' }, { clothes: 'doublet' }, { clothes: 'breeches' }, { clothes: 'florentine-cap' }, { clothes: 'velvet-slippers' }, { friend: 'orsola', pts: 20 }],
+              { title: '👑 From the Duchess’s court', world },
+            );
+          }
+        : undefined,
+    },
+    { retry: !first },
+  );
   if (!o?.finished || !first) return;
-  setFlag('court:danced');
   world.celebrate(5500);
   await cutscene(async () => {
     await talk('orsola', ['Magnificent! The finest court dance Florence has ever seen!', 'For your home — a globe of the whole known world. And clothes fit for my court!']);
     await talk('pip', 'Time to take the sand home! The portal is by the river.');
   });
-  give('globe', 1, { from: 'Duchess Orsola gave you' });
-  for (const id of ['doublet', 'florentine-cap', 'velvet-slippers']) grant(d, id);
-  toast('You got a Velvet Doublet, a Renaissance Cap and Velvet Slippers! (Wardrobe)', { icon: '👑' });
-  befriend('orsola', 20);
-  app.autosave.request();
+  paid.show();
 });
 
 // ------------------------------------------------------------------ three Hopkins cousins of Renaissance Florence

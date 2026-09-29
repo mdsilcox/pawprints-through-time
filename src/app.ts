@@ -39,7 +39,8 @@ export class GameApp {
   booted = false;
   /** set by mini-games and other moments that must not be interrupted */
   busy = false;
-  autosave = new AutoSaver(() => this.saveNow());
+  /** (only while playing: once play ends, returnToTitle has written the last save) */
+  autosave = new AutoSaver(() => (this.playing ? this.saveNow() : Promise.resolve()));
   private playStartedAt = 0;
 
   boot(scenes: Phaser.Types.Scenes.SceneType[]): void {

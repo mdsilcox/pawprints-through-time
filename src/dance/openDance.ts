@@ -7,6 +7,7 @@ import { button, closeOnBackdrop, ui } from '../ui/ui';
 import { hud } from '../ui/hud';
 import { character } from '../data/characters';
 import { hasEffect } from '../soup/effects';
+import { isTouchDevice } from '../core/display';
 import { DANCE_STYLES, type DanceLevel } from './logic';
 import { DanceScene, type DanceOutcome, type DanceSetup } from '../scenes/DanceScene';
 import type { WorldScene } from '../scenes/WorldScene';
@@ -23,6 +24,11 @@ export interface DanceInvite {
   bunnies?: string[];
   title?: string;
   blurb?: string;
+  /**
+   * The story's payoff, run once, the moment the dance counts (the rival beaten — or, with no
+   * rival, the dance finished): before the results card, so a break over the card can't lose it.
+   */
+  settle?: (o: DanceOutcome) => void;
 }
 
 const LEVEL_LABEL: Record<DanceLevel, string> = { easy: 'Easy', medium: 'Medium', hard: 'Tricky' };
@@ -87,8 +93,10 @@ export function openDanceSetup(inv: DanceInvite): Promise<{ level: DanceLevel; r
       h(
         'ul',
         { class: 'ds-how small' },
-        h('li', null, two ? 'Player 1: W A S D · Player 2: the arrow keys' : 'Arrow keys or W A S D (or the d-pad)'),
-        h('li', null, 'On a touchscreen, tap the lane as the arrow lands'),
+        isTouchDevice()
+          ? h('li', null, two ? 'Tap as each arrow reaches its ring — each player taps their own half of the screen' : 'Tap as each arrow reaches its ring — ← ↓ under your left thumb, ↑ → under your right')
+          : h('li', null, two ? 'Player 1: W A S D · Player 2: the arrow keys' : 'Arrow keys or W A S D (or the d-pad)'),
+        h('li', null, isTouchDevice() ? 'Or use the arrow keys, or a gamepad’s d-pad' : 'On a touchscreen, tap the lane as the arrow lands'),
         rival ? h('li', null, `Beat ${rival}’s score to win — or pick “Just dance” and simply have fun!`) : h('li', null, 'Biscuit dances along, whatever happens!'),
       ),
       h('div', { class: 'ds-row' }, levels, relaxBtn),
@@ -138,7 +146,9 @@ function openDanceResults(setup: DanceSetup, o: DanceOutcome, canRetry: boolean)
           ? `You out-danced ${rivalName} (${o.rival.toLocaleString()} points)!`
           : Math.max(...o.scores.map((s) => s.points)) >= o.rival * 0.7
             ? `So close! ${rivalName} scored ${o.rival.toLocaleString()} — want another go?`
-            : `${rivalName} scored ${o.rival.toLocaleString()}. Every dancer starts somewhere — try Easy, or “Just dance” for fun!`
+            : setup.level === 'easy'
+              ? `${rivalName} scored ${o.rival.toLocaleString()}. Every dancer starts somewhere! Tip: press just as each arrow covers its ring — or pick “Just dance” for fun.`
+              : `${rivalName} scored ${o.rival.toLocaleString()}. Every dancer starts somewhere — try Easy, or “Just dance” for fun!`
         : o.won
           ? 'Brilliant dancing!'
           : 'Good dancing! Practice makes perfect.';
@@ -173,8 +183,11 @@ function runDance(setup: DanceSetup): Promise<DanceOutcome> {
 }
 
 /**
- * Invite everyone to dance: setup → dance → results (→ again?). Returns the last outcome,
- * or null if the players said "not now".
+ * Invite everyone to dance: setup → dance → results (→ again?). Returns how it went — a won
+ * dance-off settles at once (its card has no "again" that could throw the win away), and a later
+ * go never replaces an earlier finished one — or null if the players said "not now", or if play
+ * ended meanwhile (so a story script waiting on it stops instead of paying out on the title).
+ * `retry: false` (a story's one-off dance) leaves "Dance again" off the card.
  */
 export async function dance(inv: DanceInvite, opts: { retry?: boolean } = {}): Promise<DanceOutcome | null> {
   const pick = await openDanceSetup(inv);
@@ -186,7 +199,8 @@ export async function dance(inv: DanceInvite, opts: { retry?: boolean } = {}): P
   hud.setDancing(true);
   const session = sessionEpoch();
   try {
-    return await danceLoop(inv, pick, opts);
+    const o = await danceLoop(inv, pick, opts, session);
+    return session === sessionEpoch() ? o : null;
   } finally {
     if (game.scene.isActive(DanceScene.KEY) || game.scene.isPaused(DanceScene.KEY)) game.scene.stop(DanceScene.KEY);
     hud.setDancing(false);
@@ -198,7 +212,10 @@ export async function dance(inv: DanceInvite, opts: { retry?: boolean } = {}): P
   }
 }
 
-async function danceLoop(inv: DanceInvite, pick: { level: DanceLevel; relaxed: boolean }, opts: { retry?: boolean }): Promise<DanceOutcome> {
+async function danceLoop(inv: DanceInvite, pick: { level: DanceLevel; relaxed: boolean }, opts: { retry?: boolean }, session: number): Promise<DanceOutcome | null> {
+  // the finished dance that counts: the first win, else the latest finished one
+  let counts: DanceOutcome | null = null;
+  let paidOut = false;
   for (;;) {
     const setup: DanceSetup = {
       style: inv.style,
@@ -211,9 +228,18 @@ async function danceLoop(inv: DanceInvite, pick: { level: DanceLevel; relaxed: b
       slow: hasEffect('ticktock'),
     };
     const o = await runDance(setup);
-    if (!o.finished) return o;
+    if (session !== sessionEpoch()) return null;
+    if (!o.finished) return counts ?? o;
     app.data!.flags[`danced:${inv.style}`] = true;
-    const next = await openDanceResults(setup, o, opts.retry !== false);
-    if (next === 'done') return o;
+    if (!counts?.won) counts = o;
+    if (!paidOut && (!inv.rival || o.won)) {
+      paidOut = true;
+      inv.settle?.(o);
+    }
+    // (a story dance-off won is settled: no "again" on its card)
+    const settled = !!inv.settle && !!inv.rival && o.won;
+    const next = await openDanceResults(setup, o, opts.retry !== false && !settled);
+    if (session !== sessionEpoch()) return null;
+    if (next === 'done') return counts;
   }
 }

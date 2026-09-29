@@ -25,8 +25,8 @@ function art(w: number, h: number, draw: (ctx: CanvasRenderingContext2D, cv: Cv)
   return { cv, ox: 0.5, oy: oy / h };
 }
 
-/** The Great Hourglass, with `filled` of its eight sockets glowing with Time Sand. */
-function greatHourglass(filled: number): PropArt {
+/** The Great Hourglass, with `filled` of its eight sockets glowing with Time Sand (`whole`: mended at last). */
+function greatHourglass(filled: number, whole = false): PropArt {
   return art(260, 430, (c) => {
       // pedestal
       box(c, 40, 380, 180, 44, 12, PAL.stone);
@@ -45,15 +45,17 @@ function greatHourglass(filled: number): PropArt {
       c.quadraticCurveTo(70, 170, 70, 66);
       c.closePath();
       paint(c, 'rgba(220,242,250,0.9)', L);
-      // the crack
-      c.strokeStyle = PAL.ink;
-      c.lineWidth = 3;
-      c.beginPath();
-      c.moveTo(150, 90);
-      c.lineTo(138, 120);
-      c.lineTo(156, 140);
-      c.lineTo(144, 170);
-      c.stroke();
+      // the crack (gone once all eight sands are home)
+      if (!whole) {
+        c.strokeStyle = PAL.ink;
+        c.lineWidth = 3;
+        c.beginPath();
+        c.moveTo(150, 90);
+        c.lineTo(138, 120);
+        c.lineTo(156, 140);
+        c.lineTo(144, 170);
+        c.stroke();
+      }
       c.fillStyle = 'rgba(255,255,255,0.7)';
       c.beginPath();
       c.ellipse(96, 110, 8, 30, 0, 0, Math.PI * 2);
@@ -267,6 +269,7 @@ export const FURNITURE_ART: Record<string, () => PropArt> = {
     }, 214),
   greathourglass: () => greatHourglass(0),
   ...Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [`greathourglass-${n}`, () => greatHourglass(n)])),
+  'greathourglass-whole': () => greatHourglass(8, true),
     portalring: () =>
     art(260, 300, (c) => {
       box(c, 30, 262, 200, 32, 10, PAL.stone);

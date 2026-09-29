@@ -845,15 +845,19 @@
   border: 3px solid var(--ink);
   border-radius: 0 0 1rem 1rem;
 }
+.sa-count-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 .sa-wind {
-  position: absolute;
-  top: 0.2rem;
-  left: 0.3rem;
-  font-size: 0.72rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.85);
+  background: #d9f1f7;
+  border: 2px solid var(--ink);
   border-radius: 999px;
-  padding: 0 0.4rem;
+  padding: 0 0.45rem;
+  white-space: nowrap;
 }
 .sa-side {
   display: flex;
@@ -948,6 +952,10 @@
   .sa-pad {
     grid-template-columns: repeat(3, 2.4rem);
     grid-template-rows: repeat(3, 2.4rem);
+  }
+  /* (Pip says it instead: the note would push the chart off a short screen) */
+  .sa-calm {
+    display: none;
   }
   .rd-scroll {
     font-size: 0.98rem;
@@ -1169,6 +1177,8 @@
 /* the rules card (small phones): floats over the puzzle instead of pushing the board down */
 .pz-panel {
   position: relative;
+  /* its own stacking context: nothing inside (the ship, a card) can be drawn over a screen on top */
+  isolation: isolate;
 }
 .pz-rules-card {
   position: absolute;

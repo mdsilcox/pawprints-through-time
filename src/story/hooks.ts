@@ -2,6 +2,9 @@ import { app } from '../app';
 import { audio } from '../audio/audio';
 import { iconUrl } from '../art/icons';
 import { ITEM_BY_ID } from '../data/items';
+import { BISCUIT_BY_ID, CLOTHES_BY_ID } from '../data/clothes';
+import { NOTE_BY_ID } from '../data/notes';
+import { grant } from '../core/wardrobe';
 import { h } from '../ui/dom';
 import { toast, ui } from '../ui/ui';
 import { dialogue } from '../ui/dialogue';
@@ -26,6 +29,13 @@ const enterHandlers = new Map<string, Handler[]>();
 
 export function onTalk(npcId: string, fn: Handler): void {
   talkHandlers.set(npcId, fn);
+}
+/** A talk handler that takes over while `when` holds (e.g. era friends visiting Tockwood for the party). */
+const talkOverrides = new Map<string, { when: (ctx: StoryCtx) => boolean; fn: Handler }[]>();
+export function onTalkWhen(npcId: string, when: (ctx: StoryCtx) => boolean, fn: Handler): void {
+  const list = talkOverrides.get(npcId) ?? [];
+  list.push({ when, fn });
+  talkOverrides.set(npcId, list);
 }
 export function onUse(action: string, fn: Handler): void {
   useHandlers.set(action, fn);
@@ -74,7 +84,8 @@ export function background(fn: () => Promise<void>): void {
 }
 
 export function triggerTalk(npcId: string, ctx: StoryCtx) {
-  return run(talkHandlers.get(npcId), ctx);
+  const special = (talkOverrides.get(npcId) ?? []).find((o) => o.when(ctx));
+  return run(special ? special.fn : talkHandlers.get(npcId), ctx);
 }
 export function triggerUse(action: string, ctx: StoryCtx) {
   return run(useHandlers.get(action), ctx);
@@ -86,7 +97,7 @@ export function triggerUse(action: string, ctx: StoryCtx) {
  */
 export async function triggerEnter(mapId: string, ctx: StoryCtx) {
   const session = sessionEpoch();
-  const here = () => session === sessionEpoch() && ctx.world.def.id === mapId && ctx.world.scene.isActive();
+  const here = () => session === sessionEpoch() && ctx.world.def.id === mapId && ctx.world.scene.isActive() && !ctx.world.transitioning;
   for (const fn of enterHandlers.get(mapId) ?? []) {
     const t0 = performance.now();
     while (busy && here() && performance.now() - t0 < 180_000) await new Promise((r) => setTimeout(r, 100));
@@ -154,6 +165,102 @@ export function itemPopup(id: string, label: string, from?: string): void {
   }, 2200);
 }
 
+// ------------------------------------------------------------------ payoffs
+/** One thing a story payoff hands out (or, with `line`, just says). */
+export type Reward =
+  | { sand: string }
+  | { item: string; n?: number }
+  | { clothes: string }
+  | { tockens: number }
+  | { note: string }
+  | { friend: string; pts: number }
+  | { icon: string; line: string };
+
+interface RewardRow {
+  icon?: string;
+  img?: string;
+  text: string;
+}
+
+/**
+ * A story payoff. The progress flags and every reward land in the save together, in one step,
+ * before the first celebration line — so Pip's break, "Save & quit" or a closed tab in the middle
+ * of the celebration can never keep the "done" and lose the prize (a Time Sand, a keepsake...).
+ * Returns `show()`: one card summing it all up, for when the celebration is over (instead of a
+ * pile of pop-ups on top of the story).
+ */
+export function payout(flags: string[], rewards: Reward[], opts: { title?: string; world?: WorldScene } = {}): () => void {
+  const d = app.data;
+  if (!d) return () => undefined;
+  for (const f of flags) d.flags[f] = true;
+  const rows: RewardRow[] = [];
+  let furniture = false;
+  for (const r of rewards) {
+    if ('sand' in r) {
+      if (d.sands.includes(r.sand)) continue;
+      d.sands.push(r.sand);
+      rows.push({ icon: '⏳', text: `Time Sand — ${d.sands.length} of 8!` });
+    } else if ('item' in r) {
+      const n = r.n ?? 1;
+      d.inventory[r.item] = (d.inventory[r.item] ?? 0) + n;
+      const def = ITEM_BY_ID.get(r.item);
+      if (def?.kind === 'furniture') furniture = true;
+      rows.push({ img: iconUrl(r.item), text: `${def?.name ?? r.item}${n > 1 ? ` ×${n}` : ''}` });
+    } else if ('clothes' in r) {
+      if (!grant(d, r.clothes)) continue;
+      const biscuit = BISCUIT_BY_ID.get(r.clothes);
+      rows.push({ icon: biscuit ? '🐶' : '👕', text: `${(biscuit ?? CLOTHES_BY_ID.get(r.clothes))?.name ?? r.clothes}${biscuit ? ' for Biscuit' : ''} (Wardrobe)` });
+    } else if ('tockens' in r) {
+      d.tockens += r.tockens;
+      rows.push({ icon: '🪙', text: `${r.tockens} Tockens` });
+    } else if ('note' in r) {
+      if (!NOTE_BY_ID.has(r.note) || d.notes.includes(r.note)) continue;
+      d.notes.push(r.note);
+      rows.push({ icon: '📜', text: `History Note: ${NOTE_BY_ID.get(r.note)!.title}` });
+    } else if ('friend' in r) {
+      const before = hearts(r.friend);
+      d.friendship[r.friend] = Math.min(MAX_HEARTS * HEART, (d.friendship[r.friend] ?? 0) + r.pts);
+      const after = hearts(r.friend);
+      opts.world?.npc(r.friend)?.emote('heart', 1400);
+      if (after > before) rows.push({ icon: '💕', text: `${'♥'.repeat(after)} Friendship with ${npcName(r.friend)} grew!` });
+    } else rows.push({ icon: r.icon, text: r.line });
+  }
+  if (furniture && !d.flags['home:hint']) {
+    d.flags['home:hint'] = true;
+    rows.push({ icon: '🏠', text: 'Furniture goes in your cottage — press the action button just inside the door.' });
+  }
+  void app.autosave.flush();
+  const session = sessionEpoch();
+  let shown = false;
+  return () => {
+    if (shown || session !== sessionEpoch() || !rows.length) return;
+    shown = true;
+    rewardCard(opts.title ?? '🎁 You got', rows);
+  };
+}
+
+/** Everything a payoff gave, in one card near the top of the screen (it fades by itself). */
+function rewardCard(title: string, rows: RewardRow[]): void {
+  if (!ui.toastLayer) return;
+  const el = h(
+    'div',
+    { class: 'reward-card', attrs: { role: 'status', 'aria-live': 'polite', 'data-testid': 'reward-card' } },
+    h('div', { class: 'rc-title' }, title),
+    h(
+      'ul',
+      null,
+      rows.map((r) => h('li', null, r.img ? h('img', { class: 'rc-icon', attrs: { src: r.img, alt: '' } }) : h('span', { class: 'rc-icon', attrs: { 'aria-hidden': 'true' } }, r.icon ?? '✨'), h('span', null, r.text))),
+    ),
+  );
+  ui.toastLayer.appendChild(el);
+  audio.sfx('coin');
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 450);
+  }, 3200 + rows.length * 650);
+}
+
 // ------------------------------------------------------------------ friendship
 export const HEART = 20; // friendship points per heart
 export const MAX_HEARTS = 5;
@@ -204,6 +311,8 @@ export function wait(ms: number): Promise<void> {
 
 /** Block player movement for a scripted moment (dialogue still works). */
 export async function cutscene<T>(fn: () => Promise<T>): Promise<T> {
+  // a script left over from a finished play session never puts letterbox bars over the title
+  if (!app.playing) throw new Cancelled();
   const screen = { id: 'cutscene', el: h('div', { class: 'cutscene-bars' }, h('div', { class: 'bar top' }), h('div', { class: 'bar bottom' })), dim: false, passive: false };
   const session = sessionEpoch();
   const own = ui.push(screen) === screen; // nested cutscenes share the outer bars

@@ -73,6 +73,8 @@ test.describe('dancing', () => {
     await danceNotes(page, P1, 10);
     const st = (await state(page))!;
     expect(hits(st.players[0].counts)).toBeGreaterThanOrEqual(8);
+    // (judged at the moment of each key press: on-the-beat presses are Perfect or Great)
+    expect(st.players[0].counts.perfect + st.players[0].counts.great).toBeGreaterThanOrEqual(7);
     expect(st.players[0].points).toBeGreaterThan(0);
     await finishWithAutopilot(page);
     await expect(page.getByTestId('dance-result-p1')).toContainText('points');
@@ -81,6 +83,40 @@ test.describe('dancing', () => {
     await expect.poll(() => hook<string[]>(page, 'scenes')).not.toContain('dance');
     await expect(page.locator('.hud-left')).toBeVisible();
     expect(await hook(page, 'getFlag', 'danced:jig')).toBe(true);
+    expect(errors).toEqual([]);
+  });
+
+  test('phone: one dancer uses both thumbs — ← ↓ under the left thumb, ↑ → under the right', async ({ page }, info) => {
+    test.skip(info.project.name !== 'phone', 'the split lanes are for touchscreens');
+    const errors = watchErrors(page);
+    await startGame(page, [26.4, 22.4]);
+    await hook(page, 'openDance', 'jig');
+    await press(page, '[data-testid="dance-start"]');
+    await expect.poll(async () => (await state(page))?.running, { timeout: 10_000 }).toBe(true);
+    const { width: W, height: H } = page.viewportSize()!;
+    const margin = Math.max(10, W * 0.02);
+    const laneW = Math.min(W * 0.1, H * 0.17);
+    const lanes: [number, string][] = [
+      [margin + laneW * 0.5, 'dance-left'],
+      [margin + laneW * 1.5, 'dance-squat'],
+      [W - margin - laneW * 1.5, 'dance-cheer'],
+      [W - margin - laneW * 0.5, 'dance-right'],
+    ];
+    // (each pose only lasts a moment, so it's read inside the page, right after the tap)
+    for (const [i, [x, pose]] of lanes.entries()) {
+      const frame = await page.evaluate(async ([cx, cy]) => {
+        const canvas = document.querySelector('#game canvas') as HTMLCanvasElement;
+        canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: cx, clientY: cy, pointerType: 'touch', bubbles: true, cancelable: true }));
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        return (window as any).__game.danceState().players[0].frame as string;
+      }, [x, H * 0.62] as const);
+      expect(frame).toBe(pose);
+      expect((await state(page))!.players[0].moves).toBe(i + 1);
+      await page.waitForTimeout(250);
+    }
+    // and a real finger on the right thumb's side counts too
+    await page.touchscreen.tap(W - margin - laneW * 0.5, H * 0.62);
+    await expect.poll(async () => (await state(page))!.players[0].moves, { timeout: 5000 }).toBe(5);
     expect(errors).toEqual([]);
   });
 

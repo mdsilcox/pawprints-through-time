@@ -1,137 +1,128 @@
-# M6 Re-review — d311889
+# M6 Re-review 2 — a5c3ed5
 
 **Verdict:** REVISE
 
-Both earlier blockers are properly fixed, and the chapter is much better than at 21f88d9:
-- The Shoals now have real wind, currents and whirlpools.
-- The crew party feels like a party, the Great Hourglass fills up, and the cave is a cave.
-- Pip no longer sits on Biscuit.
+Almost everything from the last verdict is fixed, and the chapter is in good shape:
+- Cookie's galley pot now offers the hornpipe dance-off, and the flaky dance-off test is fixed.
+- The first rough look at the Shoals is "Just looking": Pip explains why, and leaving costs nothing.
+- The Time Sand is a real glowing orb now: about 70 px on a phone, where it used to be a 10 px speck.
+- Pip keeps off Player 2, and Marigold's gumbo line is right.
 
-Two new problems stop a PASS, and both are cheap to fix:
-- This commit hides part of the Shoals chart on a phone.
-- `npm test` is not reliably green.
+One small blocker is left. On a phone, the chart you actually sail (with gumbo, in calm seas) still runs about 12 px off the bottom. The new test can't see this, because it measures a rough chart that players never get in normal play.
 
 ## Previous blockers
 
-1. **Lost arrival: fixed.**
-   - **Desktop:** one extra E press, 0 to 1100 ms after Pip's last travel line, always gets the arrival (8/8). Steady mashing at 350, 500 and 700 ms also gets it (6/6); before the fix both failed almost every time.
-   - **Phone, 2P:** tapping the A-button spot every 500 ms reaches the arrival with no "portal home?" question. The new spawn (9.2/19.3) has no prompt.
-   - **The queue works:** I pressed E on the portal ring before the 420 ms arrival timer. The arrival waited under Pip's question (it did not start underneath), then played after "Not yet".
-   - The new e2e test passes on both viewports, and would fail on the old code.
-2. **Shoals replay: fixed.**
-   - With no gumbo, Pause → Puzzle Journal → Swirling Shoals → Tricky opens with calm seas.
-   - I sailed it by keyboard in 6 moves; it solved, and the Journal came back.
-   - The new test passes on both viewports.
+1. **Phone Shoals chart: partly fixed.**
+   - **Rough seas, opened by the debug hook: fixed.** At 667×375 the whole board fits at all three levels (board 92–294 px, nothing clipped).
+   - **Calm seas: not fixed.** This is the chart you sail after drinking the gumbo, and every Puzzle Journal replay.
+     - A "🍲 Calm seas…" note appears under Start over. It makes the side column taller than the board and pushes the board down.
+     - The board ends at y 311, but the scroll area ends at 299, so 12 px are hidden, including the board's bottom edge.
+     - **Easy** (where new players start): the bottom third of the Treasure Island buoy is hidden.
+     - **Medium:** the Sunny Marigold starts on the bottom row. Her sail shows, but most of her red hull is hidden.
+     - **The note itself** stops at "Calm seas: the whirlpools". The hidden rest, "sail right over them", is the whole point of the gumbo.
+     - I measured this through the real wheel after drinking the gumbo, and through the debug opener, at every level.
+     - **Other sizes:** at 740×360 (below the spec's minimum, but a very common Android size) 19 px are hidden, and on Medium only the tip of the sail shows. At 844×390 it is 4 px; 896×414 fits.
+   - **The first rough look** (the preview at the wheel): Pip's explanation takes 3 lines, so the board is cut by 10 px there too. The buoy (259–292) runs past the scroll edge at 284.
+   - **Why the test misses it:**
+     - `puzzles.spec.ts:138` opens `marigold-chart` through the debug hook with no gumbo. So do the new `review/M8/pz-shoals-*` screenshots.
+     - In normal play, the rough chart only ever appears as the preview, with the long bubble. Replays and the real sail are calm.
+     - So the test checks a state no player sees, and passes while every version a player does see is clipped.
+   - **I could still sail it:** tapping the pad, I solved calm Medium in 5 moves on the phone. After the first move the ship is fully in view.
+
+2. **`npm test` red because of the hornpipe test: fixed for M6.**
+   - **The test:** it now uses `talkTo`, which waits for `npc:cookie` focus. It passed on both viewports in my full run.
+   - **In play:** walking east toward the galley, the prompt is "Cook" (the pot) every time. On the phone in 2P it was the pot in 30 of 30 samples.
+   - **The pot now hands over to Cookie:** she asks "Here to cook — or here for our HORNPIPE dance-off?" and offers Dance-off! / Just cook / Not now.
+     - **Desktop, 1P:** Dance-off! opened the dance-off. I won it, got the confetti party, and afterwards the pot went straight to cooking.
+     - **Phone, 2P:** tapping A on the pot gave the same question, and Dance-off! opened the setup.
+   - **The whole suite is still red at this commit, but not because of M6:**
+     - **Full run:** unit 170/170. e2e: 195 passed, 1 failed, and 7 skipped (the skips are all phone-only or desktop-only tests); exit 1.
+     - **The failure:** M8's 1950s chapter test (desktop) failed at its very last step. Rollo wanders about a tile around 47.5/23.4, right in the Tockwood Lanes doorway, so the prompt was "Talk", not "Enter".
+     - It passed 2/2 when run alone. It's the same kind of flake as the old Cookie one, and in play Rollo blocks his own door. The M8 review owns it.
 
 ## Blockers
 
-1. **On a phone, the Shoals chart now hides its bottom row: the island on Easy, the ship itself on Medium.**
-   - **Cause:** on short screens Pip's first bubble shows the puzzle rules. The new rules text is 5 lines long, so the puzzle body shrinks.
-   - **Measurements** (667×375): the scroll area ends at y 254, but the board ends at y 294 (311 in calm seas).
-   - **What is hidden at the start:**
-     - **Easy** (where adaptive difficulty starts): the Treasure Island goal.
-     - **Medium:** the Sunny Marigold herself.
-     - **All levels:** "Start over" is half cut off.
-   - **The builder's own screenshots show it:** `review/M6/pz-chart-1p-phone.png` and `pz-chart-rough-1p-phone.png` show no ship and only a sliver of row 5.
-   - **Scrolling doesn't really help:** only a swipe *beside* the board scrolls it; a swipe on the board sails (I lost a move that way).
-   - Finnegan's Medium boat is also half hidden.
+1. **On a phone, the calm-seas Shoals chart still runs off the bottom, and the test only checks the rough chart.** The measurements are above.
    - **Fix:**
-     - Keep Pip's first line short on phones, or cap the bubble at 2 lines with "How to play" for the rest.
-     - Or size the cells so all 6 rows fit, and scroll the ship into view.
-     - Add a phone test that the boat and goal are visible.
-2. **`npm test` is red: the hornpipe dance-off test fails about half the time.**
-   - **My full run:** 2 failed, 169 passed, 4 skipped; exit 1.
-   - **Isolated reruns** (1 worker, repeat 2):
-     - The opening-story failure passed 2/2, so it was load.
-     - `dance.spec.ts:138` failed again on 1 of 2 runs with `Expected "Talk", Received "Cook"`.
-   - **Why:** Cookie wanders ±0.3 tiles about 1 tile from her galley pot (use range 1.3). When she steps left, the test's single teleport spot below her is nearer the pot.
-   - **It happens in play too:**
-     - Left of Cookie, which is the way you come from, the prompt was "Cook" in 40 of 40 samples.
-     - I pressed E on "Talk" and got the pot instead, because she moved in between.
-     - The pot never mentions the dance-off, and the dance-off gates the chapter.
-   - **Fix:** make the galley pot hand over to Cookie's dance-off until `crew:respect` is set. Make the test re-teleport while polling, as `talkTo` does.
+     - On short screens (`max-height: 460px`), hide `.sa-calm`. Let Pip say the calm-seas line as her first bubble, or show a small "🍲 Calm seas" chip in the header.
+     - Shorten Pip's preview line on phones to two lines.
+     - Make the phone test drink the gumbo (`drink('pirates-gumbo')`) and check calm and rough seas.
+     - Also have the test open the preview through the wheel.
 
 ## Top improvements
 
-1. **The Time Sand still can't be seen.**
-   - **The orb:** `raiseTimeSand` (WorldScene) only draws its glowing orb if no `fx-sand` texture exists. `fx-sand` is the M0 title-screen grain (`art/textures.ts:52`, a 12×12 gold dot), so the "sand rising out of the chest" is a ~10 px speck.
-     - I checked the live object: texture 12×12, scale 1.17, zoom 0.65.
-     - On the light cave wall it is practically invisible (see my frames at 150–1700 ms).
-   - **The toasts:** after the chest, 6 still stack over both players on the phone: Time Sand, "+40 Tockens", "From the chest: … and 40 Tockens" (said twice), History Note, Map Scrap, and the step tick.
-   - **The player** stands in front of the open chest.
-   - **PROGRESS.md claims both are fixed.**
+1. **Clean up the treasure moment, the chapter's payoff.**
+   - **Pip covers the sand.** Her new "above" spot parks her right on the chest, in 1P and in 2P. The Time Sand rises out of the chest through her body, then drops back through her to you. I tracked the orb frame by frame, with tweens slowed ×4, and it overlaps her the whole way.
+   - **Five toasts land at once when the scene ends:** Time Sand, "From the chest…", History Note, Map Scrap and "✔ Find the treasure!".
+     - On a 375 px phone they fill y 54–287, covering both players, the chest and Biscuit.
+     - The party ends the same way: the furniture hint, 2 friendship toasts and the Captain's Coat.
    - **Fix:**
-     - Use a unique texture key.
-     - Make `giveTockens` quiet here.
-     - Hold the note and scrap toasts until the sand has flown.
-     - Step the players beside the chest.
-2. **Make the rough-chart preview explain itself.**
-   - The forced, unsolvable first look counts as a failed puzzle: adaptive skill dropped 0.50 → 0.45 when I pressed Leave.
-   - The first two hints ("Where will this one send you?", "Plan two moves ahead") suggest the chart can be solved, and the third just resets the board.
-   - **Fix:**
-     - Don't record the preview.
-     - Have Pip say "the whirlpools won't let anyone through — we need Cookie's gumbo".
-     - Offer a "We need gumbo!" button.
-3. **Fix 2P staging.**
-   - Pip picks her side by Biscuit only, so in 2P she hovers over Player 2. In the party (`party-2p-phone.png`) Player 2 is hidden behind her.
-   - Coco is brought to 38.2/23.9, right beside the from-isle spawn, so Pip covers her in 1P too.
+     - During cutscenes, keep Pip at the side.
+     - Show the note and scrap toasts one at a time, after the sand has flown.
+
+2. **Winning the dance-off from the pot skips Cookie's gumbo secret.**
+   - The pot is now how most players reach Cookie, because it takes the prompt from the deck side.
+   - After a pot win, `clues` stays empty. The objective still switches to "Brew Pirate's Gumbo in the ship's galley", and its marker points back at the pot, which shows no gumbo clue.
+   - You only get the recipe by talking to Cookie herself, or when Marigold at the wheel sends you to her.
+   - **Fix:** after a pot win, play the same "Here's the secret…" lines as the chat. This is a few lines of code.
+
+3. **Let phone players see the Great Hourglass fill.**
+   - On a phone the glowing sockets are still above the top of the screen.
+   - On both viewports the "Look" bubble covers the new sand in the bulb. On desktop the quest toast also covers the sockets for its first 2 s.
+   - It's the chapter's last image. **Fix:** a short camera pan up during "One home, seven to go!", and hide the prompt while the ceremony plays.
 
 **Smaller notes:**
-- **Arrival edge case:** if the arrival is waiting and the player picks "Yes, home we go!", the cove arrival plays in the clocktower. `here()` in `hooks.ts` doesn't check `world.transitioning`. This is unlikely now that the spawn is clear of the ring.
-- **Marigold's gumbo line:** after leaving the rough chart she says "Ask Cookie… she knows the recipe", although Cookie has just told you. The check is "brewed", not "heard".
-- **Hourglass:**
-  - The "Look" prompt covers the new sand in the bulb.
-  - On phones the glowing sockets are above the screen; a short camera pan up would show them.
-- **Test gap:** no test checks that the phone Shoals board shows the ship and the goal.
+- **Pip's "above" spot also lands on whatever you walk up to.** Biscuit trails behind you, so she floats over Pepper's head when you talk to her, and behind the "Map table" prompt. Skip that spot while the player has a focus target.
+- **Coco is hidden at the party.** She is still brought to 38.2/23.9. In 1P, Pip covers her. In 2P, Player 2 arrives on her spot (38.3/23.9).
+- **The ship covers Pip's break card.** If the playtime reminder appears during the Shoals, the ship is drawn on top of the card's "Break time?" title. `.sa-boat` has `z-index: 2`, and `.screen` doesn't start a new stacking context.
+- **The wind chip covers the ship.** On Easy and Tricky the ship starts under the "💨 wind: up" chip, so its sail pokes out of the label. Put the chip above the board.
+- **The arrival edge case is still open.** `here()` in `hooks.ts` doesn't check `world.transitioning`. It is unlikely to happen.
 
 ## Fun score
 
-8/10 on desktop, less on a phone. The Shoals are now a real strategy puzzle:
-- You see the whirlpools spin you back and learn why you need the gumbo.
-- The calm route still needs the wind and a current (Medium: right, up, right, down, right).
-- The hornpipe gate, the confetti party and the filling Hourglass give the chapter a proper shape.
+8/10 on desktop, 7 on a phone. The chapter now has a clear shape:
+- The torn map.
+- A hornpipe gate you can reach from Cookie or her pot.
+- A rough-chart preview that shows why you need the gumbo.
+- A calm route that still needs the wind and a current.
+- The riddle door, the gear lock and a real party.
 
-Biggest thing holding it back: on the phone the ship or the island is hidden at the start of the Shoals, and the first Time Sand is still never seen.
+Biggest thing holding it back: the payoff moment. The first Time Sand finally glows, but it rises through Pip and then disappears under five toasts. On phones, the chart you sail is still a little cut off.
 
 ## Required features tally
 
-Working 10 · partial 3 · missing 1.
+Working 12 · partial 2 · missing 0. Bowling and home decorating arrived with M8 and are under the M8 review; I only smoke-tested them.
 
-1. **Adventure story** — partial. The opening plus a complete pirate chapter; no ending yet.
-2. **Village life** — partial. Home decorating is still missing.
-3. **Time travel** — partial. One era of four.
-4. **Outfits** — working. Dress-the-part, era reactions, Biscuit's pirate hat.
-5. **Bowling** — missing.
-6. **Corgi** — working. Sniffing, digging and rescues.
-7. **Dancing** — working. The hornpipe dance-off is in the chapter ("Just dance" also wins the crew's respect). The dance itself is under M7 review.
-8. **Riddles, logic, strategy** — working. The Shoals now have wind, currents and whirlpools.
-9. **Playtime reminder** — working. Fast-forwarded on the phone in 2P on deck: the card appeared, "Five more minutes" snoozed.
-10. **Map and pirates** — working. Blocker 1 from the first review is fixed.
+1. **Adventure story** — partial. The opening plus the pirate and 1950s chapters; no ending yet (M10).
+2. **Village life** — working. Neighbours and collecting, and decorating is now in: I opened the planner in the cottage.
+3. **Time travel** — partial. Two of the four eras are playable.
+4. **Outfits** — working. The crew gate, sailor's prices and era reactions.
+5. **Bowling** — working at this commit. My first keyboard ball knocked down 7 pins.
+6. **Corgi** — working.
+7. **Dancing** — working. The hornpipe dance-off gates the Shoals.
+8. **Riddles, logic, strategy** — working, apart from the phone clip above. The Shoals, riddle door, gear lock and torn-map jigsaw.
+9. **Playtime reminder** — working. I fast-forwarded it on the phone in 2P on deck:
+   - Gentle card, then "Five more minutes" (2 left).
+   - Again over the Shoals chart, which kept its move.
+   - Then the firm card and "Take a break", which autosaved.
+   - The goodbye screen, then Continue back to the cove.
+10. **Map and pirates** — working.
 11. **Fairy** — working.
-12. **1 or 2 players** — working. The whole chapter played as a pair on the phone: crew gate, two-spoon gumbo, Tricky jigsaw and chart by touch, party.
+12. **1 or 2 players** — working.
 13. **Bunnies** — working.
-14. **Magic soup** — working. The gumbo now calms whirlpools and is still the key to the Shoals.
+14. **Magic soup** — working. The gumbo is still the key to the Shoals.
 
 ## Verified
 
-- **Unit tests:** 139/139.
-- **e2e tests:** all pirate tests pass on both viewports, including the two new ones.
-- **Desktop, keyboard:**
-  1. Arrival
-  2. Crew gate
-  3. Four map pieces
-  4. Jigsaw
-  5. The wheel refuses to sail before the dance
-  6. Dance-off (Just dance → won)
-  7. Cookie's clue
-  8. Rough chart (whirlpool spin and Pip's line)
-  9. Gumbo
-  10. Calm Medium chart in 5 of 8 moves
-  11. Riddle with a hint
-  12. Gear lock
-  13. Treasure
-  14. Row back to the party
-  15. Portal home
-  16. The Hourglass shows 1 glowing socket and sand in the bottom bulb
-- **No console errors.**
-- **The new History Notes are accurate:** the Golden Age is about the 1650s–1730s, and the sailor's hornpipe includes steps that copy sailors' jobs.
+- **Tests:** `npm test` as above. All pirate tests, the dance-off test, the phone Shoals test and the start-to-finish journey passed on both viewports.
+- **Phone, 667×375, the Shoals through the real wheel:**
+  - The preview: "Just looking", Pip's hint repeats her explanation, and after Leave the skill stayed 0.40 → 0.40 with no record.
+  - Marigold's "You know Cookie's recipe" line.
+  - The calm chart at every level. Finnegan's regatta fits.
+  - A touch sail of calm Medium.
+  - Also measured at 740×360, 812×375, 844×390 and 896×414.
+- **Desktop 1P:** the pot route to the dance-off, then the pot and the wheel afterwards.
+- **Phone 2P:** the pot question by touch.
+- **Treasure to hourglass** (phone 2P, desktop 1P): the gear lock, the Time Sand orb (it grows from 11 to 70 px on the phone), the chest toasts, the party with Pip clear of Player 2, the portal home and the Great Hourglass.
+- **Pip's placement** when walking up to Marigold, the map table and Pepper from below.
+- **No console errors** in any session.
