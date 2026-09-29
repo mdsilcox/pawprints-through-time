@@ -719,6 +719,48 @@ const DRAW: Record<string, (ctx: Ctx) => void> = {
     c.lineTo(38, 28);
     c.stroke();
   },
+  mapscrap: (c) => {
+    poly(c, [
+      [12, 14],
+      [50, 10],
+      [54, 28],
+      [50, 50],
+      [14, 54],
+      [9, 34],
+    ], '#efdcaa');
+    line(c, [
+      [16, 46],
+      [24, 40],
+      [30, 42],
+      [36, 34],
+    ], PAL.inkSoft, 2);
+    c.strokeStyle = '#d9483b';
+    c.lineWidth = 4;
+    c.beginPath();
+    c.moveTo(34, 18);
+    c.lineTo(46, 30);
+    c.moveTo(46, 18);
+    c.lineTo(34, 30);
+    c.stroke();
+  },
+  seachest: (c) => {
+    r(c, 8, 28, 48, 26, 4, PAL.wood);
+    c.beginPath();
+    c.moveTo(8, 32);
+    c.lineTo(8, 24);
+    c.quadraticCurveTo(32, 6, 56, 24);
+    c.lineTo(56, 32);
+    c.closePath();
+    c.fillStyle = PAL.woodLight;
+    c.fill();
+    c.lineWidth = 2.5;
+    c.strokeStyle = INK;
+    c.stroke();
+    r(c, 8, 30, 48, 5, 2, PAL.goldDark, 2);
+    r(c, 14, 20, 5, 34, 2, PAL.goldDark, 2);
+    r(c, 45, 20, 5, 34, 2, PAL.goldDark, 2);
+    r(c, 27, 32, 10, 11, 2, PAL.gold, 2);
+  },
   tockens: (c) => {
     e(c, 32, 32, 22, 22, PAL.gold);
     e(c, 32, 32, 16, 16, shade(PAL.gold, 0.2), 1.5);

@@ -105,7 +105,7 @@ class Hud {
   }
 
   /** Running soup effects: a little bowl with a ring that drains as the time runs out. */
-  setEffects(list: { id: string; name: string; color: string; left: number; total: number }[]): void {
+  setEffects(list: { id: string; name: string; icon?: string; label?: string; color: string; left: number; total: number }[]): void {
     if (!this.effectsRow) return;
     const key = list.map((e) => `${e.id}:${e.left}`).join('|');
     if (this.effectsRow.dataset.key === key) return;
@@ -114,8 +114,9 @@ class Hud {
       ...list.map((e) =>
         h(
           'div',
-          { class: 'hud-effect', attrs: { 'data-effect': e.id, title: e.name }, style: `--c:${e.color}; --p:${Math.round((e.left / Math.max(1, e.total)) * 100)}` },
-          h('span', { class: 'hud-effect-bowl' }),
+          { class: 'hud-effect', attrs: { 'data-effect': e.id, title: e.name, 'aria-label': `${e.name}: ${e.label ?? ''}` }, style: `--c:${e.color}; --p:${Math.round((e.left / Math.max(1, e.total)) * 100)}` },
+          h('span', { class: 'hud-effect-bowl' }, e.icon ? h('span', { class: 'hud-effect-icon', attrs: { 'aria-hidden': 'true' } }, e.icon) : null),
+          e.label ? h('span', { class: 'hud-effect-name' }, e.label) : null,
           h('span', { class: 'hud-effect-time' }, e.left >= 60 ? `${Math.floor(e.left / 60)}:${String(e.left % 60).padStart(2, '0')}` : `${e.left}s`),
         ),
       ),

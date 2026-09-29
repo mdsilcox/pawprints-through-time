@@ -27,6 +27,10 @@ export interface DigSpot {
   cy: number;
   item: string;
   hidden: boolean;
+  /** a story flag set when it's dug */
+  flag?: string;
+  /** an X from a treasure-map scrap */
+  scrap?: string;
 }
 
 export function pickLoot(loot: [string, number][], r: () => number): string {

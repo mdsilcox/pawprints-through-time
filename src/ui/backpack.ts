@@ -13,7 +13,7 @@ const TABS: { id: string; label: string; kinds: ItemKind[] }[] = [
   { id: 'all', label: 'All', kinds: [] },
   { id: 'food', label: '🥕 Ingredients', kinds: ['ingredient', 'seed', 'soup'] },
   { id: 'finds', label: '🐚 Finds', kinds: ['shell', 'fossil', 'trinket'] },
-  { id: 'treasure', label: '🏺 Treasures', kinds: ['artifact', 'quest'] },
+  { id: 'treasure', label: '🏺 Treasures', kinds: ['artifact', 'quest', 'furniture'] },
 ];
 
 export function openBackpack(): void {

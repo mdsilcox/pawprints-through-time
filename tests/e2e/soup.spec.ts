@@ -51,6 +51,36 @@ test.describe('magic soup', () => {
     await expect(page.locator('[data-screen="stall"]')).toHaveCount(0);
   });
 
+  test('at the pot: the clues you’ve heard and what each ingredient is like; Pip’s break mid-stir costs nothing', async ({ page }) => {
+    const errors = watchErrors(page);
+    await startGame(page);
+    await hook(page, 'learnClue', 'glowbroth');
+    for (const id of ['glowcap', 'kelp', 'carrot']) await hook(page, 'give', id, 1);
+    await hook(page, 'openCauldron');
+    await expect(page.getByTestId('cauldron')).toBeVisible();
+    await expect(page.getByTestId('cd-note')).toContainText('grows in the dark');
+    await page.getByTestId('cd-ing-kelp').focus();
+    await expect(page.getByTestId('cd-note')).toContainText('Kelp');
+    await press(page, '[data-testid="cd-clues"]');
+    await expect(page.getByTestId('cd-note')).toContainText('grows in the dark');
+    await pick(page, ['glowcap', 'kelp', 'carrot']);
+    await press(page, '[data-testid="cd-stir"]');
+    await expect(page.getByTestId('cd-stir-0')).toBeVisible();
+    // Pip's break arrives mid-stir: back to the title with nothing lost
+    await hook(page, 'triggerReminder');
+    await expect(page.getByTestId('reminder-break')).toBeVisible();
+    await page.waitForTimeout(1300);
+    await press(page, '[data-testid="reminder-break"]');
+    await expect(page.getByTestId('goodbye')).toBeVisible();
+    await page.waitForTimeout(1300);
+    await press(page, '[data-testid="goodbye-ok"]');
+    await expect(page.locator('[data-screen="title"]')).toBeVisible();
+    const saved = await hook<any>(page, 'readSlot', 1);
+    for (const id of ['glowcap', 'kelp', 'carrot']) expect(saved.inventory[id] ?? 0).toBeGreaterThanOrEqual(1);
+    expect(saved.recipes).not.toContain('glowbroth');
+    expect(errors).toEqual([]);
+  });
+
   test('cooking with Clover: a riddle clue, three ingredients, a stir to the beat — and Glowbroth makes you glow', async ({ page }) => {
     const errors = watchErrors(page);
     await startGame(page);

@@ -224,6 +224,28 @@ test.describe('village life', () => {
     await expect(page.getByTestId('bt-shelly')).toContainText('???');
   });
 
+  test('museum cases say “Look” — even with bouncy soup legs — and the mosaic’s prompt shows on the mosaic', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'goTo', 'museum', 'in');
+    await expect.poll(() => hook<string>(page, 'mapId')).toBe('museum');
+    await page.waitForTimeout(600);
+    await hook(page, 'drink', 'hopscotch-chowder', 2);
+    const acorns = (await hook<Record<string, number>>(page, 'inventory'))['golden-acorn'] ?? 0;
+    for (const [x, y] of [
+      [2.5, 5.3],
+      [11.5, 8.2],
+    ]) {
+      await hook(page, 'teleport', x, y, 0);
+      await expect.poll(() => hook(page, 'prompt')).toBe('Look');
+      await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+      await expect(page.getByTestId('dialogue-text')).toHaveAttribute('data-full', /display case|treasure/i);
+      await advanceDialogue(page);
+    }
+    expect((await hook<Record<string, number>>(page, 'inventory'))['golden-acorn'] ?? 0).toBe(acorns);
+    await hook(page, 'teleport', 3.4, 9.0, 0);
+    await expect.poll(() => hook(page, 'prompt')).toBe('Mosaic');
+  });
+
   test('rescued bunnies live in the warren; both players move between rooms together', async ({ page }) => {
     await startGame(page, [12, 29]);
     await hook(page, 'rescueBunny', 'skipper');

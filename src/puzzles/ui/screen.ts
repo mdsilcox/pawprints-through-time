@@ -116,7 +116,14 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       'div',
       { class: 'pz-head' },
       h('h2', null, `${KIND_ICON[def.kind]} ${def.title}`),
-      h('div', { class: 'pz-chips' }, h('span', { class: `pz-chip diff-${difficulty}`, attrs: { 'data-testid': 'pz-difficulty' } }, DIFFICULTY_LABEL[difficulty]), opts.replay ? h('span', { class: 'pz-chip' }, 'Replay') : null),
+      h(
+        'div',
+        { class: 'pz-chips' },
+        // short phones hide the how-to paragraph: this brings the rules back into Pip's bubble
+        h('button', { class: 'pz-rules', attrs: { type: 'button', 'data-testid': 'pz-rules' }, onclick: (e: Event) => (e.stopPropagation(), say(def.howTo, 'think')) }, '❔ How to play'),
+        h('span', { class: `pz-chip diff-${difficulty}`, attrs: { 'data-testid': 'pz-difficulty' } }, DIFFICULTY_LABEL[difficulty]),
+        opts.replay ? h('span', { class: 'pz-chip' }, 'Replay') : null,
+      ),
     );
     const panel = h(
       'div',
@@ -139,6 +146,8 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       onDir: (dir) => (done ? false : (view?.onDir?.(dir) ?? false)),
     });
     audio.sfx('open');
-    say(def.kind === 'riddle' ? 'Read it out loud together — riddles love to be heard!' : 'Take your time. Ask me for a hint whenever you like!', 'happy');
+    const short = typeof window.matchMedia === 'function' && window.matchMedia('(max-height: 460px)').matches;
+    if (short && def.kind !== 'riddle') say(def.howTo, 'happy');
+    else say(def.kind === 'riddle' ? 'Read it out loud together — riddles love to be heard!' : 'Take your time. Ask me for a hint whenever you like!', 'happy');
   });
 }

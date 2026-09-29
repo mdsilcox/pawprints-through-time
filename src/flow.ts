@@ -36,11 +36,12 @@ export async function continueGame(slot: number): Promise<void> {
 }
 
 export async function returnToTitle(reason = 'quit'): Promise<void> {
-  if (app.data) await app.saveNow();
-  app.markPlayEnd(reason);
+  // close every screen first (a finished pot gets bottled, a half-stirred one costs nothing), then save
   ui.closeAll();
   ui.clearToasts();
   resetStory();
+  if (app.data) await app.saveNow();
+  app.markPlayEnd(reason);
   const sm = app.phaser.scene;
   for (const s of sm.getScenes(true)) if (s.scene.key !== 'title') sm.stop(s.scene.key);
   sm.start('title');

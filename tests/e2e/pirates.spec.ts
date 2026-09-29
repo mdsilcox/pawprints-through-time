@@ -27,6 +27,22 @@ async function celebrate(page: Page) {
   await expect(page.getByTestId('puzzle')).toHaveCount(0);
 }
 
+/** Press through a conversation, answering every question with choice `n`. */
+async function answerAll(page: Page, n: number) {
+  for (let i = 0; i < 40; i++) {
+    if (!(await hook<boolean>(page, 'dialogueOpen'))) {
+      await page.waitForTimeout(450);
+      if (!(await hook<boolean>(page, 'dialogueOpen'))) return;
+    }
+    if (await page.getByTestId(`choice-${n}`).isVisible().catch(() => false)) {
+      await press(page, `[data-testid="choice-${n}"]`);
+      continue;
+    }
+    await page.waitForTimeout(160);
+    await page.keyboard.press('KeyE');
+  }
+}
+
 async function toMap(page: Page, id: string) {
   await expect.poll(() => hook<string>(page, 'mapId'), { timeout: 15000 }).toBe(id);
   await page.waitForTimeout(900);
@@ -72,6 +88,16 @@ test.describe('the Golden Age of Piracy', () => {
     // (the arrival scene may already be playing: playThrough just carries on through it)
     await expect.poll(() => flag(page, 'cove:arrived'), { timeout: 10000 }).toBe(true);
     await playThrough(page, 60_000);
+
+    // ---- crew only! borrow sailor clothes from the washing line, dress the part, board
+    await useAt(page, 24.8, 15.0, 'Washing line');
+    await playThrough(page); // "Yes, dress up!"
+    const st = await hook<any>(page, 'state');
+    expect(st.players[0].outfit.hat.id).toBe('deckhand-bandana');
+    if (two) expect(st.players[1].outfit.top.id).toBe('sailor-shirt');
+    await useAt(page, 28.5, 22.6, 'Board ship');
+    await playThrough(page);
+    expect(await flag(page, 'crew:aboard')).toBe(true);
 
     // ---- Captain Marigold, then the four pieces
     await talkTo(page, 'marigold');
@@ -237,6 +263,7 @@ test.describe('the Golden Age of Piracy', () => {
     await celebrate(page);
     await playThrough(page);
     expect((await hook<any>(page, 'state')).bunnies).toContain('bosun');
+    expect(await hook(page, 'getFlag', 'scrap:scrap-cove-camp')).toBe(true); // he was sitting on a map scrap
     // Shelly on Treasure Island's beach
     await hook(page, 'setFlag', 'isle:landed', true);
     await hook(page, 'goTo', 'isle', 'landing');
@@ -250,6 +277,75 @@ test.describe('the Golden Age of Piracy', () => {
     expect((await hook<any>(page, 'state')).wardrobe).toContain('bunny-ears');
     await expect.poll(async () => (await hook<any>(page, 'quests')).finished).toContain('pirate-bunnies');
     expect(errors).toEqual([]);
+  });
+
+  test('crew only: Pepper keeps you off the ship until you dress like deckhands (the Wardrobe works too)', async ({ page }) => {
+    const errors = watchErrors(page);
+    await startGame(page, [30.5, 24]);
+    for (const f of ['pip:companion', 'cove:arrived']) await hook(page, 'setFlag', f, true);
+    await hook(page, 'goTo', 'cove', 'portal');
+    await toMap(page, 'cove');
+    // walking down the pier: the rope across the gangplank stops you
+    await hook(page, 'teleport', 28.5, 22.6, 0);
+    await hook(page, 'hold', 0, 1, 0);
+    await page.waitForTimeout(1000);
+    await hook(page, 'release', 0);
+    expect((await hook<{ x: number }[]>(page, 'players'))[0].x).toBeLessThan(29.2);
+    // Pepper squawks, Pip has an idea
+    await hook(page, 'teleport', 28.5, 22.6, 0);
+    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Board ship');
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    await answerAll(page, 0);
+    expect(await hook(page, 'getFlag', 'crew:aboard')).toBeFalsy();
+    // borrow from the washing line, but dress up with the Wardrobe yourself
+    await useAt(page, 24.8, 15.0, 'Washing line');
+    await answerAll(page, 1);
+    expect((await hook<any>(page, 'state')).wardrobe).toEqual(expect.arrayContaining(['deckhand-bandana', 'sailor-shirt']));
+    await page.keyboard.press('Escape');
+    await press(page, '[data-testid="pause-wardrobe"]');
+    await press(page, '[data-testid="wd-item-deckhand-bandana"]');
+    await press(page, '[data-testid="wardrobe-done"]');
+    await press(page, '[data-testid="pause-resume"]');
+    expect((await hook<any>(page, 'state')).players[0].outfit.hat.id).toBe('deckhand-bandana');
+    // now Pepper waves you aboard, and the way onto the deck is open
+    await useAt(page, 28.5, 22.6, 'Board ship');
+    await playThrough(page);
+    expect(await hook(page, 'getFlag', 'crew:aboard')).toBe(true);
+    await hook(page, 'hold', 0, 1, 0);
+    await expect.poll(async () => (await hook<{ x: number }[]>(page, 'players'))[0].x, { timeout: 6000 }).toBeGreaterThan(30.2);
+    await hook(page, 'release', 0);
+    // proper sailors get sailor's prices at Coco's stall
+    await talkTo(page, 'coco');
+    await expect(page.getByTestId('stall-buy-coconut')).toContainText('1');
+    await press(page, '[data-testid="stall-done"]');
+    expect(errors).toEqual([]);
+  });
+
+  test('X marks the spot: a map scrap puts an X on your Map, and Biscuit digs up what’s buried there', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'met:marigold', 'map:search', 'map:pepper']) await hook(page, 'setFlag', f, true);
+    await hook(page, 'goTo', 'cove', 'portal');
+    await toMap(page, 'cove');
+    const coins = await inv(page, 'doubloon');
+    await talkTo(page, 'pepper'); // "Another pretty map! Take it!"
+    expect(await hook(page, 'getFlag', 'scrap:scrap-cove-west')).toBe(true);
+    expect(await inv(page, 'scrap-cove-west')).toBe(1);
+    // the X shows on the local map...
+    await hook(page, 'openMap');
+    await expect(page.locator('.map-mark.xmark')).toHaveCount(1);
+    await expect(page.locator('.map-legend')).toContainText('Treasure X');
+    await press(page, '[data-testid="map-close"]');
+    await expect(page.getByTestId('map-view')).toHaveCount(0);
+    // ...and in the world: dig there
+    const x = (await hook<any[]>(page, 'digSpots')).find((s) => s.x)!;
+    expect(x.revealed).toBe(true);
+    await hook(page, 'teleport', x.cx + 0.5, x.cy + 1.3, 0);
+    await page.waitForTimeout(900);
+    await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Dig');
+    await pressUntil(page, 'KeyE', () => hook(page, 'getFlag', 'dug:scrap-cove-west') as Promise<boolean>);
+    await expect.poll(() => inv(page, 'doubloon'), { timeout: 8000 }).toBe(coins + 2);
+    expect((await hook<any>(page, 'state')).wardrobe).toContain('eyepatch');
+    expect((await hook<any[]>(page, 'digSpots')).some((s) => s.x)).toBe(false);
   });
 
   test('the Map of Time only opens eras whose Time Sand is calling', async ({ page }) => {

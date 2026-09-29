@@ -410,7 +410,7 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
-      for (const f of ['pip:companion', 'cove:arrived', 'met:marigold', 'map:search']) await g(page, 'setFlag', f, true);
+      for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'met:marigold', 'map:search']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'cove', 'from-isle');
       await wait(2200);
     },
@@ -487,6 +487,82 @@ const SCENARIOS = [
     run: async (page) => {
       await play(page, 1);
       await g(page, 'openPuzzle', 'bosun-barrels', 'easy');
+      await wait(900);
+    },
+  },
+  {
+    name: 'crew-gate',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'cove:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 28.5, 22.4, 0);
+      if (players === 2) await g(page, 'teleport', 28.6, 21.2, 1);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'laundry',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 24.8, 15.1, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'scrap-x',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'scrap:scrap-cove-west']) await g(page, 'setFlag', f, true);
+      await g(page, 'give', 'scrap-cove-west', 1);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(1800);
+      await g(page, 'teleport', 3.9, 12.9, 0);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'scrap-map',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'scrap:scrap-cove-west']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'portal');
+      await wait(1800);
+      await g(page, 'openMap');
+      await wait(700);
+    },
+  },
+  {
+    name: 'pz-grid-cb',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [12, 31.5]);
+      await g(page, 'setSettings', { colorblind: true });
+      await g(page, 'openPuzzle', 'grandma-scarves', 'easy');
+      await wait(500);
+      for (const id of ['grid-0-0-1', 'grid-0-0-1', 'grid-0-1-0', 'grid-0-1-0', 'grid-0-2-2', 'grid-0-2-2']) await page.click(`[data-testid="${id}"]`);
+      await wait(700);
+    },
+  },
+  {
+    name: 'cauldron-notes',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'goTo', 'burrow', 'in');
+      await wait(1500);
+      await g(page, 'learnClue', 'glowbroth');
+      await g(page, 'learnClue', 'hopscotch-chowder');
+      for (const id of ['glowcap', 'kelp', 'carrot', 'clover-leaf', 'honey', 'sardine']) await g(page, 'give', id, 2);
+      await g(page, 'openCauldron');
       await wait(900);
     },
   },

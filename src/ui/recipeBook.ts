@@ -46,7 +46,7 @@ export function openRecipeBook(): void {
   const panel = h(
     'div',
     { class: 'panel recipes-panel', attrs: { 'data-testid': 'recipe-book' } },
-    h('div', { class: 'wd-head' }, h('h2', null, '📜 Recipe Book'), h('div', { class: 'small' }, `${MAGIC_SOUPS.filter((s) => d.recipes.includes(s.id)).length} of ${MAGIC_SOUPS.length} magic soups · ${Number(d.flags['soup:pots'] ?? 0)} pots brewed`)),
+    h('div', { class: 'wd-head' }, h('h2', null, '📜 Recipe Book'), h('div', { class: 'small' }, `${MAGIC_SOUPS.filter((s) => d.recipes.includes(s.id)).length} of ${MAGIC_SOUPS.length} magic soups · ${Number(d.flags['soup:pots'] ?? 0)} pot${Number(d.flags['soup:pots'] ?? 0) === 1 ? '' : 's'} brewed`)),
     h('p', { class: 'small' }, 'Each clue describes three ingredients. Any ingredient that fits the description works — experiment at Grandma’s cauldron!'),
     h('div', { class: 'rb-pages' }, pages),
     h('h3', null, '🤪 Silly soups'),

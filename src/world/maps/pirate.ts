@@ -49,7 +49,10 @@ function coveObjects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'hatch', kind: 'use', x: 34, y: 24.6, texture: 'prop-hatch', p: { action: 'hatch', label: 'Go below', range: 0.9, floor: true } });
   // the crew and the town
   o.push({ id: 'marigold', kind: 'npc', x: 31.2, y: 23.8, p: { id: 'marigold', wander: 0.6 } });
-  o.push({ id: 'pepper', kind: 'npc', x: 37.2, y: 22.4, p: { id: 'pepper', wander: 0.4 } });
+  // Pepper guards the gangplank: crew only! (Dress like deckhands to get aboard.)
+  o.push({ id: 'pepper', kind: 'npc', x: 28.6, y: 20.4, p: { id: 'pepper', wander: 0.25 } });
+  o.push({ id: 'gangplank', kind: 'use', x: 29.5, y: 22.4, texture: 'prop-crewsign', foot: { dx: 0, dy: -2, w: 1, h: 5 }, when: '!crew:aboard', p: { action: 'gangplank', label: 'Board ship', range: 1.3 } });
+  o.push({ id: 'laundry', kind: 'use', x: 24.8, y: 13.5, texture: 'prop-laundry', foot: { dx: -1, dy: -1, w: 3, h: 1 }, p: { action: 'laundry', label: 'Washing line', range: 1.4 } });
   o.push({ id: 'cookie', kind: 'npc', x: 39.4, y: 24.8, p: { id: 'cookie', wander: 0.3 } });
   o.push({ id: 'coco', kind: 'npc', x: 16.5, y: 9.4, p: { id: 'coco', wander: 0.4 } });
   o.push({ id: 'fruit-stall', kind: 'prop', x: 16.5, y: 8.4, texture: 'prop-fruitstall', foot: { dx: -1, dy: -1, w: 2, h: 1 } });

@@ -10,6 +10,8 @@ import { openWardrobe } from '../ui/wardrobe';
 import { openSellScreen, sellable } from '../ui/sellScreen';
 import { cookWithClover, juniperStall, offerSoupGift } from './soupStory';
 import { grandmaPuzzle, juniperPuzzle, puzzleSolved } from './brainBuilders';
+import { CLOTHES_BY_ID } from '../data/clothes';
+import { input } from '../input/input';
 
 /**
  * Tockwood's neighbours: first meetings, daily chatter that changes with the day, the time
@@ -92,7 +94,30 @@ onTalk('quill', async () => {
 });
 
 // ------------------------------------------------------------------ Bramble (badger, tailor)
+/** Bramble can't resist remarking on clothes from other times (once per piece). */
+const ERA_REMARK: Record<string, string> = {
+  pirate: 'Is that a real {item}? From the Golden Age of Piracy?! Sailors mended their own clothes on long voyages, you know — look at these tiny stitches!',
+  egypt: 'Linen from Ancient Egypt! {item}! So light, so cool — perfect for the desert sun.',
+  fifties: 'A {item}, straight out of the 1950s! Oh, the swing of it! Oh, the SNAP!',
+  florence: 'Renaissance tailoring! This {item} could have walked right out of a painting!',
+};
+async function brambleNotices(): Promise<boolean> {
+  const d = app.data!;
+  const who: (0 | 1)[] = input.twoPlayer ? [0, 1] : [0];
+  for (const p of who)
+    for (const w of Object.values(d.players[p].outfit)) {
+      const it = w ? CLOTHES_BY_ID.get(w.id) : undefined;
+      if (!it?.era || flag(`bramble:saw:${it.id}`)) continue;
+      setFlag(`bramble:saw:${it.id}`);
+      await talk('bramble', ERA_REMARK[it.era].replace('{item}', it.name));
+      befriend('bramble', 4);
+      return true;
+    }
+  return false;
+}
+
 onTalk('bramble', async () => {
+  if (flag('met:bramble')) await brambleNotices();
   if (flag('met:bramble')) {
     const pick = await ask('bramble', 'What can I do for you, darlings?', ['Browse your clothes', 'Just chatting', 'Dress up Biscuit']);
     if (pick === 0) {

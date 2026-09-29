@@ -222,6 +222,14 @@
     0 0 3px #fff8ec,
     0 0 2px #fff8ec;
 }
+.map-mark.dig.xmark {
+  color: #d9483b;
+  font-size: 1.35em;
+  font-weight: 700;
+  text-shadow:
+    0 0 3px #fff8ec,
+    0 0 3px #fff8ec;
+}
 .map-mark.dig {
   color: var(--gold);
   font-size: 1rem;
@@ -278,6 +286,9 @@
 .legend-star {
   color: var(--gold);
   -webkit-text-stroke: 1px var(--ink);
+}
+.legend-x {
+  color: #d9483b;
 }
 .legend-dig {
   color: var(--gold);
@@ -546,8 +557,25 @@
 .hud-effect-bowl {
   width: 1.35rem;
   height: 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(74, 59, 53, 0.15) 0);
   border: 2px solid var(--ink);
   box-shadow: inset 0 0 0 2px #fff8ec;
+}
+.hud-effect-icon {
+  font-size: 0.72rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 1px #fff8ec) drop-shadow(0 0 1px #fff8ec);
+}
+.hud-effect-name {
+  font-weight: 600;
+}
+/* phones: the icon and the time are enough */
+@media (max-height: 460px) {
+  .hud-effect-name {
+    display: none;
+  }
 }

@@ -8,7 +8,19 @@ import { openCauldron } from '../ui/cauldron';
 import { learnNote } from '../ui/notesScreen';
 import { openPuzzle } from '../puzzles/ui/screen';
 import { PIRATE_RIDDLES } from '../puzzles/content/pirates';
-import { grant } from '../core/wardrobe';
+import { equip, grant, owns } from '../core/wardrobe';
+import { input } from '../input/input';
+import { CLOTHES_BY_ID } from '../data/clothes';
+import { findScrap } from './treasureScraps';
+import { SCRAPS } from '../data/scraps';
+import type { SaveData } from '../core/state';
+
+/** where each scrap is found (quest markers before you have it) */
+const SCRAP_SOURCE: Record<string, { map: string; x: number; y: number }> = {
+  'scrap-cove-west': { map: 'cove', x: 28.6, y: 20.4 },
+  'scrap-cove-camp': { map: 'cove', x: 25.6, y: 18.6 },
+  'scrap-isle-north': { map: 'cave', x: 5.5, y: 4 },
+};
 import { HOPKINS_BY_ID, BUNNY_REWARDS } from '../data/bunnies';
 import { hasEffect } from '../soup/effects';
 import { learnClue } from '../soup/kitchen';
@@ -25,6 +37,30 @@ for (const [id, name] of Object.entries({ marigold: 'Captain Marigold', pepper: 
  * pieces, put the map together, brew Pirate's Gumbo to calm the Swirling Shoals, sail to
  * Treasure Island, open the stone door and the chest... and bring the first Time Sand home.
  */
+
+// ------------------------------------------------------------------ dressing the part
+const activePlayers = (): (0 | 1)[] => (input.twoPlayer ? [0, 1] : [0]);
+
+/** Is this player wearing anything from the Golden Age of Piracy? */
+function piratey(p: 0 | 1): boolean {
+  return Object.values(app.data!.players[p].outfit).some((w) => !!w && CLOTHES_BY_ID.get(w.id)?.era === 'pirate');
+}
+/** Everyone playing looks like crew. */
+export const crewReady = (): boolean => activePlayers().every(piratey);
+const anyPiratey = (): boolean => activePlayers().some(piratey);
+const wearing = (id: string): boolean => activePlayers().some((p) => Object.values(app.data!.players[p].outfit).some((w) => w?.id === id));
+
+/** Put the borrowed deckhand clothes on whoever isn't dressed for the sea yet. */
+function dressAsCrew(): void {
+  const d = app.data!;
+  for (const p of activePlayers()) {
+    if (piratey(p)) continue;
+    equip(d, p, 'deckhand-bandana', p);
+    equip(d, p, 'sailor-shirt', p);
+    app.events.emit('outfit-changed', p);
+  }
+  app.autosave.request();
+}
 
 // ------------------------------------------------------------------ the portal and the Map of Time
 export async function useTimePortal(world: WorldScene): Promise<void> {
@@ -89,7 +125,11 @@ onTalk('lost:skipper', async ({ world }) =>
   }),
 );
 onTalk('lost:shelly', async ({ world }) => lostBunnyChat('shelly', world));
-onTalk('lost:bosun', async ({ world }) => lostBunnyChat('bosun', world));
+const bosunScrap = (world: WorldScene) => async () => {
+  await talk('hop-bosun', 'Oh! And I was sitting on this the whole time — an old scrap of map! You have it.');
+  findScrap('scrap-cove-camp', world);
+};
+onTalk('lost:bosun', async ({ world }) => lostBunnyChat('bosun', world, bosunScrap(world)));
 
 // ------------------------------------------------------------------ Sandy Cove
 onEnterMap('cove', async ({ world }) => {
@@ -124,6 +164,49 @@ onEnterMap('cove', async ({ world }) => {
 });
 
 onUse('portal-home', async ({ world }) => goHome(world));
+
+/** Pepper guards the gangplank: only the crew may board — so look like the crew! */
+async function gangplank(world: WorldScene): Promise<void> {
+  if (flag('crew:aboard')) return;
+  if (!crewReady()) {
+    await talk('pepper', ['SQUAWK! Crew only! Crew only!', 'No crew clothes, no boarding! Squawk!']);
+    const d = app.data!;
+    if (!owns(d, 'deckhand-bandana') && !owns(d, 'sailor-shirt')) {
+      await talk('pip', ['Hmm... Pepper only lets the crew aboard.', 'But if we LOOKED like deckhands... I saw sailor clothes drying on a washing line by the path!']);
+      return;
+    }
+    const pick = await ask('pip', 'We’ve got the crew’s clothes! Shall we put them on?', ['Yes, dress up!', 'Not yet']);
+    if (pick !== 0) return;
+    dressAsCrew();
+    await talk('pip', 'Ta-da! Deckhands, reporting for duty!');
+  }
+  await talk('pepper', ['Squawk! Crew! Crew! Welcome aboard!', 'Pretty bandana! Squawk!']);
+  setFlag('crew:aboard');
+  world.removeObject('gangplank');
+  audio.sfx('chime');
+  await talk('pip', 'We’re aboard! Now let’s find the captain.');
+}
+onUse('gangplank', async ({ world }) => gangplank(world));
+
+onUse('laundry', async () => {
+  const d = app.data!;
+  if (!owns(d, 'deckhand-bandana') || !owns(d, 'sailor-shirt')) {
+    await talk('narrator', ['The crew’s washing line: striped sailor shirts and red bandanas, flapping in the sea breeze.', 'A little sign says: “CREW LAUNDRY — borrow what you need, bring it back clean!”']);
+    grant(d, 'deckhand-bandana');
+    grant(d, 'sailor-shirt');
+    toast('You borrowed Deckhand Bandanas and Striped Sailor Shirts! (Wardrobe)', { icon: '🏴' });
+    app.autosave.request();
+  } else if (crewReady()) {
+    await talk('narrator', 'Sailor clothes flap in the breeze. You already look just like the crew!');
+    return;
+  }
+  if (crewReady()) return;
+  const pick = await ask('pip', 'Shall we put them on? Then we’ll look just like the crew!', ['Yes, dress up!', 'I’ll use the Wardrobe']);
+  if (pick === 0) {
+    dressAsCrew();
+    await talk('pip', 'Ta-da! Deckhands, reporting for duty! Let’s try the gangplank.');
+  } else await talk('pip', 'Open the Wardrobe from the pause menu — a bandana or a sailor shirt will do!');
+});
 
 onUse('salt', async ({ objectId }) => {
   if (!oncePerDay(`salt:${objectId}`)) {
@@ -177,6 +260,10 @@ onTalk('marigold', async ({ world }) => {
     befriend('marigold', 10);
     return;
   }
+  if (wearing('tricorn') && !flag('marigold:saw-hat')) {
+    setFlag('marigold:saw-hat');
+    await talk('marigold', 'Now THAT’s a proper crew hat! You wear it well, shipmate.');
+  }
   if (!flag('map:whole')) {
     const n = count('map-piece');
     if (n >= 4) {
@@ -185,7 +272,7 @@ onTalk('marigold', async ({ world }) => {
     }
     await talk('marigold', [
       `You’ve found ${n} piece${n === 1 ? '' : 's'}! ${n ? 'Keep going!' : ''}`,
-      !flag('map:saltwhistle') ? 'Try that rascal Saltwhistle’s camp up the beach.' : !flag('map:pepper') ? 'And what is my parrot Pepper hiding up in the crow’s nest?' : !flag('map:bottle') ? 'The tide washes all sorts of things onto the west beach...' : 'Maybe that clever dog can sniff one out on the beach!',
+      !flag('map:saltwhistle') ? 'Try that rascal Saltwhistle’s camp up the beach.' : !flag('map:pepper') ? 'And my parrot Pepper keeps squawking about something shiny in her nest — ask her at the gangplank!' : !flag('map:bottle') ? 'The tide washes all sorts of things onto the west beach...' : 'Maybe that clever dog can sniff one out on the beach!',
     ]);
     return;
   }
@@ -220,13 +307,26 @@ onTalk('saltwhistle', async () => {
     befriend('saltwhistle', 10);
     return;
   }
+  if (anyPiratey() && !flag('saltwhistle:saw-clothes')) {
+    setFlag('saltwhistle:saw-clothes');
+    await talk('saltwhistle', 'Well, look at you — proper sailor clothes! Very ship-shape. ...Don’t tell Marigold I said so.');
+  }
   const lines = ['The Merry Mackerel may be small, but she’s speedy!', 'A good captain listens more than she shouts. Or he. Or me. I’m working on it.', 'Fine weather for sailing, eh?'];
   await talk('saltwhistle', lines[(app.data!.day + 1) % lines.length]);
   if (oncePerDay('chat:saltwhistle')) befriend('saltwhistle', 6);
 });
 
-onTalk('pepper', async () => {
+onTalk('pepper', async ({ world }) => {
+  if (!flag('crew:aboard')) {
+    await gangplank(world);
+    return;
+  }
   if (flag('map:pepper')) {
+    if (!flag('scrap:scrap-cove-west')) {
+      await talk('pepper', ['Squawk! Another pretty map! Another pretty map!', 'Take it! Take it! Nest too full! Squawk!']);
+      findScrap('scrap-cove-west', world);
+      return;
+    }
     await talk('pepper', ['Squawk! Pretty map! Pretty map!', 'Coconut! Thank you! Squawk!']);
     return;
   }
@@ -256,10 +356,16 @@ onTalk('coco', async () => {
     learnNote('pirate-eight');
     setFlag('met:coco');
   }
+  // dressed like sailors? Coco gives crew prices
+  const crew = anyPiratey();
+  if (crew && !flag('coco:crew')) {
+    setFlag('coco:crew');
+    await talk('coco', 'Ooh, proper sailor clothes! Crew get sailor’s prices at my stall.');
+  }
   await openStall('🥥 Coco’s Fruit Stall', [
-    { id: 'coconut', price: 2 },
-    { id: 'island-pepper', price: 3 },
-  ], 'Tropical treats for your soup pot — Pirate’s Gumbo needs something spicy, something from the sea and something from a sunny island.');
+    { id: 'coconut', price: crew ? 1 : 2 },
+    { id: 'island-pepper', price: crew ? 2 : 3 },
+  ], `${crew ? '⚓ Sailor’s prices! ' : ''}Tropical treats for your soup pot — Pirate’s Gumbo needs something spicy, something from the sea and something from a sunny island.`);
 });
 
 onTalk('cookie', async () => {
@@ -306,7 +412,9 @@ onUse('map-table', async ({ world }) => {
     audio.sfx('fanfare');
     await talk('marigold', ['Shiver me whiskers — it’s whole again! Look: Treasure Island, past the Swirling Shoals!', 'You’re true crew now. Every one of my crew gets a proper hat!']);
   });
-  if (grant(app.data!, 'tricorn')) toast('You got Tricorn Hats! (Wardrobe → Hat)', { icon: '🏴‍☠️' });
+  const hats = grant(app.data!, 'tricorn');
+  const pants = grant(app.data!, 'pantaloons');
+  if (hats || pants) toast('You got Tricorn Hats and Sailor Pantaloons! (Wardrobe)', { icon: '🏴‍☠️' });
   await talk('marigold', 'But the Shoals... they’ll spin us round like a top. Cookie will know what to do!');
   void world;
 });
@@ -353,7 +461,7 @@ onUse('barrels', async ({ world }) => {
   // out hops Bosun!
   world.spawnLostBunny({ id: 'bosun', kind: 'lostbunny', x: 25.6, y: 19.4, p: { id: 'bosun' } });
   await wait(500);
-  await lostBunnyChat('bosun', world);
+  await lostBunnyChat('bosun', world, bosunScrap(world));
 });
 
 // ------------------------------------------------------------------ Treasure Island
@@ -407,6 +515,7 @@ onUse('treasure-chest', async ({ world }) => {
   });
   learnNote('pirate-treasure');
   if (!d.sands.includes('pirate')) d.sands.push('pirate');
+  findScrap('scrap-isle-north', world);
   toast('Time Sand 1 of 8!', { icon: '⏳', cls: 'quest', ms: 3600 });
   give('doubloon', 5, { from: 'From the chest:' });
   give('spyglass', 1, { quiet: true });
@@ -442,13 +551,19 @@ registerQuest({
   main: true,
   available: (d) => !!d.flags['cove:arrived'],
   steps: [
+    {
+      id: 'board',
+      text: 'Get aboard the Sunny Marigold — crew only!',
+      done: (d) => !!d.flags['crew:aboard'] || !!d.flags['met:marigold'],
+      where: (d) => (d.wardrobe.includes('deckhand-bandana') ? { map: 'cove', x: 28.6, y: 22.4 } : { map: 'cove', x: 24.8, y: 13.6 }),
+    },
     { id: 'meet', text: 'Meet the captain of the Sunny Marigold', done: (d) => !!d.flags['met:marigold'], where: () => ({ map: 'cove', x: 31.2, y: 23.8 }) },
     {
       id: 'pieces',
       text: 'Find the 4 torn pieces of the treasure map',
       done: (d) => !!d.flags['map:whole'] || (d.inventory['map-piece'] ?? 0) >= 4,
       where: (d) =>
-        !d.flags['map:saltwhistle'] ? { map: 'cove', x: 38.6, y: 8.6 } : !d.flags['map:pepper'] ? { map: 'cove', x: 37.2, y: 22.4 } : !d.flags['map:bottle'] ? { map: 'cove', x: 3.6, y: 13.4 } : { map: 'cove', x: 21, y: 18 },
+        !d.flags['map:saltwhistle'] ? { map: 'cove', x: 38.6, y: 8.6 } : !d.flags['map:pepper'] ? { map: 'cove', x: 28.6, y: 20.4 } : !d.flags['map:bottle'] ? { map: 'cove', x: 3.6, y: 13.4 } : { map: 'cove', x: 21, y: 18 },
     },
     { id: 'assemble', text: 'Put the map together at the captain’s table', done: (d) => !!d.flags['map:whole'], where: () => ({ map: 'cove', x: 32.4, y: 22.6 }) },
     { id: 'gumbo', text: 'Brew Pirate’s Gumbo in the ship’s galley', done: (d) => d.recipes.includes('pirates-gumbo'), where: () => ({ map: 'cove', x: 38.4, y: 25.2 }) },
@@ -477,5 +592,23 @@ registerQuest({
   reward: '+20 Tockens',
   onComplete: (d) => {
     d.tockens += 20;
+  },
+});
+
+registerQuest({
+  id: 'pirate-scraps',
+  title: 'X Marks the Spot',
+  icon: '✖️',
+  chapter: 'pirate',
+  available: (d) => !!d.flags['cove:arrived'],
+  steps: SCRAPS.filter((s) => s.era === 'pirate').map((s) => ({
+    id: s.id,
+    text: `Dig at the X on the ${s.name.replace('Map Scrap: ', '').replace(/^the /, '')} map`,
+    done: (d: SaveData) => !!d.flags[`dug:${s.id}`],
+    where: (d: SaveData) => (d.flags[`scrap:${s.id}`] ? { map: s.map, x: s.cx + 0.5, y: s.cy + 0.5 } : SCRAP_SOURCE[s.id]),
+  })),
+  reward: '+15 Tockens',
+  onComplete: (d) => {
+    d.tockens += 15;
   },
 });

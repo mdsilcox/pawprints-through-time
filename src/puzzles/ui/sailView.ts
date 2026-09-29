@@ -115,9 +115,13 @@ registerView('sail', (ctx) => {
     hint: (level) => {
       if (level < 3) return null;
       const sol = solve(chart, calm, at);
-      if (!sol || !sol.length) {
+      if (!sol || !sol.length || sol.length > v.moves - used) {
+        // from here the tide would turn first: start again, and show the first move from the dock
         reset();
-        return 'Let’s start fresh from the dock — I’ll help you pick the first move!';
+        const first = solve(chart, calm, at)?.[0];
+        if (!first) return 'Let’s start fresh from the dock!';
+        el.querySelector<HTMLElement>(`[data-testid="sail-${first}"]`)?.classList.add('hinted');
+        return `The tide would turn before we got there from here — so let’s start fresh from the dock. Try sailing ${first} first! (The button is glowing!)`;
       }
       const btn = el.querySelector<HTMLElement>(`[data-testid="sail-${sol[0]}"]`);
       btn?.classList.add('hinted');

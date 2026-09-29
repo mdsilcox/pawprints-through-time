@@ -446,3 +446,106 @@ export function wallTorch(): PropArt {
   ctx.fill();
   return { cv, ox: 0.5, oy: 0.95 };
 }
+
+/** The crew's washing line: striped sailor shirts and red bandanas drying in the sea breeze. */
+export function washingLine(): PropArt {
+  const cv = makeCanvas(260, 176);
+  const { ctx } = cv;
+  for (const x of [16, 234]) {
+    rrPath(ctx, x, 18, 11, 150, 3);
+    paint(ctx, WOOD_D, 3);
+  }
+  const ropeY = (x: number) => {
+    const t = (x - 22) / 218;
+    return (1 - t) * (1 - t) * 28 + 2 * (1 - t) * t * 52 + t * t * 28;
+  };
+  ctx.strokeStyle = PAL.ink;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(22, 28);
+  ctx.quadraticCurveTo(131, 52, 240, 28);
+  ctx.stroke();
+  const shirt = (x: number, y: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x - 19, y);
+    ctx.lineTo(x + 19, y);
+    ctx.lineTo(x + 30, y + 14);
+    ctx.lineTo(x + 21, y + 22);
+    ctx.lineTo(x + 18, y + 60);
+    ctx.lineTo(x - 18, y + 60);
+    ctx.lineTo(x - 21, y + 22);
+    ctx.lineTo(x - 30, y + 14);
+    ctx.closePath();
+  };
+  for (const [x, stripe] of [
+    [58, '#3f5a8a'],
+    [162, '#e46a6a'],
+  ] as const) {
+    const y = ropeY(x) - 2;
+    shirt(x, y);
+    ctx.fillStyle = '#fff4e0';
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = stripe;
+    for (let yy = y + 9; yy < y + 62; yy += 12) ctx.fillRect(x - 32, yy, 64, 5);
+    ctx.restore();
+    shirt(x, y);
+    ctx.lineWidth = L;
+    ctx.strokeStyle = PAL.ink;
+    ctx.stroke();
+  }
+  for (const x of [110, 210]) {
+    const y = ropeY(x) - 1;
+    ctx.beginPath();
+    ctx.moveTo(x - 18, y);
+    ctx.lineTo(x + 18, y);
+    ctx.lineTo(x, y + 32);
+    ctx.closePath();
+    paint(ctx, '#e46a6a', L);
+    ctx.fillStyle = '#fff4e0';
+    for (const [dx, dy] of [
+      [-7, 6],
+      [6, 7],
+      [0, 16],
+    ])
+      ctx.fillRect(x + dx - 2, y + dy - 2, 4, 4);
+  }
+  // clothes pegs
+  for (const x of [45, 71, 104, 116, 149, 175, 204, 216]) {
+    rrPath(ctx, x - 3, ropeY(x) - 7, 6, 12, 2);
+    paint(ctx, PAL.woodLight, 2);
+  }
+  return { cv, ox: 0.5, oy: 166 / 176 };
+}
+
+/** A little "crew only" sign roped across the Sunny Marigold's gangplank. */
+export function crewSign(): PropArt {
+  const cv = makeCanvas(130, 170);
+  const { ctx } = cv;
+  // the rope, down the gangplank
+  ctx.strokeStyle = '#c9a27e';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.moveTo(65, 70);
+  ctx.quadraticCurveTo(80, 120, 65, 166);
+  ctx.stroke();
+  rrPath(ctx, 59, 50, 12, 112, 3);
+  paint(ctx, WOOD_D, 3);
+  rrPath(ctx, 8, 12, 114, 58, 9);
+  paint(ctx, PAL.woodLight, L);
+  // a red bandana on the sign: "dress like the crew!"
+  ctx.beginPath();
+  ctx.moveTo(22, 28);
+  ctx.lineTo(50, 28);
+  ctx.lineTo(36, 54);
+  ctx.closePath();
+  paint(ctx, '#e46a6a', 3);
+  ctx.fillStyle = PAL.ink;
+  ctx.font = '700 17px Fredoka, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('CREW', 86, 32);
+  ctx.fillText('ONLY!', 86, 52);
+  return { cv, ox: 0.5, oy: 162 / 170 };
+}

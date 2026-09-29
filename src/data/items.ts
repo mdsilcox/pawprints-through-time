@@ -1,3 +1,5 @@
+import { SCRAPS } from './scraps';
+
 /**
  * Every collectable thing: beach finds, fossils, trinkets, soup ingredients, seeds and era
  * artifacts. Icons are drawn procedurally by art/icons.ts from the `icon` key.
@@ -79,6 +81,10 @@ export const ITEMS: ItemDef[] = [
   { id: 'pigment-jar', name: 'Pigment Jar', kind: 'artifact', icon: 'pigment', origin: 'florence', museum: true, value: 18, desc: 'Ground-up minerals made the bright colours of Renaissance paint.' },
   // ---------------- quest items
   { id: 'map-piece', name: 'Treasure Map Piece', kind: 'quest', icon: 'mappiece', origin: 'pirate', desc: 'A torn corner of a pirate map.' },
+  // ---------------- treasure-map scraps (each marks an X to dig)
+  ...SCRAPS.map((s): ItemDef => ({ id: s.id, name: s.name, kind: 'quest', icon: 'mapscrap', origin: s.era, desc: s.hint })),
+  // ---------------- furniture (for decorating your cottage)
+  { id: 'pirate-chest', name: 'Pirate Sea Chest', kind: 'furniture', icon: 'seachest', origin: 'pirate', desc: 'A sturdy sea chest with brass corners, dug up on Treasure Island.' },
 ];
 
 export const ITEM_BY_ID = new Map(ITEMS.map((i) => [i.id, i]));

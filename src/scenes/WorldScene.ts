@@ -26,6 +26,8 @@ import { SoupFx } from '../world/soupFx';
 import { gameNow, plotInfo } from '../soup/garden';
 import { iconCanvas } from '../art/icons';
 import { hasEffect } from '../soup/effects';
+import { SCRAPS } from '../data/scraps';
+import { digScrapLoot } from '../story/treasureScraps';
 import '../world/maps/tockwood';
 import '../world/maps/interiors';
 import '../world/maps/pirate';
@@ -368,7 +370,6 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         case 'warren':
           this.spawnWarren(o);
           break;
-        case 'exhibit':
         case 'ledge':
           this.interactables.push({
             id: `ledge:${o.id}`,
@@ -379,6 +380,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
             run: (player) => this.hopUp(o, player),
           });
           break;
+        case 'exhibit':
         case 'plot':
           this.interactables.push({
             id: `${o.kind}:${o.id}`,
@@ -637,7 +639,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     if (this.def.id === 'tockwood' && !d.flags['dug:first']) spots.push({ id: 'tockwood:tutorial', zone: 'plaza', cx: 32, cy: 27, item: 'clock-gear', hidden: false });
     // story treasure: a map piece buried on Sandy Cove's beach (Biscuit's nose finds it)
     if (this.def.id === 'cove' && !d.flags['map:dug'])
-      spots.push({ id: 'cove:mappiece', zone: 'cove-beach', cx: 21, cy: 18, item: 'map-piece', hidden: true, flag: 'map:dug' } as (typeof spots)[number]);
+      spots.push({ id: 'cove:mappiece', zone: 'cove-beach', cx: 21, cy: 18, item: 'map-piece', hidden: true, flag: 'map:dug' });
+    // treasure-map scraps: X marks the spot (always visible, and on the Map)
+    for (const s of SCRAPS)
+      if (s.map === this.def.id && d.flags[`scrap:${s.id}`] && !d.flags[`dug:${s.id}`])
+        spots.push({ id: `x:${s.id}`, zone: 'x', cx: s.cx, cy: s.cy, item: s.loot.item, hidden: false, flag: `dug:${s.id}`, scrap: s.id });
     for (const spot of spots) {
       const sx = (spot.cx + 0.5) * TILE;
       const sy = (spot.cy + 0.6) * TILE;
@@ -646,6 +652,14 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       mound.fillStyle(0x4a3b35, 0.22).fillEllipse(sx, sy + 10, 70, 22);
       mound.fillStyle(0x9a6a45, 1).fillEllipse(sx, sy + 4, 58, 20);
       mound.fillStyle(0xc08a5a, 1).fillEllipse(sx - 4, sy, 36, 11);
+      if (spot.scrap) {
+        // a big red X, outlined so it reads on sand and on grass
+        for (const [w, c] of [
+          [15, 0x4a3b35],
+          [9, 0xd9483b],
+        ] as const)
+          mound.lineStyle(w, c, 1).lineBetween(sx - 24, sy - 12, sx + 24, sy + 14).lineBetween(sx + 24, sy - 12, sx - 24, sy + 14);
+      }
       const img = this.add
         .image(sx, sy - 18, 'fx-sparkle')
         .setDepth((spot.cy + 0.3) * TILE)
@@ -708,10 +722,10 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     sv.img.destroy();
     sv.mound?.destroy();
     this.spots = this.spots.filter((s) => s !== sv);
-    give(sv.spot.item, 1, { from: 'Biscuit dug up...' });
+    if (sv.spot.scrap) digScrapLoot(sv.spot.scrap);
+    else give(sv.spot.item, 1, { from: 'Biscuit dug up...' });
     setFlag('dug:first');
-    const storyFlag = (sv.spot as { flag?: string }).flag;
-    if (storyFlag) setFlag(storyFlag);
+    if (sv.spot.flag) setFlag(sv.spot.flag);
     d.flags['dug:count'] = ((d.flags['dug:count'] as number) ?? 0) + 1;
     b.bark();
   }
@@ -817,8 +831,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       if (info.state === 'thirsty') {
         const drop = this.add.graphics();
         drop.fillStyle(0x6cc4d8, 1).lineStyle(3, 0x4a3b35, 1);
-        drop.fillCircle(0, -34, 9).strokeCircle(0, -34, 9);
-        drop.fillTriangle(-8, -38, 8, -38, 0, -54);
+        drop.fillCircle(50, -12, 9).strokeCircle(50, -12, 9);
+        drop.fillTriangle(42, -16, 58, -16, 50, -32);
         c.add(drop);
         this.tweens.add({ targets: drop, y: -8, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       }
@@ -871,6 +885,15 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       this.tweens.add({ targets: img, alpha: 0, scale: img.scale * 0.6, duration: 300, onComplete: () => img.destroy() });
     }
     this.interactables = this.interactables.filter((i) => i.id !== `use:${id}` && i.id !== `door:${id}` && i.id !== `sign:${id}`);
+    const o = this.objects.find((x) => x.id === id);
+    if (o?.foot)
+      for (let j = 0; j < o.foot.h; j++)
+        for (let i = 0; i < o.foot.w; i++) {
+          const tx = Math.floor(o.x) + o.foot.dx + i;
+          const ty = Math.ceil(o.y) + o.foot.dy + j;
+          const t = this.grid.get(tx, ty);
+          if (t !== 'water' && t !== 'wall' && t !== 'void' && t !== 'dark') this.coll.setSolid(tx, ty, false);
+        }
   }
 
   /** Swap a closed chest prop for an open one. */
@@ -1393,7 +1416,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   }
 
   /** Current dig spots (tests / map screen). */
-  digSpots(): { id: string; cx: number; cy: number; revealed: boolean; item: string }[] {
-    return this.spots.map((s) => ({ id: s.spot.id, cx: s.spot.cx, cy: s.spot.cy, revealed: s.revealed, item: s.spot.item }));
+  digSpots(): { id: string; cx: number; cy: number; revealed: boolean; item: string; x: boolean }[] {
+    return this.spots.map((s) => ({ id: s.spot.id, cx: s.spot.cx, cy: s.spot.cy, revealed: s.revealed, item: s.spot.item, x: !!s.spot.scrap }));
   }
 }

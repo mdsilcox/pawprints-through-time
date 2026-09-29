@@ -107,7 +107,7 @@ export const TOCKWOOD_RIDDLES: Riddle[] = [
     id: 'r-bell',
     q: 'I sing when I’m hit, I live high in a tower, and I tell the whole village it’s a brand-new hour. What am I?',
     answers: ['bell'],
-    decoys: ['Drum', 'Whistle', 'Clock', 'Trumpet'],
+    decoys: ['Drum', 'Whistle', 'Rooster', 'Trumpet'],
     hints: ['Ding... dong!', 'I hang at the very top of the clocktower.', 'B _ L L.'],
   },
   {

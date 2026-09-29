@@ -178,6 +178,7 @@ function objects(grid: TerrainGrid): MapObject[] {
   for (const [x, y, t] of [...treeSpots, ...edge]) {
     if (!clear(x, y) && y > 10) continue;
     if (y < 10.5 && Math.abs(x - 30.5) < 3.5) continue; // behind the clocktower
+    if (y > 6.3 && (Math.abs(x - 42.5) < 2.6 || Math.abs(x - 16.5) < 2.6)) continue; // in front of the lookout rock and the grotto
     if (!onLand(x, y) || !onLand(x - 0.4, y) || !onLand(x + 0.4, y)) continue; // no trees in the sea
     add('tree', x, y, { texture: t, foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   }
@@ -237,6 +238,8 @@ registerMap({
   { x: 31, y: 43.4, icon: '⚓', label: 'Dock' },
   { x: 23, y: 11, icon: '🍯', label: 'Juniper' },
   { x: 36.5, y: 17, icon: '⏰', label: 'Rocco' },
+  { x: 16.5, y: 4.4, icon: '💎', label: 'Grotto' },
+  { x: 42.5, y: 4.2, icon: '🪨', label: 'Lookout' },
 ],
   digZones: [
     { id: 'beach', x: 15, y: 35, w: 32, h: 4, on: ['sand'], perDay: 3, hidden: 0.4, loot: [['shell-scallop', 30], ['shell-spiral', 30], ['sand-dollar', 14], ['sea-glass', 14], ['shell-conch', 5], ['fossil-tooth', 5], ['kelp', 8]] },

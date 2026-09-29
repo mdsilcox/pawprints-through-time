@@ -77,7 +77,7 @@ export function openMap(): void {
   for (const p of def.pois ?? []) marks.push(mark('poi', p.x, p.y, w, hgt, h('span', { class: 'poi-icon' }, p.icon), h('span', { class: 'poi-label' }, p.label)));
   const sameMap = active && active.def.id === def.id;
   if (sameMap) {
-    for (const s of active.digSpots()) if (s.revealed) marks.push(mark('dig', s.cx + 0.5, s.cy + 0.5, w, hgt, '✦'));
+    for (const s of active.digSpots()) if (s.revealed) marks.push(s.x ? mark('dig xmark', s.cx + 0.5, s.cy + 0.5, w, hgt, '✖') : mark('dig', s.cx + 0.5, s.cy + 0.5, w, hgt, '✦'));
   }
   const d = app.data;
   const obj = d ? currentObjective(d) : null;
@@ -120,6 +120,7 @@ export function openMap(): void {
           h('span', null, h('b', { class: 'dot biscuit' }), ' Biscuit'),
           h('span', null, h('b', { class: 'legend-star' }, '★'), ' Goal'),
           h('span', null, h('b', { class: 'legend-dig' }, '✦'), ' Dig spot'),
+          marks.some((m) => m.classList.contains('xmark')) ? h('span', null, h('b', { class: 'legend-x' }, '✖'), ' Treasure X') : null,
         ),
         h('div', { class: 'row end map-foot' }, button('Close', close, { cls: 'secondary', autofocus: true, testid: 'map-close' })),
       ),

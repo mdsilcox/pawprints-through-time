@@ -92,6 +92,40 @@ test.describe('brain-builders', () => {
     expect((await record(page, 'grandma-scarves')).solved).toBe(true);
   });
 
+  test('colour is never the only clue: a wrong tick wears a “?”, and the colour-blind setting swaps the palette', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    const tap = async (id: string, times: number) => {
+      for (let i = 0; i < times; i++) await page.getByTestId(id).click();
+    };
+    await openPz(page, 'grandma-scarves', 'easy');
+    await tap('grid-0-0-1', 2);
+    await tap('grid-0-1-0', 2);
+    await tap('grid-0-2-2', 2);
+    await expect(page.locator('.lg-cell.bad .lg-q')).not.toHaveCount(0);
+    await expect(page.getByTestId('grid-0-2-2').locator('.lg-q')).toHaveCount(0); // the right tick has no "?"
+    await expect(page.getByTestId('pz-bubble')).toContainText('question mark');
+    const normal = await page.getByTestId('grid-0-2-2').evaluate((e) => getComputedStyle(e).color);
+    await press(page, '[data-testid="pz-leave"]');
+    await hook(page, 'setSettings', { colorblind: true });
+    await openPz(page, 'grandma-scarves', 'easy');
+    await tap('grid-0-2-2', 2);
+    const cb = await page.getByTestId('grid-0-2-2').evaluate((e) => getComputedStyle(e).color);
+    expect(cb).not.toBe(normal);
+    expect(cb).toBe('rgb(0, 114, 178)');
+  });
+
+  test('on a short phone Pip reads out the rules first, and “How to play” brings them back', async ({ page }, info) => {
+    test.skip(info.project.name !== 'phone', 'phones hide the how-to paragraph');
+    await startGame(page, [30.5, 24]);
+    await openPz(page, 'rocco-lock', 'easy');
+    const bubble = page.getByTestId('pz-bubble');
+    await expect(bubble).toContainText(/gold/i);
+    await press(page, '[data-testid="pz-hint"]');
+    await expect(bubble).not.toContainText(/gold star/i);
+    await press(page, '[data-testid="pz-rules"]');
+    await expect(bubble).toContainText(/gold/i);
+  });
+
   test('sliding blocks: pick a crate up and slide it with the arrow keys until the wheelbarrow rolls out', async ({ page }) => {
     await startGame(page, [30.5, 24]);
     await openPz(page, 'juniper-crates', 'easy');

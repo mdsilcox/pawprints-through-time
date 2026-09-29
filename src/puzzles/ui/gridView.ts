@@ -40,7 +40,7 @@ registerView('grid', (ctx) => {
               {
                 class: `lg-cell m${m} ${v === 0 && c > 0 ? 'sep' : ''} ${isWrong ? 'bad' : ''}`,
                 dataset: { nav: '' },
-                attrs: { type: 'button', 'data-testid': `grid-${c}-${s}-${v}`, 'aria-label': `${subj}: ${g.categories[c].values[v]} — ${m === 2 ? 'yes' : m === 1 ? 'no' : 'not sure'}` },
+                attrs: { type: 'button', 'data-testid': `grid-${c}-${s}-${v}`, 'aria-label': `${subj}: ${g.categories[c].values[v]} — ${m === 2 ? (isWrong ? 'yes, but check this one' : 'yes') : m === 1 ? 'no' : 'not sure'}` },
                 onclick: (e: Event) => {
                   e.stopPropagation();
                   marks = cycleMark(marks, c, s, v);
@@ -50,6 +50,8 @@ registerView('grid', (ctx) => {
                 },
               },
               m === 2 ? '✓' : m === 1 ? '✗' : '',
+              // a wrong tick gets a shape cue too (never colour alone)
+              isWrong ? h('span', { class: 'lg-q', attrs: { 'aria-hidden': 'true' } }, '?') : null,
             ),
           );
         }),
@@ -65,7 +67,7 @@ registerView('grid', (ctx) => {
     }
     if (isComplete(marks)) {
       wiggle(table);
-      ctx.say('Everyone has an answer — but one clue isn’t happy yet. Check the red ticks!');
+      ctx.say('Everyone has an answer — but one clue isn’t happy yet. Check the ticks with a question mark!');
     }
   };
 

@@ -11,6 +11,23 @@ import type { WorldScene } from '../scenes/WorldScene';
 
 const hex = (c: string) => Number.parseInt(c.replace('#', ''), 16);
 
+
+/** What each running soup effect looks like on the HUD: a little icon and a short name. */
+const EFFECT_BADGE: Record<string, [string, string]> = {
+  glow: ['💡', 'Glowing'],
+  hop: ['🐇', 'Bouncy'],
+  whisker: ['💬', 'Animal talk'],
+  zoom: ['⚡', 'Zoom'],
+  sparkle: ['✨', 'Treasure eyes'],
+  ticktock: ['⏳', 'Slow time'],
+  calm: ['🌊', 'Calm seas'],
+  together: ['💞', 'Together'],
+  hiccup: ['🫧', 'Hiccups'],
+  squeaky: ['🐭', 'Squeaky'],
+  rainbow: ['🌈', 'Rainbow'],
+  wobble: ['〰️', 'Wobbly'],
+};
+
 /** Whisker Bisque: what Biscuit and the animals really mean. */
 const BISCUIT_SAYS = [
   'Hi hi hi! I love you! Have I mentioned I love you?',
@@ -117,7 +134,8 @@ export class SoupFx {
     hud.setEffects(
       activeEffects().map((e) => {
         const s = SOUP_BY_ID[e.soup];
-        return { id: e.effect, name: s?.name ?? e.effect, color: s?.color ?? '#fff', left: Math.max(0, Math.ceil(e.left)), total: e.total };
+        const [icon, label] = EFFECT_BADGE[e.effect] ?? ['🍲', s?.name ?? e.effect];
+        return { id: e.effect, name: s?.name ?? e.effect, icon, label, color: s?.color ?? '#fff', left: Math.max(0, Math.ceil(e.left)), total: e.total };
       }),
     );
   }
@@ -154,6 +172,7 @@ export class SoupFx {
       if (glow) {
         g.setVisible(true)
           .setPosition(p.x, p.y - TILE * 0.7)
+          .setDepth(p.y - 2) // behind the character: light around them, never a wash over them
           .setTint(glowColor)
           .setScale(this.dark ? 3.2 : sc.isNight ? 3.6 : 2.4)
           .setAlpha((sc.isNight || this.dark ? 0.32 : 0.18) + Math.sin(this.t * 4 + i) * 0.04);

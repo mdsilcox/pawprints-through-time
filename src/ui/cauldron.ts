@@ -3,7 +3,7 @@ import { audio } from '../audio/audio';
 import { ITEMS } from '../data/items';
 import { iconUrl } from '../art/icons';
 import { input } from '../input/input';
-import { brew, comboKey, soupItemId, type SoupDef } from '../soup/recipes';
+import { brew, comboKey, MAGIC_SOUPS, soupItemId, type SoupDef } from '../soup/recipes';
 import { discover } from '../soup/kitchen';
 import { drinkSoup, hasEffect } from '../soup/effects';
 import { h, clear } from './dom';
@@ -46,14 +46,24 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
       d.inventory[soupItemId(soupId)] = (d.inventory[soupItemId(soupId)] ?? 0) + 1;
       app.autosave.request();
     };
+    let shut = false;
     const close = () => {
+      audio.sfx('close');
+      ui.pop('cauldron'); // onClose tidies up
+    };
+    /** However the pot closes (Close, Pip's break, back to the title), nothing is lost or left bubbling. */
+    const onClose = () => {
+      if (shut) return;
+      shut = true;
       cancelAnimationFrame(raf);
+      onConfirm = null;
+      // (a pot closed mid-stir costs nothing: ingredients are only used up when the stirring is done)
       // walking away from a finished pot bottles it — soup is never lost
       if (outcome && !outcome.drank && !bottled) bottle(outcome.soup.id);
-      audio.sfx('close');
-      ui.pop('cauldron');
       resolve(outcome);
     };
+    /** the note under the ingredients: the clues you've heard, or what an ingredient is like */
+    let noteFor: string | null = null;
     let onConfirm: ((p: 0 | 1) => boolean) | null = null;
 
     // ------------------------------------------------------------ 1. pick three ingredients
@@ -62,6 +72,21 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
       clear(body);
       const have = ITEMS.filter((it) => it.kind === 'ingredient' && (d.inventory[it.id] ?? 0) > 0);
       const left = (id: string) => (d.inventory[id] ?? 0) - picked.filter((p) => p === id).length;
+      const heard = MAGIC_SOUPS.filter((s) => d.clues.includes(s.id) && !d.recipes.includes(s.id));
+      const note = h('div', { class: 'cd-note', attrs: { 'data-testid': 'cd-note', 'aria-live': 'polite' } });
+      const showClues = () => {
+        noteFor = null;
+        clear(note);
+        if (!heard.length) note.append(h('span', { class: 'small' }, 'Tip: point at an ingredient to read about it.'));
+        else note.append(h('div', { class: 'cd-note-title' }, '📜 Clues you’ve heard'), ...heard.map((s) => h('div', { class: 'cd-clue' }, `“${s.clue}”`)));
+      };
+      const describe = (id: string) => {
+        const it = ITEMS.find((x) => x.id === id);
+        if (!it) return;
+        noteFor = id;
+        clear(note);
+        note.append(h('b', null, it.name), ` — ${it.desc}`);
+      };
       const pot = h(
         'div',
         { class: 'cd-pot-slots', attrs: { 'data-testid': 'cd-slots' } },
@@ -95,10 +120,13 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
                   class: 'cd-ing',
                   dataset: { nav: '' },
                   attrs: { type: 'button', 'data-testid': `cd-ing-${it.id}`, title: it.name, disabled: left(it.id) <= 0 || picked.length >= 3 },
+                  onfocus: () => describe(it.id),
+                  onmouseenter: () => describe(it.id),
                   onclick: (e: Event) => {
                     e.stopPropagation();
                     if (picked.length >= 3 || left(it.id) <= 0) return;
                     picked.push(it.id);
+                    noteFor = it.id;
                     audio.sfx('bubble');
                     renderPick();
                     if (picked.length === 3) (body.querySelector('[data-testid="cd-stir"]') as HTMLElement | null)?.focus();
@@ -111,12 +139,18 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
             )
           : h('p', { class: 'cd-empty' }, 'Your basket is empty! Grow veggies in your garden, pick clover in the meadow, and ask Finnegan and Juniper for kelp and honey.'),
       );
+      if (noteFor) describe(noteFor);
+      else showClues();
       body.append(
-        h('p', { class: 'small cd-tip' }, 'Pick three ingredients, then stir to the bubbly beat! Clover’s riddle clues are in your Recipe Book.'),
+        h('p', { class: 'small cd-tip' }, 'Pick three ingredients, then stir to the bubbly beat!'),
         h('div', { class: 'cd-pick' }, h('div', { class: 'cd-pot-wrap' }, h('div', { class: 'cd-pot mini', attrs: { 'aria-hidden': 'true' } }), pot), grid),
+      );
+      if (have.length) body.append(note);
+      body.append(
         h(
           'div',
           { class: 'row end sticky-foot' },
+          heard.length ? button(`Clues (${heard.length})`, () => showClues(), { icon: '📜', cls: 'secondary', testid: 'cd-clues' }) : null,
           button('Close', close, { cls: 'secondary', testid: 'cd-close' }),
           button('Stir!', () => startStir(), { icon: '🥄', disabled: picked.length < 3, autofocus: picked.length === 3, testid: 'cd-stir' }),
         ),
@@ -125,11 +159,7 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
 
     // ------------------------------------------------------------ 2. stir to the beat
     const startStir = () => {
-      if (picked.length < 3) return;
-      for (const id of picked) {
-        d.inventory[id] = (d.inventory[id] ?? 0) - 1;
-        if (d.inventory[id] <= 0) delete d.inventory[id];
-      }
+      if (picked.length < 3 || shut) return;
       const two = input.twoPlayer;
       const slow = hasEffect('ticktock');
       const period = slow ? 1900 : 1300;
@@ -151,6 +181,7 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
       updateCounts();
       let lastBeat = -1;
       const tick = () => {
+        if (shut) return;
         const t = performance.now() - t0;
         const beat = Math.floor(t / period);
         if (t >= 0 && beat !== lastBeat) {
@@ -192,6 +223,11 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
     const finishStir = (done: number[][], two: boolean) => {
       cancelAnimationFrame(raf);
       onConfirm = null;
+      if (shut) return; // the pot was closed mid-stir: nothing was used up
+      for (const id of picked) {
+        d.inventory[id] = (d.inventory[id] ?? 0) - 1;
+        if (d.inventory[id] <= 0) delete d.inventory[id];
+      }
       const all = done.flat();
       const stars = Math.max(1, Math.min(3, Math.round(all.reduce((a, b) => a + b, 0) / all.length)));
       const r = brew(picked, two);
@@ -244,6 +280,7 @@ export function openCauldron(opts: { title?: string } = {}): Promise<BrewOutcome
         close();
       },
       onConfirm: (p) => (onConfirm ? onConfirm(p) : false),
+      onClose,
     });
     audio.sfx('open');
   });

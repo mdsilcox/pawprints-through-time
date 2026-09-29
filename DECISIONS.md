@@ -35,6 +35,12 @@ One line each: decision — reason.
 - Lost-bunny placement per era: one hidden (needs Biscuit's sniff), one behind a puzzle, one out in the open — varied, and always reachable in the era's own maps.
 - The Recipe Book credits whoever told you a clue (Finnegan and Cookie both know the gumbo) — stored per clue.
 - The full chapter playthrough runs solo on desktop and as a pair on the phone — covers 1P/2P and both screen sizes without doubling a 2-minute test.
+- "Dress the part" (spec §5.2's own example): the Sunny Marigold's gangplank is crew-only; anything from the pirate era counts as crew clothes, the washing line lends a bandana and shirt, and Pip offers to dress everyone — the wardrobe is the key, but a young child is never stuck.
+- In two-player games everyone must look like crew to board — both players take part in the disguise.
+- Treasure-map scraps (spec §5.6) are their own small collectible system, separate from the story's torn map: each scrap puts a visible X on the ground and the local Map, and stays in the Backpack as a keepsake after digging — reusable in later eras.
+- Coco's crew discount (1 Tocken off) is the first "outfit changes how people treat you" payoff; Bramble remarks once per era piece — reactions are small, positive and never required.
+- A half-stirred pot costs nothing: ingredients are used when the stirring finishes, not when it starts, and returning to the title closes screens before saving — Pip's break can never eat a child's ingredients.
+- Colour-blind support = a shape cue on every colour cue for everyone, plus an Okabe–Ito palette when the setting is on (not a filter) — clearer than recolouring the whole screen.
 - World unit = texture pixel, one tile = 96 units; camera zoom is derived from the CSS height (≈7 tiles tall on a phone, ≈11.5 on desktop) — characters stay big and readable on a 375px-tall phone.
 - Players are human kids (customisable skin/hair later); neighbours are animal-folk built on the same paper-doll body, so every outfit fits everyone.
 - In 1-player mode the arrow keys and / . also control Player 1 — kids use whichever keys they find first; they switch to Player 2 when P2 joins.

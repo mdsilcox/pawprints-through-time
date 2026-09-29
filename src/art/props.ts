@@ -1,7 +1,7 @@
 import { PAL, shade } from './palette';
 import { makeCanvas, rrPath, circlePath, ellipsePath, paint, softShade, OUTLINE, rng, sparkle, type Cv } from './draw';
 import { crateJam, gearLockbox, knittingBasket, mosaicFloor, riddleStone, toyBoat, cloverPatch, caveMouth, lookoutRock, chestClosed, chestOpen } from './puzzleProps';
-import { barrelJam, cargoHatch, fruitStall, galleyStove, mapTable, messageBottle, rowboat, saltPan, shipHull, shipMast, shipWheel, stoneDoorClosed, stoneDoorOpen, wallTorch } from './pirateProps';
+import { barrelJam, cargoHatch, fruitStall, galleyStove, mapTable, messageBottle, rowboat, saltPan, shipHull, shipMast, shipWheel, stoneDoorClosed, stoneDoorOpen, wallTorch, washingLine, crewSign } from './pirateProps';
 
 /**
  * Props and buildings. Each drawer returns a canvas plus its anchor (the point that sits on the
@@ -858,6 +858,8 @@ export const PROP_ART: Record<string, () => PropArt> = {
   'prop-stonedoor-open': () => stoneDoorOpen(),
   'prop-fruitstall': () => fruitStall(),
   'prop-torch': () => wallTorch(),
+  'prop-laundry': () => washingLine(),
+  'prop-crewsign': () => crewSign(),
   'prop-fence-h': () => fenceH(),
   'prop-burrow-hole': () => burrowHole(),
   'bld-cottage': () => cottage(),

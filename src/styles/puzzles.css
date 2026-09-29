@@ -320,8 +320,23 @@
   background: #d7f3cd;
 }
 .lg-cell.bad {
+  position: relative;
   background: #ffd1d1;
   color: #b33;
+  border-style: dashed;
+}
+.lg-q {
+  position: absolute;
+  top: -0.45rem;
+  right: -0.4rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 1.05rem;
+  text-align: center;
 }
 .lg-cell.sep,
 .lg-val.sep {
@@ -427,9 +442,15 @@
   height: 100%;
   pointer-events: none;
 }
+/* sized by the crate's height, so long crates still show their vegetable */
 .sl-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: auto;
+  height: 64%;
+  max-width: 88%;
   object-fit: contain;
-  padding: 18%;
 }
 .sl-barrow img {
   height: 70%;
@@ -874,6 +895,21 @@
   .pz-howto {
     display: none;
   }
+  .pz-head .pz-rules {
+    display: inline-flex;
+  }
+  /* Crate Jam: counter and Start over beside the board, so the crates can be bigger */
+  .sl {
+    flex-direction: row;
+    justify-content: center;
+    gap: 1rem;
+  }
+  .sl-tools {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 9rem;
+    text-align: center;
+  }
   .pz-intro {
     font-size: 0.85rem;
   }
@@ -885,7 +921,7 @@
     font-size: 0.8rem;
   }
   .sl-board {
-    --cell: min(3.6rem, calc((100vh - 11.5rem) / var(--h)), calc((90vw - 4rem) / var(--w)));
+    --cell: min(3.6rem, calc((100vh - 10.6rem) / var(--h)), calc((90vw - 14rem) / var(--w)));
   }
   .sa-board {
     --cell: min(3.3rem, calc((100vh - 11.5rem) / var(--h)), calc((78vw - 9rem) / var(--w)));
@@ -1016,6 +1052,23 @@
 .jg-piece.home {
   border-color: #3f8a44;
 }
+/* pieces in the right place (and the right way up) get a little tick — not just a green edge */
+.jg-piece.home::after {
+  content: '✓';
+  position: absolute;
+  right: 0.15rem;
+  bottom: 0.1rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #3f8a44;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+  pointer-events: none;
+}
 .kbd-nav .jg-piece:focus {
   box-shadow: 0 0 0 0.25rem rgba(247, 198, 90, 0.85);
 }
@@ -1041,4 +1094,55 @@
 }
 .sl-board.barrels .sl-block.key::before {
   background: linear-gradient(#9fcff0, #6fb3e0);
+}
+
+/* ================================================================ how to play (a button on short phones) */
+.pz-rules {
+  display: none;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.8rem;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.05rem 0.55rem;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+/* ================================================================ colour-blind friendly colours (Okabe–Ito) */
+/* every colour cue in the puzzles also has a shape: ✓ / ✗ / "?" badge, ★ / ☆, arrows, ticks on placed pieces */
+.colorblind .lg-cell.m1 {
+  color: #d55e00;
+  background: #fbe6d6;
+}
+.colorblind .lg-cell.m2 {
+  color: #0072b2;
+  background: #d9ebf7;
+}
+.colorblind .lg-cell.bad {
+  color: #000;
+  background: #f0e442;
+}
+.colorblind .rd-choice.right,
+.colorblind .rd-input.right {
+  background: #cfe6f7 !important;
+}
+.colorblind .jg-piece.home {
+  border-color: #0072b2;
+}
+.colorblind .jg-piece.home::after {
+  background: #0072b2;
+}
+.colorblind .sq-dot.done {
+  background: #0072b2;
+}
+.colorblind .sl-block.key::before {
+  background: linear-gradient(#56b4e9, #0072b2);
+}
+.colorblind .sl-exit {
+  color: #0072b2;
+}
+.colorblind .cb-star.gold {
+  color: #e69f00;
 }
