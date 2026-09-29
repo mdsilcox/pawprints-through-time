@@ -1,4 +1,5 @@
 import { h, clear } from './dom';
+import { audio } from '../audio/audio';
 
 /**
  * DOM overlay UI. All menus, dialogue, HUD and puzzles are HTML on top of the Phaser canvas:
@@ -43,7 +44,7 @@ class UIManager {
     this.screensLayer = h('div', { class: 'layer screens-layer' });
     this.toastLayer = h('div', { class: 'layer toast-layer' });
     this.topLayer = h('div', { class: 'layer top-layer' });
-    root.append(this.hud, this.touchLayer, this.screensLayer, this.toastLayer, this.topLayer);
+    root.append(this.touchLayer, this.hud, this.screensLayer, this.toastLayer, this.topLayer);
     root.addEventListener('pointerdown', () => this.setKeyboardNav(false), true);
   }
 
@@ -154,8 +155,11 @@ class UIManager {
     const active = document.activeElement as HTMLElement | null;
     // Let custom widgets (sliders, grids) consume directions first.
     if (active?.dataset.navDir && screen.el.contains(active)) {
-      active.dispatchEvent(new CustomEvent('navdir', { detail: dir }));
-      if (active.dataset.navDir === 'consume') return;
+      const horizontal = dir === 'left' || dir === 'right';
+      if (active.dataset.navDir === 'consume' || (active.dataset.navDir === 'horizontal' && horizontal)) {
+        active.dispatchEvent(new CustomEvent('navdir', { detail: dir }));
+        return;
+      }
     }
     if (screen.onDir?.(dir) === true) return;
     const els = this.focusables(screen);
@@ -199,6 +203,7 @@ class UIManager {
       }
     }
     if (best) {
+      audio.sfx('blip');
       best.focus({ preventScroll: false });
       best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
@@ -206,9 +211,11 @@ class UIManager {
 
   confirm(): void {
     const screen = this.top;
-    if (!screen || this.locked) return;
+    if (!screen) return;
     this.setKeyboardNav(true);
+    // Custom handlers (e.g. dialogue skip) decide about the anti-double-press lock themselves.
     if (screen.onConfirm?.() === true) return;
+    if (this.locked) return;
     const active = document.activeElement as HTMLElement | null;
     if (active && screen.el.contains(active)) active.click();
   }
@@ -216,7 +223,7 @@ class UIManager {
   back(): void {
     const screen = this.top;
     if (!screen) return;
-    if (screen.onBack) {
+    if (screen.onBack && !this.locked) {
       screen.onBack();
     }
   }
@@ -239,6 +246,7 @@ export function button(
       onclick: (e: Event) => {
         e.stopPropagation();
         if (b.disabled || ui.locked) return;
+        audio.sfx('select');
         onClick();
       },
     },

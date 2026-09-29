@@ -29,6 +29,14 @@ export interface BuiltMap {
   objects: MapObject[];
 }
 
+export interface Zone {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface MapDef {
   id: string;
   name: string;
@@ -41,6 +49,8 @@ export interface MapDef {
   /** render layer style keys, bottom to top */
   layers: string[];
   spawns: Record<string, SpawnPoint>;
+  /** named areas; entering one sets the `visited:<id>` flag */
+  zones?: Zone[];
   build(): BuiltMap;
 }
 

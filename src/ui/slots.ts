@@ -43,7 +43,7 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
             h('div', { class: 'slot-sub small' }, formatPlayTime(s.playTimeMs)),
           )
         : h('div', { class: 'slot-info' }, h('div', { class: 'slot-title' }, 'Empty slot'), h('div', { class: 'slot-sub' }, 'A brand-new adventure'));
-      return button(
+      const main = button(
         h('div', { class: 'slot-card-inner' }, h('div', { class: 'slot-num' }, String(s.slot)), body),
         async () => {
           if (mode === 'new' && s.exists) {
@@ -54,6 +54,21 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
         },
         { cls: 'slot-card', disabled, testid: `slot-${s.slot}` },
       );
+      const del =
+        mode === 'load' && s.exists
+          ? button(
+              '🗑',
+              async () => {
+                const ok = await confirmDialog(`Delete the adventure in slot ${s.slot} (${s.p1Name})? This can't be undone.`, 'Delete it', 'Keep it');
+                if (!ok) return;
+                await app.saves.delete(s.slot);
+                ui.pop('slots');
+                resolve(await pickSlot(mode));
+              },
+              { cls: 'secondary slot-del', testid: `slot-del-${s.slot}` },
+            )
+          : null;
+      return h('div', { class: 'slot-row' }, main, del);
     };
     const el = h(
       'div',

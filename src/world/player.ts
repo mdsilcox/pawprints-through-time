@@ -22,6 +22,8 @@ export class PlayerEntity {
   textureKey = '';
   /** extra visual offset (e.g. jumps) */
   hop = 0;
+  onStep: (() => void) | null = null;
+  private lastStepFrame = -1;
 
   static readonly FEET: Omit<Box, 'x' | 'y'> = { hw: TILE * 0.26, hh: TILE * 0.14 };
   static readonly SPEED = TILE * 3.7; // world units per second
@@ -68,6 +70,9 @@ export class PlayerEntity {
     this.moving = moving;
     if (moving) this.animT += dtMs * (this.speedMult > 1.2 ? 1.5 : 1);
     else this.animT = 0;
+    const stepFrame = moving ? Math.floor(this.animT / 260) : -1;
+    if (stepFrame !== this.lastStepFrame && stepFrame >= 0) this.onStep?.();
+    this.lastStepFrame = stepFrame;
     this.bob = moving ? Math.abs(Math.sin((this.animT / 260) * Math.PI)) * -3 : 0;
     this.container.setPosition(this.x, this.y);
     this.sprite.y = this.bob - this.hop;

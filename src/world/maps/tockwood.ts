@@ -93,7 +93,7 @@ function objects(): MapObject[] {
   add('bench', 33.5, 24.6, { texture: 'prop-bench' });
   add('flowerbed', 25.5, 17.2, { texture: 'prop-flowerbed' });
   add('flowerbed', 35.5, 17.2, { texture: 'prop-flowerbed' });
-  add('sign', 28.6, 26.4, { texture: 'prop-sign', p: { text: 'Tockwood Plaza — clocktower north, beach south, meadow west.' } });
+  o.push({ id: 'plaza-sign', kind: 'sign', x: 28.6, y: 26.4, texture: 'prop-sign', p: { text: ['Welcome to TOCKWOOD PLAZA!', 'North: the old clocktower. South: the beach and the dock. West: the meadow and the bunny warren. East: the museum and the lanes.'] } });
   add('stall', TW.rocco.x, TW.rocco.y, { texture: 'prop-stall', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
   add('stall-garden', TW.juniper.x, TW.juniper.y, { texture: 'prop-stall-green', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
 
@@ -188,6 +188,13 @@ registerMap({
   music: 'tockwood',
   bg: '#6cc4d8',
   layers: ['foam', 'sand', 'grass', 'path', 'plaza'],
+  zones: [
+    { id: 'plaza', x: 24, y: 16, w: 13, h: 9 },
+    { id: 'beach', x: 14, y: 34, w: 34, h: 6 },
+    { id: 'meadow', x: 5, y: 23, w: 12, h: 12 },
+    { id: 'dock', x: 30, y: 40, w: 2, h: 6 },
+    { id: 'woods', x: 12, y: 4, w: 36, h: 6 },
+  ],
   spawns: {
     start: { x: 30.5, y: 43.5, facing: 'up' },
     plaza: { x: 30.5, y: 23.5, facing: 'down' },

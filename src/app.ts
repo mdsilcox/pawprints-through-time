@@ -13,6 +13,8 @@ export interface AppEvents extends Record<string, unknown> {
   'play-start': { slot: number };
   'play-end': { reason: string };
   'two-player': boolean;
+  reminder: boolean;
+  'map-changed': string;
 }
 
 /**

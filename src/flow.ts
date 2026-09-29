@@ -1,5 +1,7 @@
 import { app } from './app';
 import { ui } from './ui/ui';
+import { askNames } from './ui/newGame';
+import { audio } from './audio/audio';
 
 /** High-level game flow: title <-> play. */
 
@@ -11,9 +13,15 @@ export function switchToWorld(): void {
   app.markPlayStart();
 }
 
-export async function startNewGame(slot: number): Promise<void> {
-  await app.newGame(slot);
+export async function startNewGame(slot: number): Promise<boolean> {
+  const names = await askNames();
+  if (!names) return false;
+  await app.newGame(slot, (d) => {
+    d.players[0].name = names.p1;
+    d.players[1].name = names.p2;
+  });
   switchToWorld();
+  return true;
 }
 
 export async function continueGame(slot: number): Promise<void> {
@@ -29,4 +37,5 @@ export async function returnToTitle(reason = 'quit'): Promise<void> {
   const sm = app.phaser.scene;
   for (const s of sm.getScenes(true)) if (s.scene.key !== 'title') sm.stop(s.scene.key);
   sm.start('title');
+  audio.music('title');
 }

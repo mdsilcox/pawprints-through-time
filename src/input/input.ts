@@ -113,7 +113,8 @@ export class InputManager {
     this.setDevice('kb');
     if (!e.repeat) {
       this.keys.add(e.code);
-      this.pressedKeys.add(e.code);
+      // A press that goes to a menu must not also count as a gameplay press next frame.
+      if (!this.menuMode) this.pressedKeys.add(e.code);
     }
     if (this.menuMode) {
       // We activate the focused button ourselves; stop the browser's own Enter/Space click

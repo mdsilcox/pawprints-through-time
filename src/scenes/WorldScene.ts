@@ -10,6 +10,8 @@ import { getMap, type MapDef, type MapObject } from '../world/mapdef';
 import { PlayerEntity, type Facing4 } from '../world/player';
 import { frameZoom, maxSeparation, midpoint, tether, type FrameOpts, type Pt } from '../world/cameraMath';
 import { toast, ui } from '../ui/ui';
+import { talk } from '../ui/dialogue';
+import { audio, type Sfx } from '../audio/audio';
 import { hud } from '../ui/hud';
 import '../world/maps/tockwood';
 
@@ -103,6 +105,9 @@ export class WorldScene extends Phaser.Scene {
     hud.setWorld(this);
     this.cameras.main.fadeIn(350, 255, 244, 224);
     this.saveLocation();
+    this.playMusic();
+    this.players.forEach((p) => (p.onStep = () => audio.sfx(this.surfaceAt(p.x, p.y), { vol: 0.8 })));
+    app.events.emit('map-changed', this.def.id);
   }
 
   // ------------------------------------------------------------------ building the map
@@ -221,14 +226,46 @@ export class WorldScene extends Phaser.Scene {
           y: o.y * TILE + TILE * 0.2,
           radius: TILE * 0.9,
           label: 'Read',
-          run: () => toast(o.p!.text, { icon: '🪧', ms: 3500 }),
+          run: async () => {
+            await talk('narrator', o.p!.text);
+            app.setFlag('read:' + o.id);
+          },
         });
       }
     }
   }
 
   private enterDoor(o: MapObject): void {
-    toast(`${o.p?.label ?? 'This door'} opens soon!`, { icon: '🚪' });
+    audio.sfx('door');
+    toast((o.p?.label ?? 'This door') + ' opens soon!', { icon: '🚪' });
+  }
+
+  private zoneState = new Map<string, boolean>();
+  private checkZones(): void {
+    const zones = this.def.zones;
+    if (!zones || !app.data) return;
+    for (const z of zones) {
+      const inside = this.players.some((p) => p.x >= z.x * TILE && p.x < (z.x + z.w) * TILE && p.y >= z.y * TILE && p.y < (z.y + z.h) * TILE);
+      const was = this.zoneState.get(z.id) ?? false;
+      if (inside && !was) {
+        if (!app.data.flags['visited:' + z.id]) app.setFlag('visited:' + z.id);
+        this.events.emit('zone', z.id);
+      }
+      this.zoneState.set(z.id, inside);
+    }
+  }
+
+  /** Surface under a world position, for footstep sounds. */
+  surfaceAt(x: number, y: number): Sfx {
+    const t = this.grid.get(Math.floor(x / TILE), Math.floor(y / TILE));
+    if (t === 'sand' || t === 'dune' || t === 'path') return 'step-sand';
+    if (t === 'dock' || t === 'deck' || t === 'floor') return 'step-wood';
+    if (t === 'plaza' || t === 'stone' || t === 'tile') return 'step-stone';
+    return 'step-grass';
+  }
+
+  playMusic(): void {
+    audio.music(this.def.music === 'tockwood' ? 'tockwood-day' : this.def.music);
   }
 
   private startPosition(): { x: number; y: number; facing: Facing4 } {
@@ -257,6 +294,7 @@ export class WorldScene extends Phaser.Scene {
     const spot = offsets.find((o) => !this.coll.overlaps({ x: p1.x + o.x, y: p1.y + o.y, ...PlayerEntity.FEET })) ?? { x: 0, y: 0 };
     const p2 = new PlayerEntity(this, 1, p1.x + spot.x, p1.y + spot.y, app.data!.players[1]);
     p2.facing = p1.facing;
+    p2.onStep = () => audio.sfx(this.surfaceAt(p2.x, p2.y), { vol: 0.6, pitch: 1.1 });
     this.players[1] = p2;
     this.players.forEach((p) => p.setMarkerVisible(true));
     if (announce) {
@@ -391,7 +429,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ frame update
   update(_time: number, deltaMs: number): void {
-    const dt = Math.min(deltaMs, 50) / 1000;
+    const dt = Math.min(deltaMs, 100) / 1000;
     const blocked = ui.blocking;
     const prev: Pt[] = this.players.map((p) => ({ x: p.x, y: p.y }));
     const next: Pt[] = [];
@@ -431,10 +469,12 @@ export class WorldScene extends Phaser.Scene {
     });
     this.drawTether();
     this.applyCamera();
+    this.checkZones();
     if (!blocked) {
       this.updatePrompt();
       for (const p of this.players) {
-        if (input.p[p.index].aPressed) {
+        // ui.locked: a menu/dialogue just closed — don't let the same press re-trigger something.
+        if (input.p[p.index].aPressed && !ui.locked) {
           const it = this.nearestInteractable(p);
           if (it) it.run(p.index);
         }

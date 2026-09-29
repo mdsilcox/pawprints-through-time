@@ -1,6 +1,16 @@
 # Progress log
 
-## M1 — Movement and controls ✅ (awaiting critic)
+## M2 — Core systems ✅ (awaiting critic)
+- Dialogue: portrait + name tag + type-on text with per-character voice blips; tap/action skips, then advances; choices (keyboard, pad, touch, either player); `{p1}/{p2}/{players}` name tokens; signs use it.
+- Quests & flags: quests are derived from save flags (always consistent with the save); HUD objective pill (tap → Adventure Log); step/quest-complete toasts + fanfare + autosave; rewards run once. First side quest: "Explore Tockwood Isle" (plaza, signpost, beach, meadow → 10 Tockens).
+- Saves: 3 IndexedDB slots with names ("Who's adventuring today?" on New Game, dice for random names), Continue/Load/delete (with confirm), manual save in the pause menu, autosave every minute, on quest progress, when Pip's reminder appears, and whenever the app is backgrounded/closed.
+- Pause menu: tile grid (systems register their tiles as they land — Adventure Log and Settings now) + Resume / Player 2 join-leave / Save / Save & quit. The world freezes while any menu is open.
+- Settings (from the title or the pause menu): master/music/effects volume + mute, text speed, playtime reminder (15/30/45/60/90, default 45, cannot be switched off), late-night nudge, colourblind-friendly colours, reduce motion, puzzle difficulty, touch controls auto/on/off, controls guide. Persisted in localStorage; sliders/toggles work with keyboard, gamepad and touch.
+- Playtime reminder: pure `SessionTimer` (unit-tested: 45-min default, snooze ×2 then firm-but-skippable, backgrounding pauses the count, a ≥10-minute background or break starts a fresh session, a quick return after "Take a break" keeps the session, interval changes, late-night detection). Pip flutters in over a starry backdrop, the game autosaves, "Take a break" shows a gentle goodbye with break ideas and returns to the title.
+- Audio engine: Web Audio synth instruments (bell, marimba, pluck, piano, flute, fiddle, accordion, organ, bass, pad, brass...) + drums, lookahead sequencer with a note-string DSL, original songs for the title, Tockwood day/night, interiors, clocktower and the Burrow; SFX incl. UI blips, footsteps per surface (grass/sand/wood/stone), corgi bark, sparkles, portal whoosh, bowling pins, dance hits.
+- Fixed along the way: skipping type-on could stall a line; a key that closed a menu leaked into gameplay (re-opening the sign); on phones the touch layer covered the HUD objective.
+
+## M1 — Movement and controls ✅ (critic review in progress)
 - Tockwood Isle (60×46 cells): island, beach, dock, plaza with fountain, clocktower, cottage + garden plots, tailor, museum, bowling alley (closed), the old oak (Bubbling Burrow), meadow + warren mounds, north woods. Already in the house art style (not just graybox).
 - Terrain: dual-grid autotiling (16 variants per layer: foam, sand, grass, path, plaza) with extruded tilesets (no seams), dock planks, scattered decor (tufts, flowers, shells) via a Blitter; props depth-sorted by their base.
 - Paper-doll characters (one rig, 16 poses incl. walk cycles, dance and bowling poses) with clothing layers; P1 and P2 look different.

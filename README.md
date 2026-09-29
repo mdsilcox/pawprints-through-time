@@ -50,7 +50,11 @@ The game is a Progressive Web App. Browsers only install PWAs from an HTTPS addr
 
 ## Playtime reminder
 
-Pip gently suggests a break after 45 minutes of play by default. Change it in **Pause → Settings → Playtime reminder** (15, 30, 45, 60 or 90 minutes).
+Pip gently suggests a break after 45 minutes of play by default. Change it in **Pause → Settings → Playtime reminder** (15, 30, 45, 60 or 90 minutes) — or from **Settings** on the title screen. The reminder can't be switched off.
+
+- **Take a break** saves the game and says goodbye. **Five more minutes** works twice; after that Pip asks more firmly (you can still keep playing, but she'll check in every 5 minutes).
+- Time only counts while the game is on screen. Putting the phone down for 10+ minutes counts as a real break and starts fresh.
+- After 9 PM (by the device clock) Pip also gives one gentle "it's getting late" nudge per session (can be turned off in Settings).
 
 ## Project docs
 

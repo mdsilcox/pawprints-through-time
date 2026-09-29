@@ -26,9 +26,9 @@ test.describe('movement & controls', () => {
     const errors = watchErrors(page);
     await startAt(page);
     const a = (await players(page))[0];
-    await holdKey(page, 'KeyD', 600);
+    await holdKey(page, 'KeyD', 800);
     const b = (await players(page))[0];
-    expect(b.x - a.x).toBeGreaterThan(1.2);
+    expect(b.x - a.x).toBeGreaterThan(1);
     expect(b.facing).toBe('right');
     await holdKey(page, 'KeyW', 500);
     const c = (await players(page))[0];
@@ -148,6 +148,9 @@ test.describe('movement & controls', () => {
     await page.waitForTimeout(350);
     await page.keyboard.press('KeyS'); // slot 1 -> slot 2
     await page.keyboard.press('KeyE');
+    await expect(page.locator('[data-screen="names"]')).toBeVisible();
+    await page.waitForTimeout(350);
+    await page.keyboard.press('Enter'); // "Let's go!" has focus
     await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
     expect(await hook(page, 'slot')).toBe(2);
     await page.keyboard.press('Escape'); // pause

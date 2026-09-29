@@ -79,6 +79,79 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'dialogue',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [29.2, 27]);
+      await page.keyboard.press('KeyE');
+      await wait(1600);
+    },
+  },
+  {
+    name: 'choice',
+    players: [2],
+    run: async (page) => {
+      await play(page, 2, [30.5, 23]);
+      page.evaluate(() => window.__game.ask('pip', 'Oh my whiskers! Will {players} help me fix the Great Hourglass?', ['Of course we will!', 'What happened?'])).catch(() => {});
+      await wait(2200);
+    },
+  },
+  {
+    name: 'settings',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 23]);
+      await g(page, 'openSettings');
+      await wait(500);
+    },
+  },
+  {
+    name: 'reminder',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players, [30.5, 23]);
+      await g(page, 'fastForward', 45 * 60000);
+      await wait(1400);
+    },
+  },
+  {
+    name: 'reminder-firm',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 23]);
+      for (let i = 0; i < 2; i++) {
+        await g(page, 'triggerReminder');
+        await wait(500);
+        await page.click('[data-testid="reminder-snooze"]');
+        await wait(400);
+      }
+      await g(page, 'triggerReminder');
+      await wait(1400);
+    },
+  },
+  {
+    name: 'questlog',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [30.5, 23]);
+      await wait(600);
+      await page.click('[data-testid="hud-objective"]');
+      await wait(500);
+    },
+  },
+  {
+    name: 'names',
+    run: async (page) => {
+      await boot(page);
+      await page.click('[data-testid="title-new"]');
+      await page.waitForSelector('[data-screen="slots"]');
+      await wait(400);
+      await page.click('[data-testid="slot-1"]');
+      await page.waitForSelector('[data-screen="names"]');
+      await wait(400);
+    },
+  },
+  {
     name: 'pause',
     players: [1, 2],
     run: async (page, players) => {

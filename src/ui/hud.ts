@@ -10,6 +10,8 @@ import type { WorldScene } from '../scenes/WorldScene';
 class Hud {
   el!: HTMLElement;
   private place!: HTMLElement;
+  private objective!: HTMLButtonElement;
+  onObjective: () => void = () => undefined;
   private p2Btn!: HTMLButtonElement;
   private pauseBtn!: HTMLButtonElement;
   touch: TouchControls | null = null;
@@ -45,7 +47,15 @@ class Hud {
       },
       h('span', { class: 'pause-glyph' }, '❚❚'),
     );
-    this.el = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-left' }, this.place), h('div', { class: 'hud-right' }, this.p2Btn, this.pauseBtn));
+    this.objective = h('button', {
+      class: 'hud-objective hidden',
+      attrs: { type: 'button', 'data-testid': 'hud-objective' },
+      onclick: (e: Event) => {
+        e.stopPropagation();
+        this.onObjective();
+      },
+    });
+    this.el = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-left' }, this.place, this.objective), h('div', { class: 'hud-right' }, this.p2Btn, this.pauseBtn));
     ui.hud.appendChild(this.el);
     ui.onChange(() => this.sync());
   }
@@ -61,6 +71,18 @@ class Hud {
     this.p2Btn.classList.toggle('on', on);
     this.p2Btn.title = on ? 'Player 2: leave' : 'Player 2: join';
     this.touch?.setTwoPlayer(on);
+  }
+
+  setObjective(text: string | null, icon = '📍'): void {
+    if (!this.objective) return;
+    const t = text ? icon + ' ' + text : '';
+    if (this.objective.textContent !== t) {
+      this.objective.textContent = t;
+      this.objective.classList.remove('pop');
+      void this.objective.offsetWidth;
+      if (text) this.objective.classList.add('pop');
+    }
+    this.objective.classList.toggle('hidden', !text);
   }
 
   setActionLabel(player: 0 | 1, label: string | null): void {

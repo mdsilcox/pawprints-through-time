@@ -30,3 +30,10 @@ One line each: decision — reason.
 - Player 2 is not remembered between sessions; they drop in each time (pause menu, 👥 button, or Start on a second gamepad) — avoids an idle second character when one child plays alone.
 - Soft tether: separation movement slows from 80% of the on-screen limit and stops at 100%; moving back together is never limited — nobody gets dragged.
 - Enter/Space in menus are handled only by our input layer (native button activation suppressed) — prevents double activation.
+- Playtime reminder counts while the in-game pause menu is open (the family is still at the screen) but not while the app is backgrounded; a ≥10-minute absence counts as a real break and starts a fresh session — matches "how long have we been looking at this screen".
+- After "Take a break", coming back within 10 minutes continues the same session (reminder returns 5 minutes later) — the reminder can't be dodged by quitting and continuing.
+- After the firm reminder, "Keep playing" is allowed but Pip returns every 5 minutes — spec: firmer but still lets them continue.
+- Late-night nudge shows once per session after 9 PM (device clock), can be turned off in Settings (the 45-minute reminder itself cannot).
+- Quests are computed from save flags rather than stored as separate state — no way for quest progress and the world to disagree after loads/migrations.
+- Story/dialogue scripts are plain async TypeScript functions (`await talk(...)`, `await ask(...)`) — full control flow, easy to test, no custom script language to debug.
+- Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.

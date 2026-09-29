@@ -3,6 +3,8 @@ import { startNewGame, continueGame } from '../flow';
 import { h } from './dom';
 import { pickSlot } from './slots';
 import { button, ui } from './ui';
+import { openSettings } from './settingsScreen';
+import { audio } from '../audio/audio';
 
 export async function showTitleMenu(): Promise<void> {
   ui.pop('title');
@@ -33,7 +35,9 @@ export async function showTitleMenu(): Promise<void> {
           { icon: '📖', cls: 'secondary', testid: 'title-load' },
         )
       : null,
+    button('Settings', () => openSettings(), { icon: '⚙️', cls: 'secondary', testid: 'title-settings' }),
   );
+  audio.music('title');
 
   const el = h(
     'div',
