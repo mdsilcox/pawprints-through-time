@@ -180,6 +180,56 @@ S.pirate = () => {
   };
 };
 
+// ---------------------------------------------------------------- the hornpipe dance-off: a bouncy 4/4 sailor's dance in D
+S.hornpipe = () => {
+  const bars = ['D', 'G', 'D', 'A', 'D', 'G', 'A', 'D'];
+  return {
+    id: 'hornpipe',
+    bpm: 112,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'fiddle',
+        vol: 0.85,
+        lead: true,
+        notes: mel(`
+          D5 - F#5 A5 D6 - A5 F#5 | G5 - B5 D6 E6 - D6 B5 | A5 - F#5 D5 E5 F#5 G5 E5 | F#5 - D5 - A4 - . . |
+          D5 - F#5 A5 B5 - A5 F#5 | G5 A5 B5 G5 E5 - C#5 E5 | D5 F#5 E5 C#5 A4 - B4 C#5 | D5! - A4! - D5! - . . `),
+      },
+      { inst: 'accordion', vol: 0.42, notes: comp(bars, 8, 'offbeat', 4, 0.5) },
+      { inst: 'bass', vol: 0.7, notes: bassline(bars, 8, 'rootfifth', 2) },
+      { vol: 0.45, drums: [...beat('x...x...', 'kick', 0.55, 8), ...beat('..x...x.', 'stomp', 0.5, 8), ...beat('xxxxxxxx', 'shaker', 0.3, 8)] },
+    ],
+  };
+};
+
+// ---------------------------------------------------------------- the dance floor at home: Tockwood's own little jig (plaza dancing)
+S['plaza-dance'] = () => {
+  const bars = ['C', 'F', 'G', 'C', 'Am', 'F', 'G', 'C'];
+  return {
+    id: 'plaza-dance',
+    bpm: 108,
+    spb: 2,
+    beatsPerBar: 4,
+    bars: 8,
+    tracks: [
+      {
+        inst: 'marimba',
+        vol: 0.85,
+        lead: true,
+        notes: mel(`
+          C5 - E5 G5 C6 - G5 E5 | F5 - A5 C6 A5 - F5 A5 | G5 - B4 D5 G5 - F5 D5 | E5 - C5 - G4 - . . |
+          A4 - C5 E5 A5 - E5 C5 | F5 - A5 G5 F5 - E5 D5 | B4 D5 G5 F5 D5 - B4 D5 | C5! - G4! - C5! - . . `),
+      },
+      { inst: 'pluck', vol: 0.4, notes: comp(bars, 8, 'offbeat', 4, 0.5) },
+      { inst: 'bass', vol: 0.65, notes: bassline(bars, 8, 'rootfifth', 2) },
+      { vol: 0.42, drums: [...beat('x...x...', 'kick', 0.5, 8), ...beat('..x...x.', 'clap', 0.45, 8), ...beat('.x.x.x.x', 'shaker', 0.3, 8)] },
+    ],
+  };
+};
+
 void loop;
 
 const cache = new Map<string, Song>();

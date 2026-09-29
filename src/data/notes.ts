@@ -15,7 +15,7 @@ export const NOTES: HistoryNote[] = [
     id: 'pirate-golden-age',
     era: 'pirate',
     title: 'The Golden Age of Piracy',
-    text: 'Historians call the years from about the 1650s to the 1720s the “Golden Age of Piracy”. Many pirate ships sailed the warm Caribbean Sea.',
+    text: 'Historians call the years from about the 1650s to the 1730s the “Golden Age of Piracy”. Many pirate ships sailed the warm Caribbean Sea.',
   },
   {
     id: 'pirate-articles',
@@ -28,6 +28,12 @@ export const NOTES: HistoryNote[] = [
     era: 'pirate',
     title: 'Pieces of eight',
     text: '“Pieces of eight” were silver coins from Spain. Each one was worth eight smaller coins called reales.',
+  },
+  {
+    id: 'pirate-hornpipe',
+    era: 'pirate',
+    title: 'The sailor’s hornpipe',
+    text: 'Sailors danced hornpipes on deck — a lively dance that needs very little room. Some steps copy sailors’ jobs, like hauling ropes and climbing the rigging.',
   },
   {
     id: 'pirate-hardtack',

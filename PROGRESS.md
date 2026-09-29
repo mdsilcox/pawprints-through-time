@@ -1,5 +1,17 @@
 # Progress log
 
+## M7 — Dancing ✅ (awaiting critic)
+- A rhythm mini-game on its own dance floor: arrows fall toward a row of rings in time with synthesized music; press the matching direction (arrows / WASD / d-pad) or tap the lane as each one lands. Perfect / Great / Good / Oops pop-ups, combos with a bonus, a song-progress bar, and a count-in ("Ready? 3, 2, 1, Dance!").
+- Everyone visibly dances in their current outfits: each hit makes your character strike the move (arms up, side steps, a squat, a clap every 10 in a row), Biscuit bounces along on every beat (and leaps on big combos), watching neighbours bob to the music, and rescued Hopkins cousins hop along beside the floor.
+- Timing comes from the audio clock (a performance clock takes over if sound isn't running), so arrows never drift from the music; any menu — the pause menu, Pip's reminder — freezes the song and the arrows, and they carry on exactly where they stopped.
+- Levels: Easy (an arrow every other beat, roomy timing, never the same arrow three times running), Medium (every beat), Tricky (every note of the melody, tighter timing) — plus "Just dance": no scores, nothing to fail, only "Yay!"s. Charts are made from each song's lead melody, so the arrows follow the tune (up when it climbs, down when it falls). The setup card remembers your choice. Tick-Tock Tomato makes the timing windows 45% roomier.
+- 2-player: both players dance side by side, each with their own lanes (P1 WASD on the left, P2 arrows on the right; each taps their own lanes on a touchscreen) and their own score; the results card shows both.
+- The pirate hornpipe is part of the pirate chapter: after the torn map is whole, Marigold explains that nobody takes the wheel until they've danced the hornpipe with Cookie, the crew's champion. Beat Cookie's score (or pick "Just dance") to win the crew's respect — then Cookie shares her Pirate's Gumbo secret. Lose, and Cookie cheers you on to try again. A new quest step, a History Note about the sailor's hornpipe, and the ship's wheel waits for the dance.
+- Tockwood's dance floor in the plaza: dance the Tockwood Jig any time (from the very start of the game), and every dance learned on your travels (the hornpipe after the pirate chapter), with Bramble, Juniper and Rocco watching.
+- Two original songs: a bouncy 4/4 hornpipe in D (fiddle, accordion, stomps) and the Tockwood Jig (marimba and claps). Painted backdrops: the Sunny Marigold's deck at sunset, and the plaza under lanterns and bunting.
+- Colour-blind setting: the lanes switch to an Okabe–Ito palette (the arrows' directions are the main cue anyway).
+- Tests: unit (charts follow the beat and get busier by level, easy never repeats an arrow three times, timing windows, Tick-Tock widening, combos, stars, a rival who's always beatable); browser: the plaza floor with real key timing (hits judged, the dancer strikes the move, results, back to the world), two players with separate scores, "Just dance" + pausing mid-song, the hornpipe dance-off lost then won (quest flag, history note); the full pirate chapter playthrough now includes the dance-off (1P desktop, 2P phone).
+
 ## M6 — The Golden Age of Piracy (vertical slice) ✅ (awaiting critic)
 - The Map of Time: using the clocktower portal (once Pip has woken it) opens a scroll of eras along a river of time — The Golden Age of Piracy (the Caribbean, ~1715) is open; Ancient Egypt and the 1950s open once the first Time Sand is home ("Coming soon" until their chapters land), Renaissance Florence after both. Travelling is a little portal cutscene with Pip; a portal on each era's beach brings everyone home.
 - Four new maps in the house style, with golden-hour light and a 6/8 jig on fiddle and accordion: Sandy Cove (market with Coco's fruit stall, salt pans, Captain Saltwhistle's camp, the pier and the walkable deck of the Sunny Marigold — mast, wheel, captain's map table, galley, cargo hatch), the cargo hold below deck, Treasure Island (beach, palms, a rocky hill with a carved stone door) and the torch-lit treasure cave. ~14 new props drawn procedurally (hull, mast, wheel, galley stove, map table, hatch, salt pan, bottle, barrel jam, rowboat, stone door closed/open, fruit stall, wall torch).
@@ -110,7 +122,6 @@
 - `node scripts/shots.mjs <milestone>` captures review screenshots.
 
 ## Next
-- M7: dancing (rhythm mini-game, the pirate hornpipe dance-off woven into the chapter before sailing, 2P side by side, difficulties).
 - M8: 1950s America and bowling (full scoring, 2P turns, tournament, sock hop, Tockwood Lanes unlock) + the all-features checkpoint playthrough.
 - Polish queued: outfit reactions (Bramble / Biscuit), Player 2's wardrobe tab from pad 2, a look picker on the names screen.
 

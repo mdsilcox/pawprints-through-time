@@ -165,6 +165,11 @@ class AudioEngine {
     return this.ctx?.currentTime ?? performance.now() / 1000;
   }
 
+  /** True when the audio clock is ticking (a suspended context stands still). */
+  get running(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
   // ---------------------------------------------------------------- sound effects
   sfx(name: Sfx, opts: { pitch?: number; vol?: number } = {}): void {
     this.played[name] = (this.played[name] ?? 0) + 1;

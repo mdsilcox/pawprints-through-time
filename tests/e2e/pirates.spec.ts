@@ -133,8 +133,18 @@ test.describe('the Golden Age of Piracy', () => {
     expect(await flag(page, 'map:whole')).toBe(true);
     expect((await hook<any>(page, 'state')).wardrobe).toContain('tricorn');
 
-    // ---- Cookie's gumbo: clue, ingredients, the galley pot
-    await talkTo(page, 'cookie');
+    // ---- the crew's respect: a hornpipe dance-off with Cookie (then her gumbo secret)
+    await talkTo(page, 'cookie'); // "Let's dance!"
+    await expect(page.getByTestId('dance-setup')).toBeVisible();
+    await hook(page, 'danceAuto', true);
+    await press(page, '[data-testid="dance-start"]');
+    await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 90_000 });
+    await hook(page, 'danceAuto', false);
+    await expect(page.getByTestId('dance-results')).toHaveAttribute('data-won', 'true');
+    if (two) await expect(page.getByTestId('dance-result-p2')).toBeVisible();
+    await press(page, '[data-testid="dance-done"]');
+    await playThrough(page, 60_000);
+    expect(await flag(page, 'crew:respect')).toBe(true);
     expect((await hook<any>(page, 'soupBook')).clues).toContain('pirates-gumbo');
     await useAt(page, 12, 20.5, 'Gather salt');
     await playThrough(page);

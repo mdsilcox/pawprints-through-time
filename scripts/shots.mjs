@@ -566,6 +566,56 @@ const SCENARIOS = [
       await wait(900);
     },
   },
+  // ---------------------------------------------------------------- M7: dancing
+  {
+    name: 'dance-setup',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [26.4, 22.4]);
+      await g(page, 'openDance', 'jig');
+      await wait(700);
+    },
+  },
+  {
+    name: 'dance-plaza',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players, [26.4, 22.4]);
+      await g(page, 'openDance', 'jig', null, ['bramble', 'juniper', 'rocco']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(7400);
+    },
+  },
+  {
+    name: 'dance-deck',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const f of ['pip:companion', 'cove:arrived', 'crew:aboard', 'map:whole']) await g(page, 'setFlag', f, true);
+      await g(page, 'goTo', 'cove', 'from-isle');
+      await wait(1600);
+      await g(page, 'openDance', 'hornpipe', 'cookie', ['marigold', 'pepper']);
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await wait(8600);
+    },
+  },
+  {
+    name: 'dance-results',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [26.4, 22.4]);
+      await g(page, 'openDance', 'jig');
+      await wait(600);
+      await page.click('[data-testid="dance-start"]');
+      await g(page, 'danceAuto', true);
+      await page.waitForSelector('[data-testid="dance-results"]', { timeout: 90000 });
+      await wait(900);
+    },
+  },
   {
     name: 'notes',
     players: [1],

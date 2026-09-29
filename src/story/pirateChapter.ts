@@ -12,6 +12,7 @@ import { equip, grant, owns } from '../core/wardrobe';
 import { input } from '../input/input';
 import { CLOTHES_BY_ID } from '../data/clothes';
 import { findScrap } from './treasureScraps';
+import { dance } from '../dance/openDance';
 import { SCRAPS } from '../data/scraps';
 import type { SaveData } from '../core/state';
 
@@ -276,6 +277,10 @@ onTalk('marigold', async ({ world }) => {
     ]);
     return;
   }
+  if (!flag('crew:respect')) {
+    await talk('marigold', 'A Sunny Marigold tradition: dance the hornpipe with Cookie, and the crew will follow you anywhere!');
+    return;
+  }
   if (!d.recipes.includes('pirates-gumbo')) {
     await talk('marigold', ['To Treasure Island! ...Through the Swirling Shoals. Gulp.', 'Nobody sails the Shoals without a belly full of Pirate’s Gumbo. Ask Cookie in the galley!']);
     return;
@@ -377,6 +382,26 @@ onTalk('cookie', async () => {
     learnNote('pirate-hardtack');
     setFlag('met:cookie');
   }
+  if (flag('map:whole') && !flag('crew:respect')) {
+    const pick = await ask('cookie', flag('hornpipe:tried') ? 'Squeak! Ready for another hornpipe?' : 'Squeak! So you want to sail with us? Then show me your HORNPIPE! A dance-off, right here on deck!', ['Let’s dance!', 'Not yet']);
+    if (pick !== 0) return;
+    setFlag('hornpipe:tried');
+    const o = await dance({ style: 'hornpipe', rival: 'cookie', audience: ['marigold', 'pepper'], title: '💃 Hornpipe Dance-off!', blurb: 'Dance the Sailor’s Hornpipe against Cookie — the whole crew is watching!' });
+    if (!o?.finished) return;
+    if (!o.won) {
+      await talk('cookie', ['Squeak! So close! Sailors practise their hornpipe for years, you know.', 'Try again whenever you like — I’ll be right here!']);
+      return;
+    }
+    setFlag('crew:respect');
+    befriend('cookie', 20);
+    await cutscene(async () => {
+      audio.sfx('cheer');
+      await talk('cookie', 'SQUEAK! What footwork! You dance like true sailors!');
+      await talk('marigold', 'Three cheers for our new crew! Hip hip — HOORAY!');
+    });
+    learnNote('pirate-hornpipe');
+    giveTockens(15);
+  }
   if (flag('map:whole') && !app.data!.recipes.includes('pirates-gumbo')) {
     await talk('cookie', ['Sailing the Swirling Shoals? Then you need my famous Pirate’s Gumbo! It calms the stormiest seas.', 'Here’s the secret...']);
     learnClue('pirates-gumbo', 'cookie');
@@ -415,13 +440,20 @@ onUse('map-table', async ({ world }) => {
   const hats = grant(app.data!, 'tricorn');
   const pants = grant(app.data!, 'pantaloons');
   if (hats || pants) toast('You got Tricorn Hats and Sailor Pantaloons! (Wardrobe)', { icon: '🏴‍☠️' });
-  await talk('marigold', 'But the Shoals... they’ll spin us round like a top. Cookie will know what to do!');
+  await talk('marigold', [
+    'But nobody takes the wheel of the Sunny Marigold until they’ve danced the hornpipe with Cookie — she’s our champion!',
+    'Win the crew’s respect, and Cookie will tell you how we get through the Shoals.',
+  ]);
   void world;
 });
 
 onUse('ship-wheel', async ({ world }) => {
   if (!flag('map:whole')) {
     await talk('marigold', 'We can’t set sail without a map, shipmate! Find those pieces!');
+    return;
+  }
+  if (!flag('crew:respect')) {
+    await talk('marigold', ['The crew won’t follow a helmsman who hasn’t danced the hornpipe!', 'Show Cookie your best steps — she’s by the galley.']);
     return;
   }
   if (!hasEffect('calm')) {
@@ -566,6 +598,7 @@ registerQuest({
         !d.flags['map:saltwhistle'] ? { map: 'cove', x: 38.6, y: 8.6 } : !d.flags['map:pepper'] ? { map: 'cove', x: 28.6, y: 20.4 } : !d.flags['map:bottle'] ? { map: 'cove', x: 3.6, y: 13.4 } : { map: 'cove', x: 21, y: 18 },
     },
     { id: 'assemble', text: 'Put the map together at the captain’s table', done: (d) => !!d.flags['map:whole'], where: () => ({ map: 'cove', x: 32.4, y: 22.6 }) },
+    { id: 'dance', text: 'Win the crew’s respect: a hornpipe dance-off with Cookie', done: (d) => !!d.flags['crew:respect'], where: () => ({ map: 'cove', x: 39.4, y: 24.8 }) },
     { id: 'gumbo', text: 'Brew Pirate’s Gumbo in the ship’s galley', done: (d) => d.recipes.includes('pirates-gumbo'), where: () => ({ map: 'cove', x: 38.4, y: 25.2 }) },
     { id: 'sail', text: 'Eat the gumbo and sail through the Swirling Shoals', done: (d) => !!d.flags['isle:reached'], where: () => ({ map: 'cove', x: 40.6, y: 23.4 }) },
     { id: 'door', text: 'Open the stone door on Treasure Island', done: (d) => !!d.flags['isle:door'], where: () => ({ map: 'isle', x: 23.5, y: 7.4 }) },

@@ -72,6 +72,15 @@ class Hud {
     ui.onChange(() => this.sync());
   }
 
+  private dancing = false;
+
+  /** The dance floor takes the screen: only the HUD buttons (pause!) stay, and touch sticks hide. */
+  setDancing(on: boolean): void {
+    this.dancing = on;
+    this.el?.classList.toggle('dancing', on);
+    this.sync();
+  }
+
   setWorld(scene: WorldScene | null): void {
     this.world = scene;
     if (scene) {
@@ -132,7 +141,7 @@ class Hud {
     this.el?.classList.toggle('hidden', !inWorld);
     if (this.touch) {
       this.touch.setEnabled(this.touchWanted);
-      this.touch.setProfile(inWorld && !ui.blocking ? 'world' : 'none');
+      this.touch.setProfile(inWorld && !ui.blocking && !this.dancing ? 'world' : 'none');
     }
   }
 }

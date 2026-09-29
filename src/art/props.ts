@@ -230,6 +230,45 @@ export function lamp(): PropArt {
   return { cv, ox: 0.5, oy: 192 / 200 };
 }
 
+/** Tockwood's round wooden dance floor in the plaza, with a painted star (a floor-level prop). */
+export function danceFloor(): PropArt {
+  const cv = makeCanvas(280, 150);
+  const { ctx } = cv;
+  ctx.beginPath();
+  ctx.ellipse(140, 75, 132, 66, 0, 0, Math.PI * 2);
+  paint(ctx, '#d49a6a', OUTLINE);
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(140, 75, 128, 62, 0, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = '#b57a4e';
+  ctx.lineWidth = 3;
+  for (let x = 20; x < 280; x += 26) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, 150);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.beginPath();
+  ctx.ellipse(140, 75, 104, 50, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = '#fff4e0';
+  ctx.lineWidth = 5;
+  ctx.setLineDash([10, 10]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // a painted star in the middle
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const r = i % 2 ? 16 : 36;
+    ctx.lineTo(140 + Math.cos(a) * r * 1.3, 75 + Math.sin(a) * r * 0.62);
+  }
+  ctx.closePath();
+  paint(ctx, PAL.gold, 3);
+  return { cv, ox: 0.5, oy: 0.5 };
+}
+
 export function bench(): PropArt {
   const cv = makeCanvas(160, 90);
   const { ctx } = cv;
@@ -827,6 +866,7 @@ export const PROP_ART: Record<string, () => PropArt> = {
   'prop-rock': () => rock(),
   'prop-lamp': () => lamp(),
   'prop-bench': () => bench(),
+  'prop-dancefloor': () => danceFloor(),
   'prop-flowerbed': () => flowerbed(8),
   'prop-sign': () => signpost(),
   'prop-stall': () => stall('clocks'),

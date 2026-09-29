@@ -1,134 +1,139 @@
-# M5 Review — f648896
+# M5 Review — 21f88d9 (re-review 1; code at cc0d5b2; first review at f648896)
 
-**Verdict:** REVISE
+**Verdict:** PASS
 
-M5 is strong work:
-- All six puzzle kinds sit with a neighbour and are reachable by walking up and pressing E. I played every one through its real screen at both viewports, both by keyboard and by touch.
-- Player 2 can open and solve puzzles with the arrows, `/` and `.`.
-- The soup loop works in normal play: Juniper's seeds → garden → clover patch → Clover's cauldron → Glowbroth → the lit Glimmer Grotto chest.
-- The tests are meaningful.
+Both blockers are truly fixed, and I checked each by playing, not only by reading the new tests. All three top improvements and every smaller note from the first review landed as well.
 
-Two things block a PASS. Both are small to fix: a museum regression introduced by M5, and a colourblind setting that does nothing for the new puzzle colours.
+- **Phone:** the puzzles now open with their rules in Pip's bubble. Crate Jam shows every vegetable, and the cauldron puts the recipe clues right at the pot.
+- **Regressions:** I found none in M5's puzzles, soup, 2P or the playtime reminder.
+- **Test suite:** one run was red. It was an old (M3) wild-bunny test failing once under heavy machine load. It passed 16 times out of 16 when I re-ran it, and it isn't related to these changes (see "Verified").
+
+## Previous blockers
+
+1. **Museum cases were Hopscotch ledges — FIXED.**
+   - **Code:** `case 'exhibit'` sits with `plot` again (`WorldScene.ts`).
+   - **By hand:** I walked in through the museum door.
+     - All 8 cases and pedestals prompt "Look".
+     - E shows the display-case text ("An empty display case, polished and waiting…").
+   - **With Hopscotch Chowder:** all four cases I tried still say "Look", and **0** acorns are given.
+   - **Mosaic:** its prompt now covers the tiles and the strip in front of them (x 2.4–4.4, y ≥ 8.35).
+   - **The real ledge still works:** the lookout rock outside hops and gives its acorn.
+   - **New e2e test:** it would fail against the old code (prompt "Hop up!", acorns granted).
+2. **Colour-only cue and a no-op colourblind setting — FIXED.**
+   - **For everyone:** a wrong ✓ has a dashed outline and a "?" badge. Its label says "yes, but check this one", and Pip says "Check the ticks with a question mark!". The right ✓ has no badge.
+   - **With the setting on:** I turned it on through the real Settings screen.
+     - ✓ becomes Okabe–Ito blue `rgb(0,114,178)`, ✗ becomes vermillion `rgb(213,94,0)`, and a wrong tick is black on yellow.
+     - The key crate and exit arrow turn blue, a finished row's dot turns blue, and the gold star turns orange.
+   - **New e2e test:** it checks the badge, Pip's wording and the computed colour.
+
+## Previous improvements, re-checked
+
+- **Rules on phones:**
+  - On 667×375 all five non-riddle puzzles open with `howTo` as Pip's first line.
+  - "❔ How to play" brings the rules back after a hint. On the Gear Lock the ★ gold / ☆ silver explanation returns.
+  - On desktop the paragraph shows and the button is hidden.
+- **Crate Jam:**
+  - Phone cells went from 32 px to 36 px (board 216 px), and the counter and Start over sit beside the board.
+  - Every crate shows its vegetable, on the Tricky board too: icons are 22–31 px on the phone and 38–53 px on desktop.
+  - Touch-drag still solves the board.
+- **Cauldron:**
+  - The heard clues show under the ingredients, with a "Clues (n)" button.
+  - Hovering, focusing or tapping an ingredient shows "Sardine — A shiny little fish from Finnegan's net."
+  - No names are cut off, and the ×N badges moved to the corner.
+- **Stir loop:** I took Pip's break mid-stir with the cauldron opened from the world, so a story script was waiting.
+  - **0** bubble sounds played on the title (3 per 4 s before the fix).
+  - The saved slot keeps all three ingredients, and no recipe or pot is counted.
+  - A finished pot is bottled when Pip's break closes it.
+  - After Continue there is no bubbling.
+- **Smaller notes:**
+  - With too few moves left, Pip's third sailing hint restarts from the dock and makes the first move's arrow glow. Following it solves the chart.
+  - The glow halo sits behind the characters, so they keep their colours in the grotto and at night.
+  - HUD pills show an icon plus a name (icon only on phones).
+  - The bell riddle offers "Rooster" instead of "Clock", and the Recipe Book says "1 pot brewed".
+  - The lookout rock and the grotto are in clear view and on the Tockwood map.
 
 ## Blockers
-
-1. **M5 broke the museum display cases.**
-   - **Cause:** in `src/scenes/WorldScene.ts:366-376`, `case 'exhibit':` now falls through into the new `case 'ledge':` branch. Before M5 it shared the `plot` branch and showed "Look".
-   - **Result:** all eight cases and pedestals in Dr. Quill's museum now prompt **"Hop up!"**.
-     - Pressing E says "It's much too high to climb… (Hmm — Clover's Hopscotch Chowder?)".
-     - The donation message ("The display cases are filling up!…", `tockwoodNpcs.ts:340`) can no longer be reached.
-   - **Exploit:** after drinking Hopscotch Chowder, every case hands out a Golden Acorn (`hopUp`'s default item). I got 4 acorns from 4 cases, which is 120 Tockens at Quill's table. All 8 cases would give 240.
-   - **It hides an M5 puzzle:** the pedestals' interaction radius grew from 0.9 to 1.3 tiles, so it now covers the M5 mosaic. I mapped the prompt around the mosaic: "Mosaic" only appears on a thin strip at the bottom wall (y ≥ 8.6, x ≈ 2.8–4.0). Standing right on top of the tiles shows "Hop up!".
-   - **Fix:** move `case 'exhibit':` back with `plot`, so the label is "Look" and it runs `triggerUse`. Add an e2e test that a museum case says "Look".
-2. **The colourblind option does nothing for puzzle colours, and the logic grid depends on red vs green.**
-   - **Spec:** §6 requires "a colorblind-friendly option for rhythm and **puzzle** colors".
-   - **The builder's own promises:** DECISIONS says the puzzle cues would arrive "with those systems in M5" and that "every color cue also has a distinct shape/icon".
-   - **What I found:** with Settings → Colourblind **on**, the root gets the `colorblind` class, but:
-     - no CSS rule mentions it (0 matches across all stylesheets);
-     - `CB_SAFE` (`art/palette.ts:60`) is never imported.
-   - **The grid:** in a full-but-wrong grid, a wrong ✓ is the same glyph as a right one. Only the colour differs: red `rgb(187,51,51)` on pink versus green `rgb(47,122,58)` on light green. Both are identical with the option on or off. Pip then says "Check the red ticks!" (`gridView.ts:68`).
-   - **Why it matters:** a red–green colourblind child can't find the mistake.
-   - **Fix:**
-     - Give wrong ticks a shape cue for everyone, such as a dashed outline or a "?" badge.
-     - Under `.colorblind`, use the Okabe–Ito colours for ✓ / ✗ / wrong.
-     - Word Pip's line by shape, not colour.
+- None.
 
 ## Top improvements
 
-1. **On phones, show each puzzle's rules.**
-   - `puzzles.css:874-876` hides `.pz-howto` on every screen ≤460 px tall, so all 18 puzzle/difficulty panels open without their rules on a 667×375 phone.
-   - The gear lock is the worst case. Nothing explains what ★ gold and ☆ silver mean, so a phone player has to spend Pip's hints (and lose stars) to learn the rules.
-   - The panels have room: all 18 fit with space to spare.
-   - Cheapest fix: make `howTo` Pip's opening bubble line instead of "Take your time…".
-2. **Make Crate Jam work on phones.**
-   - **Crate icons:** `.sl-icon { padding: 18% }` (`puzzles.css:430`) takes its percentage from the crate's *width*, so horizontal crates show a speck and 3-long crates show nothing.
-     - On the Tricky board only 4 of 11 crates show their vegetable, yet Pip's hints name them ("the corn crate").
-     - Size the image by height instead.
-   - **Board size:** on the phone the board is ~196 px square with ~32 px cells (smaller than a child's fingertip), while ~300 px of width sits empty. Put the moves counter and Start over beside the board on short screens and let the cells grow.
-   - Touch dragging itself works: I solved the easy board with real touch events.
-3. **Let the recipe logic puzzle be solved at the pot.**
-   - The cauldron says the clues are in the Recipe Book, so players must leave the cauldron to reread a clue.
-   - The ingredient descriptions that make the clues solvable ("grows in the dark", "sways under the waves") are only in the Backpack.
-   - The picker also truncates names ("Glowcap Mushro…", "Sardi…") under the ×N badge.
-   - Show heard clues in the cauldron, and the ingredient's name and description on focus or tap.
+1. **Make Glowbroth read at night.**
+   - Moving the halo behind the sprites fixed the colour wash, but it now sits under the night tint.
+   - **Measured:** the ground around the players brightens by only +23% (ring luminance 91 → 112), against +111% at f648896. A child who drinks "you glow like a lantern" at dusk will hardly see it.
+   - The grotto is fine, because its darkness is a layer with holes.
+   - **Fix:** do the same outdoors: a soft light hole in the night overlay around glowing players, or a second glow above the overlay at their feet.
+2. **Keep the cauldron's note in view with a big basket.**
+   - With every ingredient (19 kinds after all the eras) the grid is 4 rows on a 667×375 phone. The panel scrolls (459 px of content in 345 px of panel), and the clue and ingredient note sit below the fold.
+   - "Clues (n)" doesn't scroll to it.
+   - **Fix:** put the note beside the pot on short screens, or `scrollIntoView` it when it changes.
+   - It's fine in Tockwood-only play (1–2 rows).
+3. **Make "How to play" reachable without touch.**
+   - The new header button has no `data-nav`, so keyboard and gamepad focus skips it on short screens.
+   - Add it, or map it to Pip's portrait.
 
-**Smaller notes:**
-- **The stir loop never stops.** Taking Pip's break mid-stir leaves the `requestAnimationFrame` loop running (`cauldron.ts:153-167`; the screen has no `onClose`).
-  - A bubble sound then plays every 1.3 s on the title screen and on into the next session. I measured 3 bubbles in 4 s on the title, and it persisted after Continue.
-  - The pot's three ingredients are also lost.
-  - Fix: cancel the loop in an `onClose`.
-- **The sailing hint ignores the move budget.** Pip's third hint uses the shortest route from the current square, even when fewer moves are left than that route needs (`sailView.ts:117`).
-- **The glow washes out the characters.** The Glowbroth halo is drawn *over* the sprites with ADD blending, so in the grotto and at night Biscuit turns yellow and the hair goes olive. That contradicts DECISIONS ("lit characters keep their true colours").
-- **Effect timers are hard to tell apart.** The HUD pills show only a colour and a time; the soup's name is a desktop-only tooltip.
-- **Nits:**
-  - The bell riddle offers "Clock" as a Medium choice, which is a defensible answer.
-  - The Recipe Book says "1 pots brewed".
-  - The "E Garden" prompt covers the top-left plot's water-drop cue.
-  - The lookout rock is mostly hidden behind a tree.
-  - The grotto and lookout aren't on the map.
-- **Test gaps:**
-  - Crate dragging is desktop-only (`test.skip` on phone), although touch is the main phone input. CDP `Input.dispatchTouchEvent` works; that's how I tested it.
-  - No test covers the exhibits (the regression above slipped through) or the colourblind option.
+**Notes:**
+- **Flaky M3 test.** The wild-bunny test (`tockwood.spec.ts:102`) teleports the player to `bunny.x − 3.5`, which lands on the shoreline (x 5.9–6.7, once inside a water cell in my runs). Its 6 s "rush" poll failed once under heavy load. Teleporting to a fixed spot inside the meadow and giving the poll more time would keep the M8 checkpoint run from going red for no reason.
+- **Map marker overlap** (carried over from M3): the player marker still sits on top of POI labels when standing on them ("Gar①"). Only cosmetic.
 
 ## Fun score
 
-7.5/10. Tockwood finally has a loop worth an afternoon:
-- Every neighbour has a well-made puzzle, and its reward (seeds, a recipe riddle) feeds the cauldron.
-- Hints escalate into real help (crossing out wrong answers, ticking a cell, a glowing move).
-- The Glowbroth → Glimmer Grotto payoff is lovely.
+8/10. Tockwood's brain-builders and the soup loop are now as pleasant on a phone as on a computer. Every puzzle explains itself, every crate has its vegetable, and the recipe riddles are right beside the pot.
 
-Biggest thing holding it back: on the phone (likely the family's main screen), puzzles open without their rules and Crate Jam is tiny, with most of its labels invisible. After that, soup payoffs are one-offs (one chest, one acorn) until the eras arrive.
+Biggest thing holding it back: in Tockwood the soup payoffs are still mostly one-offs (one grotto chest, one lookout acorn), and Glowbroth hardly shows outdoors at night. The pirate chapter in this commit starts giving soups real jobs (Pirate's Gumbo); the M6 review judges that.
 
 ## Required features tally
 
-Working 4 · partial 7 · missing 3.
+This commit also contains the M6 pirate chapter, which another critic is reviewing. Items it touches are marked partial and left to that review.
 
-1. **Adventure story** — partial. Opening chapter only; the portal still "opens in the next chapter".
+1. **Adventure story** — partial. The opening is done; the pirate chapter is judged in the M6 review.
 2. **Village life** — partial.
-   - New since M4: puzzles for every neighbour, the garden, and soup gifts with favourites.
-   - Still missing: home decorating.
-   - The museum cases are broken (blocker 1).
-3. **Time travel** — missing.
-4. **Outfits** — partial. The wardrobe is done; era reactions, dress-the-part puzzles and mini-game outfits come later.
+   - In: neighbours, puzzles, garden, gifts with favourites, and the economy.
+   - The museum cases are fixed. Home decorating is still to come.
+3. **Time travel** — partial. The Map of Time and the pirate era are present at this commit (judged in M6).
+4. **Outfits** — partial. The wardrobe and shop are done; dress-the-part and reactions arrive with M6.
 5. **Bowling** — missing.
-6. **Corgi** — partial. Biscuit digs, sniffs, and "talks" with Whisker Bisque (sniff directions). His puzzle and dance roles come later.
+6. **Corgi** — partial. Biscuit digs and sniffs, and "talks" with Whisker Bisque. His dance role comes later.
 7. **Dancing** — missing.
-8. **Riddles, logic, strategy** — working (Tockwood).
-   - All six kinds at three difficulties, reachable through neighbours.
-   - Adaptive difficulty (0.4 → 0.5 after a clean solve; hints and leaving ease it), 3 escalating hints, and the Journal with replay at any difficulty.
-   - Era puzzles are to come.
+8. **Riddles, logic and strategy** — working.
+   - Six kinds at three difficulties, all reachable through neighbours.
+   - Adaptive difficulty, 3 escalating hints, and the Journal with replay.
+   - Shape cues plus a working colourblind palette.
+   - Rules on phones.
 9. **Playtime reminder** — working.
-   - e2e covers 45 min, two snoozes, the firm card, break and late night on both viewports.
-   - Over a neighbour's puzzle, Pip waits out the 60 s calm cap and then appears. "Five more minutes" returns to the puzzle.
-   - The break mid-stir works, apart from the leftover bubble loop noted above.
-10. **Map and pirates** — partial. No world map or pirates yet.
-11. **Fairy** — partial. Pip now gives puzzle hints; portals come later.
+   - e2e covers 45 min, the snoozes, the firm card, the break and late night on both viewports.
+   - Over a neighbour's puzzle, Pip waits out the 60 s calm cap and then appears. "Five more minutes" returns to the puzzle, and a break mid-stir is now lossless.
+10. **Map and pirates** — partial. The local map now shows the Grotto and Lookout; pirates are judged in M6.
+11. **Fairy** — partial. Pip gives hints and reads the rules; portals are judged in M6.
 12. **1 or 2 players** — working.
-    - Player 2 opens the Riddle Stone with `/`, picks answers with the arrows, and slides crates (`/`, arrows, `.`).
-    - The cauldron waits for both spoons, and Two-Spoon Tea works on keyboard and on the phone's two Stir buttons.
-    - Both players drink the same pot, and the buddy speed is ×1.35.
-13. **Bunnies** — partial. Clover's soup arc, Grandma's grid, and bunny chatter with Whisker Bisque; no rescues yet.
+    - P2 opens the Riddle Stone with `/`, answers with the arrows, and slides crates (`/`, arrows, `.`).
+    - The cauldron waits for both spoons on the keyboard and on the phone's two Stir buttons, and Two-Spoon Tea gives ×1.35 side by side.
+13. **Bunnies** — partial. Clover's arc, Grandma's grid, and bunny chatter; rescues are judged in M6.
 14. **Magic soup** — working.
-    - Garden, clover patches, Juniper's stall, Finnegan's gifts, and glowcaps from digging.
-    - 8 magic and 4 silly soups, with clue-driven discovery and the Recipe Book.
-    - Effects: glow, bounce, sparkle, hearts, timers.
-    - Gifts with favourites and the two-player recipe.
-    - Pirate's Gumbo waits for M6's island ingredient, as decided.
+    - Garden, clover, stall, gifts and digging.
+    - 8 magic and 4 silly soups, with clue-driven discovery, the Recipe Book, and clues at the pot.
+    - Effects with HUD icons, gifts, and the two-player recipe.
+    - Pirate's Gumbo gets its job in M6.
 
 ## Verified
 
-- **Tests:** `npm test` with `PW_WORKERS=2`: unit 116/116; e2e 142 passed and 3 skipped (the two known viewport skips plus the new desktop-only crate-drag test); exit 0, 13.1 min.
-  - No `.only` or `fixme`.
-  - The M5 tests would fail if the features broke: solvers prove every grid, board and chart, and the e2e tests drive each puzzle through its real screen.
-- **Riddle Stone:** day 1 riddle, hints, and +5 Tockens. Typed answers like "the clock-towers" are accepted, and the keyboard-only grid works.
-- **Neighbour puzzles:**
-  - Rocco's lock was solved from the stars alone in 4–5 tries on Easy.
-  - Finnegan's boat was sailed with the on-screen arrows and by swipe on the phone.
-  - Grandma's grid on Easy, Medium and Tricky.
-  - The mosaic, including the clock-face row.
-- **Soup:**
-  - Timed stirs give "Perfect!" ×4 and ★★★ (173 s of glow); mashing gives ★☆☆.
-  - The grotto is dark without Glowbroth and lit with it, and the chest pays out.
-  - Effects pause in menus.
+- **Tests:** `npm test` with `PW_WORKERS=2` at 21f88d9.
+  - Unit: 122/122.
+  - e2e: 158 passed, 4 skipped, **1 failed**, exit 1, 41 min. The run overlapped the M6 critic's suite and my own browser session.
+- **The failure** was `[desktop] wild bunnies scatter only when someone rushes at them`: no flee within 6 s.
+  - Re-run alone, `--repeat-each=6`: 6/6 pass.
+  - My own 10-run repro of its steps: 10/10 bunnies flee as they should.
+  - `src/world/actors.ts` is unchanged since f648896, so it's an intermittent test, not an M5 regression.
+- **Skips:** all four are viewport-conditional — the two known ones, crate-drag (desktop-only), and the new rules test (phone-only).
+- **New tests:** they would fail on the old code, and no assertions were loosened. The mid-stir test reads the saved slot.
+- **Regression pass, desktop and phone:**
+  - All six Tockwood puzzles reached by walking up and pressing E:
+    - Riddle Stone, plus a typed answer "the clock-towers".
+    - Rocco's lock, solved from the stars alone.
+    - Finnegan's boat, by button and by swipe.
+    - Grandma's grid, including keyboard-only.
+    - The mosaic, including the clock round.
+    - Crate Jam, by mouse and by touch drag.
+  - Soup loop in normal play: Juniper's seeds, planting and watering, clover, Clover's lesson, Glowbroth ★★★ from timed stirs, the lit grotto chest.
+  - All 18 puzzle panels fit 667×375 with Leave in view.
 - **Console:** no console errors in any session.
-- **Tone and originality:** nothing scary or mean, and no borrowed names. The history lines I checked are accurate (trilobites, 45 rpm, Tuscan "bean-eaters", purple carrots, hour-hand-only clocks).
+- **Tone and docs:** nothing unkind in the new lines. The new DECISIONS entries (lossless half-stirred pots; shape cue plus Okabe–Ito palette) drop no spec requirement.

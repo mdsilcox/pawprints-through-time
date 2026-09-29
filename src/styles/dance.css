@@ -1,0 +1,105 @@
+/* ================================================================ dancing: the setup and results cards */
+.dance-setup,
+.dance-results {
+  width: min(96vw, 36rem);
+}
+.ds-how {
+  margin: 0.2rem 0 0.6rem;
+  padding-left: 1.2rem;
+  line-height: 1.4;
+}
+.ds-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+.ds-levels {
+  display: flex;
+  gap: 0.35rem;
+}
+.ds-level,
+.ds-relax {
+  font: inherit;
+  font-weight: 700;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 0.18rem 0 var(--shadow);
+}
+.ds-level.on {
+  background: var(--gold);
+}
+.ds-relax.on {
+  background: #d5f1c9;
+}
+.kbd-nav .ds-level:focus,
+.kbd-nav .ds-relax:focus,
+.ds-level:hover,
+.ds-relax:hover {
+  box-shadow:
+    0 0 0 0.2rem #fff,
+    0 0 0 0.4rem rgba(247, 198, 90, 0.9);
+}
+.dr-verdict {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+.dr-cards {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.dr-card {
+  flex: 1;
+  min-width: 12rem;
+  background: #fffaf0;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.5rem 0.8rem;
+}
+.dr-card.p1 {
+  border-left: 0.5rem solid #f29e4c;
+}
+.dr-card.p2 {
+  border-left: 0.5rem solid #6fb3e0;
+}
+.dr-name {
+  font-weight: 700;
+}
+.dr-stars {
+  font-size: 1.6rem;
+  letter-spacing: 0.1rem;
+  color: #e9dfcf;
+  -webkit-text-stroke: 1px var(--ink);
+}
+.dr-stars .on {
+  color: var(--gold);
+}
+.colorblind .dr-stars .on {
+  color: #e69f00;
+}
+@media (max-height: 460px) {
+  .dance-setup,
+  .dance-results {
+    padding: 0.5rem 0.8rem;
+  }
+  .ds-how {
+    margin-bottom: 0.3rem;
+    font-size: 0.78rem;
+  }
+  .dr-stars {
+    font-size: 1.2rem;
+  }
+}
+
+/* while dancing, the HUD keeps only its buttons (pause!) */
+.hud.dancing .hud-left,
+.hud.dancing [data-testid='hud-p2'] {
+  display: none;
+}

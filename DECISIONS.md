@@ -40,6 +40,12 @@ One line each: decision — reason.
 - Treasure-map scraps (spec §5.6) are their own small collectible system, separate from the story's torn map: each scrap puts a visible X on the ground and the local Map, and stays in the Backpack as a keepsake after digging — reusable in later eras.
 - Coco's crew discount (1 Tocken off) is the first "outfit changes how people treat you" payoff; Bramble remarks once per era piece — reactions are small, positive and never required.
 - A half-stirred pot costs nothing: ingredients are used when the stirring finishes, not when it starts, and returning to the title closes screens before saving — Pip's break can never eat a child's ingredients.
+- Dance charts are generated from each song's lead melody (not hand-placed) — the arrows always follow the tune, a new era dance only needs a song, and unit tests check every level of every chart.
+- Dance timing follows the audio clock when sound is running and a performance clock otherwise — the game stays playable (and testable) even when a browser keeps audio suspended.
+- No penalty for pressing without an arrow: your character does the move anyway — dancing is never "wrong", only more or less on the beat.
+- The hornpipe dance-off is against Cookie's score (a steady dancer at 30% / 48% / 60% of a perfect score on Easy / Medium / Tricky) — always beatable, and "Just dance" wins the crew's respect too, so no child is stuck at the chapter's gate.
+- In 2P the dance-off is won if either player beats Cookie — a team effort, with separate scores shown.
+- The Tockwood Jig is on the plaza's dance floor from the start — dancing (feature 7) is reachable in the first minutes, before any era.
 - Colour-blind support = a shape cue on every colour cue for everyone, plus an Okabe–Ito palette when the setting is on (not a filter) — clearer than recolouring the whole screen.
 - World unit = texture pixel, one tile = 96 units; camera zoom is derived from the CSS height (≈7 tiles tall on a phone, ≈11.5 on desktop) — characters stay big and readable on a 375px-tall phone.
 - Players are human kids (customisable skin/hair later); neighbours are animal-folk built on the same paper-doll body, so every outfit fits everyone.

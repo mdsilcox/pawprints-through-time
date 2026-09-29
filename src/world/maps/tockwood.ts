@@ -97,6 +97,8 @@ function objects(grid: TerrainGrid): MapObject[] {
   ])
     add('lamp', x, y, { texture: 'prop-lamp', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   add('bench', 27.5, 24.6, { texture: 'prop-bench' });
+  // the dance floor: dance the Tockwood Jig (and every dance learned on your travels)
+  o.push({ id: 'dance-floor', kind: 'use', x: 26.4, y: 21.2, texture: 'prop-dancefloor', p: { action: 'dance-floor', label: 'Dance!', range: 1.4, floor: true } });
   add('bench', 33.5, 24.6, { texture: 'prop-bench' });
   add('flowerbed', 25.5, 17.2, { texture: 'prop-flowerbed' });
   add('flowerbed', 35.5, 17.2, { texture: 'prop-flowerbed' });
@@ -235,6 +237,7 @@ registerMap({
   { x: 18, y: 25.4, icon: '🍲', label: 'Burrow' },
   { x: 10.5, y: 32.6, icon: '🐰', label: 'Warren' },
   { x: 30.5, y: 21, icon: '⛲', label: 'Plaza' },
+  { x: 26.4, y: 19.4, icon: '💃', label: 'Dance floor' },
   { x: 31, y: 43.4, icon: '⚓', label: 'Dock' },
   { x: 23, y: 11, icon: '🍯', label: 'Juniper' },
   { x: 36.5, y: 17, icon: '⏰', label: 'Rocco' },

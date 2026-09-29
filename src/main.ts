@@ -9,6 +9,7 @@ import './styles/wardrobe.css';
 import './styles/puzzles.css';
 import './styles/soup.css';
 import './styles/eras.css';
+import './styles/dance.css';
 
 import { app } from './app';
 import { installCancelGuard } from './core/session';
@@ -20,6 +21,8 @@ import { registerPwa } from './core/pwa';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { WorldScene } from './scenes/WorldScene';
+import { DanceScene, danceDebug } from './scenes/DanceScene';
+import { dance } from './dance/openDance';
 import { ui } from './ui/ui';
 import { installControls } from './input/controls';
 import { input } from './input/input';
@@ -35,6 +38,7 @@ import { installQuestRuntime } from './story/runtime';
 import { currentObjective, questLog } from './story/quests';
 import { TILE } from './world/collision';
 import './story/sideQuests';
+import './story/dancing';
 import './art/species';
 import './art/items';
 import { showGallery } from './art/gallery';
@@ -86,7 +90,7 @@ ui.mount(document.getElementById('ui-root')!);
 audio.installUnlock();
 audio.apply(app.settings);
 app.events.on('settings', (s) => audio.apply(s));
-app.boot([BootScene, TitleScene, WorldScene]);
+app.boot([BootScene, TitleScene, WorldScene, DanceScene]);
 installControls();
 hud.onObjective = () => openQuestLog();
 reminder.install();
@@ -222,6 +226,10 @@ registerDebug({
   openJournal: () => openPuzzleJournal(),
   openNotes: () => openNotes(),
   openWorldMap: () => void openWorldMap(),
+  // M7: dancing
+  openDance: (style = 'jig', rival: string | null = null, audience: string[] = []) => void dance({ style, rival, audience }),
+  danceState: () => danceDebug.state(),
+  danceAuto: (on = true) => danceDebug.setAuto(on),
   learnNoteDebug: (id: string) => learnNote(id),
   sands: () => app.data?.sands.slice() ?? [],
   openRecipeBook: () => openRecipeBook(),
