@@ -21,9 +21,9 @@ export function registerView<K extends PuzzleKind>(kind: K, f: ViewFactory<K>): 
   VIEWS[kind] = f as unknown as ViewFactory;
 }
 
-const KIND_ICON: Record<PuzzleKind, string> = { riddle: '❓', grid: '🧶', slide: '📦', sequence: '🔷', code: '⚙️', sail: '⛵' };
+const KIND_ICON: Record<PuzzleKind, string> = { riddle: '❓', grid: '🧶', slide: '📦', sequence: '🔷', code: '⚙️', sail: '⛵', jigsaw: '🗺️' };
 export const kindIcon = (k: PuzzleKind) => KIND_ICON[k];
-export const KIND_NAME: Record<PuzzleKind, string> = { riddle: 'Riddle', grid: 'Logic grid', slide: 'Sliding blocks', sequence: 'Pattern', code: 'Code-breaking', sail: 'Sailing chart' };
+export const KIND_NAME: Record<PuzzleKind, string> = { riddle: 'Riddle', grid: 'Logic grid', slide: 'Sliding blocks', sequence: 'Pattern', code: 'Code-breaking', sail: 'Sailing chart', jigsaw: 'Torn map' };
 
 export const MAX_HINTS = 3;
 

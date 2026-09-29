@@ -82,10 +82,17 @@ export function openMap(): void {
   const d = app.data;
   const obj = d ? currentObjective(d) : null;
   const where = obj?.step.where?.(d!);
-  if (where && where.map === def.id) marks.push(mark('goal', where.x, where.y - 1.2, w, hgt, '★'));
+  if (where && where.map === def.id) marks.push(mark('goal', where.x + 1.3, where.y - 0.9, w, hgt, '★'));
   if (sameMap) {
     if (active.biscuit) marks.push(mark('who biscuit', active.biscuit.x / TILE, active.biscuit.y / TILE, w, hgt));
-    active.players.forEach((p, i) => marks.push(mark(`who p${i + 1}`, p.x / TILE, p.y / TILE, w, hgt, String(i + 1))));
+    const ps = active.players.map((p) => ({ x: p.x / TILE, y: p.y / TILE }));
+    // two players standing together: nudge the markers apart so both show
+    if (ps.length === 2 && Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) < 1.4) {
+      const mid = (ps[0].x + ps[1].x) / 2;
+      ps[0].x = mid - 0.75;
+      ps[1].x = mid + 0.75;
+    }
+    ps.forEach((p, i) => marks.push(mark(`who p${i + 1}`, p.x, p.y, w, hgt, String(i + 1))));
   } else if (here) marks.push(mark('who here', here.x, here.y, w, hgt, '★'));
 
   const close = () => {

@@ -50,7 +50,11 @@ export function openStall(title: string, goods: StallGood[], blurb: string): Pro
           ),
         );
       }
-      if (focusId) list.parentElement?.querySelector<HTMLElement>(`[data-testid="${focusId}"]`)?.focus({ preventScroll: true });
+      if (focusId) {
+        const again = list.parentElement?.querySelector<HTMLElement>(`[data-testid="${focusId}"]`);
+        // that row sold out: move to the next thing you can press
+        (again ?? list.querySelector<HTMLElement>('button') ?? list.parentElement?.querySelector<HTMLElement>('.sticky-foot button'))?.focus({ preventScroll: true });
+      }
     };
     const panel = h(
       'div',

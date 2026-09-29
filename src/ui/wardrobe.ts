@@ -277,7 +277,23 @@ export function openWardrobe(opts: { who?: Wearer; shop?: boolean } = {}): void 
     );
   };
 
+  const shortScreen = () => window.matchMedia('(max-height: 460px)').matches;
+  const placeInfo = () => {
+    const right = panel.querySelector('.wd-right');
+    const left = panel.querySelector('.wd-left');
+    if (!right || !left) return;
+    if (shortScreen()) {
+      // phones: name, description and colours right under the tabs (the preview column is too short)
+      if (info.parentElement !== right || right.children[1] !== info) right.insertBefore(info, slotTabs.nextSibling);
+      if (swatches.previousElementSibling !== info) right.insertBefore(swatches, info.nextSibling);
+    } else {
+      if (info.parentElement !== left) left.appendChild(info);
+      if (swatches.parentElement !== right || right.lastElementChild !== swatches) right.appendChild(swatches);
+    }
+  };
+
   const render = () => {
+    placeInfo();
     // every pick rebuilds the lists: keep keyboard / gamepad focus on the button you just used
     const active = document.activeElement as HTMLElement | null;
     const focusId = active && panel.contains(active) ? active.getAttribute('data-testid') : null;

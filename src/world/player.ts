@@ -57,7 +57,8 @@ export class PlayerEntity {
     const others = (this.scene as unknown as { players?: { textureKey?: string }[] }).players ?? [];
     if (old && old !== key && !others.some((p) => p !== (this as unknown) && p.textureKey === old)) {
       this.scene.time.delayedCall(0, () => {
-        if (this.scene.textures.exists(old)) this.scene.textures.remove(old);
+        const inUse = (this.scene as unknown as { players?: { textureKey?: string }[] }).players?.some((p) => p.textureKey === old);
+        if (!inUse && this.textureKey !== old && this.scene.textures.exists(old)) this.scene.textures.remove(old);
       });
     }
   }

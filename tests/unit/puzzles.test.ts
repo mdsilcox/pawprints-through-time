@@ -6,6 +6,7 @@ import { applyMove, canMove, isSolved as slideSolved, parseLevel, range, solve a
 import { allCodes, consistent, makeSecret, remaining, score } from '../../src/puzzles/logic/codebreak';
 import { find, sail, solve as sailSolve } from '../../src/puzzles/logic/navigation';
 import { continuesRepeat, followsNumberRule, validRound } from '../../src/puzzles/logic/sequence';
+import { isSolved as jigSolved, nextFix, placedCount, scramble, swap, turn } from '../../src/puzzles/logic/jigsaw';
 import { allPuzzles, recordAttempt, starsFor } from '../../src/puzzles/registry';
 import { TOCKWOOD_RIDDLES } from '../../src/puzzles/content/riddles';
 import '../../src/puzzles/content/tockwood';
@@ -226,5 +227,27 @@ describe('puzzle catalogue', () => {
     const kinds = new Set(allPuzzles().filter((p) => p.era === 'tockwood').map((p) => p.kind));
     expect([...kinds].sort()).toEqual(['code', 'grid', 'riddle', 'sail', 'sequence', 'slide']);
     for (const p of allPuzzles()) for (const l of LEVELS) expect(p.variants[l], `${p.id}/${l}`).toBeTruthy();
+  });
+});
+
+describe('torn-map jigsaw', () => {
+  it('scrambles every piece out of place, and swapping + turning puts it back together', () => {
+    let s = scramble(3, 2, 99, true);
+    expect(s.slots.every((p, i) => p !== i)).toBe(true);
+    expect(s.rot.every((r) => r >= 1 && r <= 3)).toBe(true);
+    expect(jigSolved(s)).toBe(false);
+    for (let guard = 0; guard < 40 && !jigSolved(s); guard++) {
+      const f = nextFix(s)!;
+      if (f.from !== f.to) s = swap(s, f.from, f.to);
+      else s = turn(s, f.to);
+    }
+    expect(jigSolved(s)).toBe(true);
+    expect(placedCount(s)).toBe(6);
+  });
+
+  it('easy maps start with no turned pieces', () => {
+    const s = scramble(2, 2, 5, false);
+    expect(s.rot.every((r) => r === 0)).toBe(true);
+    expect(s.slots.every((p, i) => p !== i)).toBe(true);
   });
 });

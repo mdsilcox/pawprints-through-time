@@ -117,6 +117,8 @@ onEnterMap('clocktower', async ({ world }) => {
 
 async function meetPip(world: WorldScene): Promise<void> {
   await cutscene(async () => {
+    // everyone steps onto the rug, in front of the hourglass (and in view above the dialogue box)
+    await world.stageParty([{ x: 6, y: 7.3 }, { x: 7.1, y: 7.3 }], { x: 5, y: 7.6 });
     audio.sfx('chime');
     world.pip?.emote('exclaim', 1200);
     await wait(500);

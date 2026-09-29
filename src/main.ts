@@ -48,7 +48,8 @@ import { registerPortraitSource } from './ui/portraits';
 import { renderCorgiPortrait } from './art/corgi';
 import { renderBunnyPortrait } from './art/bunny';
 import { biscuitPieces } from './data/clothes';
-import { GRANDMA } from './data/bunnies';
+import { GRANDMA, HOPKINS } from './data/bunnies';
+import { registerCharacter } from './data/characters';
 import { toast } from './ui/ui';
 // M5: brain-builders and magic soup
 import './puzzles/content/tockwood';
@@ -87,8 +88,14 @@ installQuestRuntime();
 registerPortraitSource((id) => {
   if (id === 'biscuit') return renderCorgiPortrait(biscuitPieces(app.data?.biscuit.outfit ?? {}), 160);
   if (id === 'grandma') return renderBunnyPortrait(GRANDMA, 160);
+  if (id.startsWith('hop-')) {
+    const hb = HOPKINS.find((b) => `hop-${b.id}` === id);
+    if (hb) return renderBunnyPortrait(hb.look, 160);
+  }
   return null;
 });
+// each Hopkins cousin talks as themselves (name tag + portrait)
+for (const hb of HOPKINS) registerCharacter({ id: `hop-${hb.id}`, name: hb.name, title: 'Hopkins cousin', art: 'doll', voice: { midi: 81, kind: 'squeak' }, color: hb.look.accent ?? '#f4a3b4' });
 app.events.on('open-portal-map', () => toast('The first Time Sand is calling from the Golden Age of Piracy... (the voyage opens in the next chapter!)', { icon: '🏴', ms: 4000 }));
 
 const world = () => app.phaser.scene.getScene('world') as WorldScene;

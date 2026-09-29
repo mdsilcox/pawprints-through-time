@@ -309,6 +309,15 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
           this.tweens.add({ targets: img, angle: { from: -0.8, to: 0.8 }, duration: 2600 + ((o.x * 131) % 1400), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
         if (o.id === 'cauldron') this.bubbleCauldron(o);
+        if (o.kind === 'exhibit') {
+          const item = app.data?.museum[Number(o.p?.slot ?? 0)];
+          if (item) {
+            const tex = `icon-${item}`;
+            if (!this.textures.exists(tex)) addCanvasTexture(this, tex, iconCanvas(item, 64));
+            const icon = this.add.image(o.x * TILE, o.y * TILE - TILE * 0.95, tex).setScale(0.8).setDepth(o.y * TILE + 1);
+            this.tweens.add({ targets: icon, y: icon.y - 6, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+          }
+        }
       }
       switch (o.kind) {
         case 'building':
@@ -478,7 +487,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         label: 'Talk',
         run: async () => {
           b.emote('heart');
-          await talk('narrator', [`${hb.name}: "${hb.home}"`]);
+          await talk(`hop-${hb.id}`, hb.home);
         },
       };
       this.interactables.push(it);
@@ -751,6 +760,35 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         this.tweens.add({ targets: sp, angle: 90, scale: 1.2, duration: 800, yoyo: true, repeat: -1 });
       }
     }
+  }
+
+  /** Walk the party to spots (tile units) for a scene — e.g. onto the rug in front of Pip. */
+  async stageParty(spots: { x: number; y: number }[], biscuitSpot?: { x: number; y: number }): Promise<void> {
+    const moves = this.players.map((p, i) => {
+      const to = spots[Math.min(i, spots.length - 1)];
+      const tx = to.x * TILE + (i >= spots.length ? TILE * 0.8 : 0);
+      const ty = to.y * TILE;
+      return new Promise<void>((res) =>
+        this.tweens.add({
+          targets: p,
+          x: tx,
+          y: ty,
+          duration: 650,
+          ease: 'Sine.easeInOut',
+          onUpdate: () => {
+            p.face(tx - p.x, ty - p.y);
+            p.tick(16, true);
+          },
+          onComplete: () => {
+            p.facing = 'up';
+            p.tick(16, false);
+            res();
+          },
+        }),
+      );
+    });
+    if (biscuitSpot && this.biscuit) moves.push(this.biscuit.goTo(biscuitSpot.x * TILE, biscuitSpot.y * TILE, TILE * 5).catch(() => undefined));
+    await Promise.all(moves);
   }
 
   /** Swap a closed chest prop for an open one. */

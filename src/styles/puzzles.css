@@ -965,3 +965,68 @@
   min-height: 2rem;
   padding: 0.2em 0.7em;
 }
+
+/* ---------------------------------------------------------------- torn-map jigsaw */
+.jg {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.jg-board {
+  --piece: min(9rem, calc((100vh - 17rem) / var(--rows)), calc((70vw - 6rem) / var(--cols)));
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--piece));
+  grid-template-rows: repeat(var(--rows), calc(var(--piece) * 0.6667 * var(--cols) / var(--cols)));
+  gap: 0.25rem;
+  background: #8a6a45;
+  padding: 0.3rem;
+  border: var(--border) solid var(--ink);
+  border-radius: 0.8rem;
+}
+.jg-board.whole {
+  gap: 0;
+  transition: gap 0.4s ease;
+}
+.jg-piece {
+  position: relative;
+  padding: 0;
+  border: 3px solid var(--ink);
+  border-radius: 0.35rem;
+  overflow: hidden;
+  cursor: pointer;
+  outline: none;
+  background: #f6e7c4;
+  aspect-ratio: 3 / 2;
+}
+.jg-art {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  transition: transform 0.2s ease;
+}
+.jg-piece.picked {
+  box-shadow:
+    0 0 0 0.2rem #fff,
+    0 0 0 0.42rem var(--gold);
+  z-index: 2;
+  transform: scale(1.04);
+}
+.jg-piece.home {
+  border-color: #3f8a44;
+}
+.kbd-nav .jg-piece:focus {
+  box-shadow: 0 0 0 0.25rem rgba(247, 198, 90, 0.85);
+}
+.jg-side {
+  max-width: 14rem;
+}
+.jg-count {
+  font-weight: 700;
+}
+@media (max-height: 460px) {
+  .jg-board {
+    --piece: min(9rem, calc((100vh - 11.5rem) / var(--rows) * 1.5), calc((70vw - 6rem) / var(--cols)));
+  }
+}

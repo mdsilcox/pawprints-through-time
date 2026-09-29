@@ -97,6 +97,52 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     voice: { midi: 52, kind: 'deep' },
     color: '#e46a6a',
   },
+  // ---------------------------------------------------------------- the Golden Age of Piracy (~1715)
+  marigold: {
+    id: 'marigold',
+    name: 'Captain Marigold',
+    title: 'Captain of the Sunny Marigold',
+    art: 'doll',
+    spec: doll('fox', '#f29e4c', { hat: P('tricorn', '#4a3b35', '#f7c65a'), top: P('coat', '#c0464b', '#f7c65a'), bottom: P('pantaloons', '#fff4e0', '#c0464b'), shoes: P('buckle', '#4a3b35', '#f7c65a') }, { fur2: '#fff4e0' }),
+    voice: { midi: 69, kind: 'soft' },
+    color: '#e46a6a',
+  },
+  pepper: {
+    id: 'pepper',
+    name: 'Pepper',
+    title: 'First Mate',
+    art: 'doll',
+    spec: doll('parrot', '#6fbe5a', { hat: P('bandana', '#6fb3e0', '#ffffff'), top: P('sailor', '#fff4e0', '#6fb3e0'), bottom: P('pantaloons', '#3f5a8a', '#fff'), shoes: P('buckle', '#4a3b35', '#f7c65a') }, { fur2: '#f7c65a' }),
+    voice: { midi: 86, kind: 'squeak' },
+    color: '#6fbe5a',
+  },
+  cookie: {
+    id: 'cookie',
+    name: 'Cookie',
+    title: 'Ship’s Cook',
+    art: 'doll',
+    spec: doll('mouse', '#c9b8a6', { hat: P('bandana', '#fff8ec', '#e46a6a'), top: P('sailor', '#ffffff', '#e46a6a'), bottom: P('pants', '#8a5a3a', '#fff'), shoes: P('buckle', '#4a3b35', '#d9cfc2') }, { fur2: '#f4c7c3' }),
+    voice: { midi: 78, kind: 'squeak' },
+    color: '#e46a6a',
+  },
+  saltwhistle: {
+    id: 'saltwhistle',
+    name: 'Captain Saltwhistle',
+    title: 'Captain of the Merry Mackerel',
+    art: 'doll',
+    spec: doll('dog', '#d9cfc2', { hat: P('tricorn', '#3f5a8a', '#f7c65a'), top: P('coat', '#3f5a8a', '#f7c65a'), bottom: P('pantaloons', '#fff4e0', '#3f5a8a'), shoes: P('buckle', '#4a3b35', '#f7c65a') }, { fur2: '#ffffff' }),
+    voice: { midi: 57, kind: 'deep' },
+    color: '#3f5a8a',
+  },
+  coco: {
+    id: 'coco',
+    name: 'Coco',
+    title: 'Fruit Seller',
+    art: 'doll',
+    spec: doll('cat', '#f29e4c', { hat: P('bandana', '#f7c65a', '#e46a6a'), top: P('tee', '#7cc47f', '#fff4e0'), bottom: P('skirt', '#e46a6a', '#fff'), shoes: P('slippers', '#f7c65a', '#fff') }, { fur2: '#fff4e0' }),
+    voice: { midi: 75, kind: 'soft' },
+    color: '#7cc47f',
+  },
 };
 
 export function character(id: string): CharacterDef {

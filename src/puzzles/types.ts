@@ -5,7 +5,7 @@ import type { SequencePuzzle } from './logic/sequence';
 import type { Chart } from './logic/navigation';
 
 /** The six brain-builder kinds from the spec (5.5). */
-export type PuzzleKind = 'riddle' | 'grid' | 'slide' | 'sequence' | 'code' | 'sail';
+export type PuzzleKind = 'riddle' | 'grid' | 'slide' | 'sequence' | 'code' | 'sail' | 'jigsaw';
 
 export type Era = 'tockwood' | 'pirates' | 'egypt' | 'fifties' | 'florence';
 
@@ -29,6 +29,13 @@ export interface SailVariant {
   moves: number;
 }
 
+export interface JigsawVariant {
+  cols: number;
+  rows: number;
+  /** pieces start turned (they must be turned the right way up too) */
+  turn: boolean;
+}
+
 export interface VariantByKind {
   riddle: RiddleVariant;
   grid: LogicGrid;
@@ -36,6 +43,7 @@ export interface VariantByKind {
   sequence: SequencePuzzle;
   code: CodeVariant;
   sail: SailVariant;
+  jigsaw: JigsawVariant;
 }
 
 export interface PuzzleDef<K extends PuzzleKind = PuzzleKind> {

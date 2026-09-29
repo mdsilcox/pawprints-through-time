@@ -349,3 +349,18 @@
     margin-bottom: 0.3rem;
   }
 }
+
+@media (max-height: 460px) {
+  .wd-right .wd-info {
+    text-align: left;
+    font-size: 0.78rem;
+    min-height: 0;
+    margin-bottom: 0.2rem;
+  }
+  .wd-right .wd-swatches {
+    margin: 0 0 0.35rem;
+  }
+  .wd-preview {
+    max-height: 38vh;
+  }
+}
