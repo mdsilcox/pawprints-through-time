@@ -29,6 +29,8 @@ export interface QuestDef {
   steps: QuestStep[];
   /** runs once when the last step completes */
   onComplete?: (d: SaveData) => void;
+  /** shown in the "quest complete" toast, e.g. "+10 Tockens" */
+  reward?: string;
 }
 
 const QUESTS: QuestDef[] = [];
@@ -98,16 +100,16 @@ export function currentObjective(d: SaveData): { quest: QuestDef; step: QuestSte
  * Detects newly finished steps/quests since the last check. Returns what changed so the caller
  * can celebrate (toast, sound) and autosave; marks finished quests with a `quest:<id>` flag.
  */
-export function checkQuests(d: SaveData, seen: Map<string, number>): { steps: { quest: QuestDef; step: QuestStep }[]; quests: QuestDef[] } {
+export function checkQuests(d: SaveData, seen: Map<string, Set<string>>): { steps: { quest: QuestDef; step: QuestStep }[]; quests: QuestDef[] } {
   const out = { steps: [] as { quest: QuestDef; step: QuestStep }[], quests: [] as QuestDef[] };
   for (const q of QUESTS) {
     if (!q.available(d)) continue;
     const p = progress(q, d);
+    const doneNow = new Set(q.steps.filter((s) => s.done(d)).map((s) => s.id));
     const before = seen.get(q.id);
-    if (before !== undefined && p.completedSteps > before) {
-      for (const s of q.steps) if (s.done(d) && q.steps.indexOf(s) >= before && q.steps.indexOf(s) < p.completedSteps) out.steps.push({ quest: q, step: s });
-    }
-    seen.set(q.id, p.completedSteps);
+    // report exactly the steps that became done since last time, whatever order they happened in
+    if (before) for (const s of q.steps) if (doneNow.has(s.id) && !before.has(s.id)) out.steps.push({ quest: q, step: s });
+    seen.set(q.id, doneNow);
     if (p.done && !d.flags[`quest:${q.id}`]) {
       d.flags[`quest:${q.id}`] = true;
       out.quests.push(q);

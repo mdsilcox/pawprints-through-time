@@ -72,30 +72,45 @@ test.describe('movement & controls', () => {
       const [p1, p2] = await players(page);
       return p2.x - p1.x;
     }, { timeout: 15000 }).toBeGreaterThan(8);
-    await page.waitForTimeout(1500);
-    expect(await hook(page, 'onScreen', 0)).toBe(true);
-    expect(await hook(page, 'onScreen', 1)).toBe(true);
+    // keep pulling: the tether holds them and the camera keeps both in view
+    for (let i = 0; i < 6; i++) {
+      await page.waitForTimeout(250);
+      expect(await hook(page, 'onScreen', 0)).toBe(true);
+      expect(await hook(page, 'onScreen', 1)).toBe(true);
+    }
     // ... and vertically
+    const [v1, v2] = await players(page);
     await hook(page, 'hold', 0, 0, -1);
     await hook(page, 'hold', 1, 0, 1);
-    await page.waitForTimeout(3000);
-    expect(await hook(page, 'onScreen', 0)).toBe(true);
-    expect(await hook(page, 'onScreen', 1)).toBe(true);
+    await expect
+      .poll(async () => {
+        const [p1, p2] = await players(page);
+        return p1.y < v1.y - 1 && p2.y > v2.y + 1;
+      }, { timeout: 15000 })
+      .toBe(true);
+    for (let i = 0; i < 6; i++) {
+      await page.waitForTimeout(250);
+      expect(await hook(page, 'onScreen', 0)).toBe(true);
+      expect(await hook(page, 'onScreen', 1)).toBe(true);
+    }
     await hook(page, 'release', 0);
     await hook(page, 'release', 1);
   });
 
   test('water and buildings block the way', async ({ page }) => {
     await startAt(page, 30.5, 43.5); // end of the dock
-    await hook(page, 'hold', 0, 1, 0); // walk right off the dock
-    await page.waitForTimeout(800);
+    // walk right off the dock: they reach the edge and stop there
+    await hook(page, 'hold', 0, 1, 0);
+    await expect.poll(async () => (await players(page))[0].x, { timeout: 8000 }).toBeGreaterThan(31);
+    await page.waitForTimeout(700);
     await hook(page, 'release', 0);
     const p = (await players(page))[0];
     expect(p.x).toBeLessThan(32); // stayed on the 2-tile-wide dock
-    // walk north into the clocktower from the plaza
+    // walk north into the clocktower wall from the plaza
     await hook(page, 'teleport', 30.5, 18.5, 0);
     await hook(page, 'hold', 0, 0, -1);
-    await page.waitForTimeout(1200);
+    await expect.poll(async () => (await players(page))[0].y, { timeout: 8000 }).toBeLessThan(18);
+    await page.waitForTimeout(900);
     await hook(page, 'release', 0);
     const q = (await players(page))[0];
     expect(q.y).toBeGreaterThan(16);

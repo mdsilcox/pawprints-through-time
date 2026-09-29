@@ -1,4 +1,5 @@
 // Capture review screenshots: `node scripts/shots.mjs M3` -> review/M3/*.png
+// (optional 2nd argument: comma-separated scenario names, e.g. `node scripts/shots.mjs M2 title,reminder`)
 // Starts its own Vite dev server, drives the game through window.__game hooks,
 // and shoots each scenario at desktop (1280x720) and phone (667x375 landscape) sizes.
 import { chromium } from '@playwright/test';
@@ -60,6 +61,16 @@ const SCENARIOS = [
   { name: 'gallery', run: async (page) => { await boot(page); await g(page, 'gallery'); await wait(300); } },
   { name: 'title', run: async (page) => boot(page) },
   {
+    name: 'title-continue',
+    run: async (page) => {
+      await boot(page);
+      await g(page, 'newGame', 1);
+      await g(page, 'toTitle');
+      await page.waitForSelector('[data-testid="title-continue"]');
+      await wait(900);
+    },
+  },
+  {
     name: 'slots',
     run: async (page) => {
       await boot(page);
@@ -119,6 +130,7 @@ const SCENARIOS = [
     run: async (page, players) => {
       await play(page, players, [30.5, 23]);
       await g(page, 'fastForward', 45 * 60000);
+      await page.waitForSelector('[data-testid="reminder"]'); // Pip waits for a calm moment
       await wait(1400);
     },
   },
@@ -129,11 +141,14 @@ const SCENARIOS = [
       await play(page, 1, [30.5, 23]);
       for (let i = 0; i < 2; i++) {
         await g(page, 'triggerReminder');
-        await wait(500);
+        await page.waitForSelector('[data-testid="reminder-snooze"]');
+        await wait(1300); // Pip's card ignores presses for its first second
         await page.click('[data-testid="reminder-snooze"]');
+        await page.waitForSelector('[data-testid="reminder"]', { state: 'detached' });
         await wait(400);
       }
       await g(page, 'triggerReminder');
+      await page.waitForSelector('.reminder-screen.firm');
       await wait(1400);
     },
   },
@@ -221,7 +236,7 @@ const browser = await chromium.launch();
 let count = 0;
 try {
   for (const sc of SCENARIOS) {
-    if (only && sc.name !== only) continue;
+    if (only && !only.split(',').includes(sc.name)) continue;
     for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
       for (const players of sc.players ?? [1]) {
         const ctx = await browser.newContext({ ...vp, baseURL });

@@ -1,11 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, playThrough, press, pressUntil, startGame, watchErrors } from './helpers';
+import { bootToTitle, hook, playThrough, press, pressUntil, setDeviceHour, setHidden, startGame, talkTo, walkUntil, watchErrors } from './helpers';
 
 const MIN = 60_000;
 
 async function play(page: Page, at?: [number, number]): Promise<void> {
   await startGame(page, at);
   await page.waitForTimeout(100);
+}
+
+/** Press a button on Pip's card. The card ignores presses for its first second (so nobody
+ * skips Pip by mashing), so wait that out like a real player reading her message. */
+async function pressPip(page: Page, testid: string): Promise<void> {
+  await expect(page.getByTestId(testid)).toBeVisible();
+  await page.waitForTimeout(800);
+  await press(page, `[data-testid="${testid}"]`);
 }
 
 /** Advance dialogue by pressing the action key until the box closes. */
@@ -115,15 +123,20 @@ test.describe('saving', () => {
     expect(await hook(page, 'getFlag', 'savedThing')).toBe('yes');
   });
 
-  test('manual save from the pause menu', async ({ page }) => {
+  test('manual save from the pause menu writes the latest progress to the slot', async ({ page }) => {
     await play(page);
+    await hook(page, 'setFlag', 'justChanged', 'banana');
+    await hook(page, 'give', 'shell-conch', 5);
+    const stored = await hook<any>(page, 'readSlot', 1);
+    expect(stored.flags.justChanged).toBeUndefined(); // not saved yet
     const before = await hook<number>(page, 'saves');
     await page.keyboard.press('Escape');
     await press(page, '[data-testid="pause-save"]');
-    await expect(page.locator('.toast')).toContainText('saved');
-    const slots = await hook<any[]>(page, 'slots');
-    expect(slots[0].exists).toBe(true);
-    expect(before).toBeGreaterThanOrEqual(0);
+    await expect(page.getByTestId('pause-save')).toContainText('Saved!');
+    await expect.poll(() => hook<number>(page, 'saves')).toBeGreaterThan(before);
+    const after = await hook<any>(page, 'readSlot', 1);
+    expect(after.flags.justChanged).toBe('banana');
+    expect(after.inventory['shell-conch']).toBe(5);
   });
 });
 
@@ -200,25 +213,25 @@ test.describe('playtime reminder', () => {
     await expect.poll(() => hook<number>(page, 'saves')).toBeGreaterThan(savesBefore); // autosaved
     // the world is frozen while Pip talks
     expect(await hook<string[]>(page, 'ui')).toContain('reminder');
-    await press(page, '[data-testid="reminder-snooze"]');
+    await pressPip(page, 'reminder-snooze');
     await expect(rem).toHaveCount(0);
     await hook(page, 'fastForward', 4 * MIN);
     await page.waitForTimeout(200);
     await expect(page.getByTestId('reminder')).toHaveCount(0);
     await hook(page, 'fastForward', 1 * MIN);
     await expect(page.getByTestId('reminder-snooze')).toContainText('1 left');
-    await press(page, '[data-testid="reminder-snooze"]');
+    await pressPip(page, 'reminder-snooze');
     await hook(page, 'fastForward', 5 * MIN);
     // third time: firm, no more snoozing, but you can still continue
     await expect(page.getByTestId('reminder')).toBeVisible();
     await expect(page.getByTestId('reminder-snooze')).toHaveCount(0);
     await expect(page.locator('.reminder-screen.firm')).toBeVisible();
-    await press(page, '[data-testid="reminder-continue"]');
+    await pressPip(page, 'reminder-continue');
     await expect(page.getByTestId('reminder')).toHaveCount(0);
     await hook(page, 'fastForward', 5 * MIN);
     await expect(page.locator('.reminder-screen.firm')).toBeVisible();
     // take a break -> gentle goodbye -> title
-    await press(page, '[data-testid="reminder-break"]');
+    await pressPip(page, 'reminder-break');
     await expect(page.getByTestId('goodbye')).toBeVisible();
     await expect(page.getByTestId('goodbye')).toContainText('See you soon');
     await press(page, '[data-testid="goodbye-ok"]');
@@ -248,11 +261,203 @@ test.describe('playtime reminder', () => {
     const rem = page.getByTestId('reminder');
     await expect(rem).toHaveAttribute('data-kind', 'late');
     await expect(rem).toContainText('late');
-    await press(page, '[data-testid="reminder-continue"]');
+    await pressPip(page, 'reminder-continue');
     await expect(rem).toHaveCount(0);
     await hook(page, 'triggerReminder');
-    await press(page, '[data-testid="reminder-break"]');
+    await pressPip(page, 'reminder-break');
     const state = await hook<any>(page, 'state');
     await expect(page.getByTestId('goodbye')).toContainText(`${state.players[0].name} and ${state.players[1].name}`);
+  });
+});
+
+test.describe('Pip never breaks the story (M2 review)', () => {
+  test('break time waits for the sign to be read; after a break, signs, neighbours and doors still work', async ({ page }) => {
+    const errors = watchErrors(page);
+    await play(page, [29.2, 27]);
+    await expect.poll(() => hook(page, 'prompt')).toBe('Read');
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    // the 45 minutes run out mid-sign: Pip waits for a calm moment
+    await hook(page, 'triggerReminder');
+    await page.waitForTimeout(1600);
+    await expect(page.getByTestId('reminder')).toHaveCount(0);
+    await expect(page.getByTestId('dialogue')).toBeVisible();
+    await playThrough(page);
+    await expect(page.getByTestId('reminder')).toBeVisible({ timeout: 4000 });
+    // take the break, say bye, come back
+    await pressPip(page, 'reminder-break');
+    await press(page, '[data-testid="goodbye-ok"]');
+    await expect(page.locator('[data-screen="title"]')).toBeVisible();
+    await press(page, '[data-testid="title-continue"]');
+    await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+    // the sign
+    await hook(page, 'teleport', 29.2, 27, 0);
+    await expect.poll(() => hook(page, 'prompt')).toBe('Read');
+    await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+    await expect(page.getByTestId('dialogue')).toBeVisible();
+    await expect(page.getByTestId('dialogue-text')).toHaveAttribute('data-full', /TOCKWOOD PLAZA/);
+    await playThrough(page);
+    // a neighbour
+    const before = (await hook<any[]>(page, 'dialogueLines')).length;
+    await talkTo(page, 'rocco');
+    const spoke = (await hook<{ who: string }[]>(page, 'dialogueLines')).slice(before).map((l) => l.who);
+    expect(spoke).toContain('rocco');
+    // a door
+    await hook(page, 'teleport', 30.5, 16.7, 0);
+    await expect.poll(() => hook(page, 'prompt')).toBe('Enter');
+    await pressUntil(page, 'KeyE', async () => (await hook<string>(page, 'mapId')) === 'clocktower');
+    expect(errors).toEqual([]);
+  });
+
+  test('after 9 PM the late-night nudge waits for the arrival scene; "Just a little longer" lets you play on', async ({ page }) => {
+    const errors = watchErrors(page);
+    await bootToTitle(page);
+    await setDeviceHour(page, 22);
+    await hook(page, 'newGame', 1);
+    await hook(page, 'startWorld'); // the opening is not skipped
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    await page.waitForTimeout(2200);
+    await expect(page.getByTestId('reminder')).toHaveCount(0); // not over the story
+    await playThrough(page, 60_000);
+    expect(await hook(page, 'getFlag', 'met:biscuit')).toBe(true);
+    const rem = page.getByTestId('reminder');
+    await expect(rem).toHaveAttribute('data-kind', 'late', { timeout: 5000 });
+    await pressPip(page, 'reminder-continue');
+    await expect(rem).toHaveCount(0);
+    expect(await hook<string[]>(page, 'ui')).toEqual([]);
+    await walkUntil(page, 0, -1, 1);
+    expect(errors).toEqual([]);
+  });
+
+  test('Pip’s card owns the controls even over a story line; leaving mid-scene cancels it and the scene replays cleanly', async ({ page }) => {
+    const errors = watchErrors(page);
+    await bootToTitle(page);
+    await hook(page, 'newGame', 1);
+    await hook(page, 'startWorld');
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    // (a card that shows up over a story line, e.g. after a minute of nobody pressing anything)
+    await hook(page, 'triggerLateNight');
+    await expect(page.getByTestId('reminder')).toBeVisible();
+    const lines = (await hook<any[]>(page, 'dialogueLines')).length;
+    await page.keyboard.press('KeyE'); // too soon: the card ignores presses for a second
+    await page.waitForTimeout(250);
+    await expect(page.getByTestId('reminder')).toBeVisible();
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('KeyE'); // goes to the card ("Say goodnight"), not the hidden dialogue
+    await expect(page.getByTestId('goodbye')).toBeVisible();
+    expect((await hook<any[]>(page, 'dialogueLines')).length).toBe(lines);
+    await press(page, '[data-testid="goodbye-ok"]');
+    await expect(page.locator('[data-screen="title"]')).toBeVisible();
+    // Continue: the arrival plays again, visibly, and finishes
+    await press(page, '[data-testid="title-continue"]');
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    await expect(page.getByTestId('dialogue')).toBeVisible();
+    await playThrough(page, 60_000);
+    expect(await hook(page, 'getFlag', 'met:biscuit')).toBe(true);
+    await expect.poll(() => hook<string[]>(page, 'ui')).toEqual([]);
+    await walkUntil(page, 0, -1, 1);
+    expect(errors).toEqual([]);
+  });
+
+  test('the reminder keeps counting in the pause menu; Pip appears over Settings and hands control back', async ({ page }) => {
+    await play(page);
+    await page.keyboard.press('Escape');
+    await press(page, '[data-testid="pause-settings"]');
+    await expect(page.locator('.settings-panel')).toBeVisible();
+    const a = (await hook<any>(page, 'reminderState')).elapsedMs;
+    await page.waitForTimeout(2500);
+    const b = (await hook<any>(page, 'reminderState')).elapsedMs;
+    expect(b - a).toBeGreaterThan(1500); // real time counts while paused
+    // move break time to ~1.5 s from now and let the real clock get there
+    const st = await hook<any>(page, 'reminderState');
+    await hook(page, 'fastForward', st.nextAt - st.elapsedMs - 1500);
+    await expect(page.getByTestId('reminder')).toHaveCount(0);
+    await expect(page.getByTestId('reminder')).toBeVisible({ timeout: 8000 });
+    expect(await hook<string[]>(page, 'ui')).toEqual(['pause', 'settings', 'reminder']);
+    await page.waitForTimeout(1100);
+    // Esc goes to Pip (who ignores it), not to Settings underneath
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    expect(await hook<string[]>(page, 'ui')).toEqual(['pause', 'settings', 'reminder']);
+    await pressPip(page, 'reminder-snooze');
+    await expect(page.getByTestId('reminder')).toHaveCount(0);
+    // control is back in Settings: Esc now closes it
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => hook<string[]>(page, 'ui')).toEqual(['pause']);
+  });
+
+  test('a real trip to the background pauses the reminder clock', async ({ page }) => {
+    await play(page);
+    await setHidden(page, true);
+    expect((await hook<any>(page, 'reminderState')).state).toBe('paused');
+    const a = (await hook<any>(page, 'reminderState')).elapsedMs;
+    await page.waitForTimeout(2000);
+    expect((await hook<any>(page, 'reminderState')).elapsedMs - a).toBeLessThan(300);
+    await setHidden(page, false);
+    expect((await hook<any>(page, 'reminderState')).state).toBe('running');
+    await page.waitForTimeout(1200);
+    expect((await hook<any>(page, 'reminderState')).elapsedMs - a).toBeGreaterThan(700);
+  });
+});
+
+test.describe('menus stay tidy (M2 review)', () => {
+  test('quest news waits until the pause menu closes instead of covering it', async ({ page }) => {
+    await play(page);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-screen="pause"]')).toBeVisible();
+    await hook(page, 'setFlag', 'visited:plaza', true);
+    await page.waitForTimeout(1200);
+    await expect(page.locator('.toast')).toHaveCount(0);
+    await press(page, '[data-testid="pause-resume"]');
+    await expect(page.locator('.toast', { hasText: 'Walk up to the town plaza' })).toBeVisible({ timeout: 4000 });
+  });
+
+  test('names screen: Enter moves through the boxes, Esc only leaves a box; saves show both names', async ({ page }) => {
+    await bootToTitle(page);
+    await press(page, '[data-testid="title-new"]');
+    await press(page, '[data-testid="slot-1"]');
+    const p1 = page.getByTestId('name-p1');
+    await expect(p1).toBeVisible();
+    await p1.fill('Maisie');
+    await p1.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByTestId('name-p2')).toBeFocused();
+    await page.keyboard.press('Control+A');
+    await page.keyboard.type('Theo');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('names-ok')).toBeFocused();
+    await expect(page.locator('[data-screen="names"]')).toBeVisible(); // Esc did not cancel New Game
+    // arrow keys can go back into a box (up to the dice, left to the name)
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowLeft');
+    await expect(page.getByTestId('name-p2')).toBeFocused();
+    await page.keyboard.press('ArrowUp'); // and up again out of the box to the row above
+    await expect(page.getByTestId('name-p1')).toBeFocused();
+    await page.getByTestId('names-ok').focus();
+    await page.waitForTimeout(350);
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-screen="names"]')).toHaveCount(0);
+    const st = await hook<any>(page, 'state');
+    expect([st.players[0].name, st.players[1].name]).toEqual(['Maisie', 'Theo']);
+    await expect.poll(async () => (await hook<any[]>(page, 'slots'))[0].exists).toBe(true);
+    await hook(page, 'toTitle');
+    await expect(page.getByTestId('title-continue')).toContainText('Maisie & Theo');
+    await press(page, '[data-testid="title-load"]');
+    await expect(page.getByTestId('slot-1')).toContainText('Maisie & Theo');
+  });
+
+  test('tapping anywhere on the screen moves a conversation on', async ({ page }) => {
+    await play(page);
+    void hook(page, 'talk', 'pip', ['First line.', 'Second line.']);
+    const text = page.getByTestId('dialogue-text');
+    await expect(text).toHaveText('First line.');
+    await page.waitForTimeout(400);
+    const vp = page.viewportSize()!;
+    const touch = await page.evaluate(() => navigator.maxTouchPoints > 0);
+    // far from the dialogue box (top middle of the screen)
+    if (touch) await page.touchscreen.tap(vp.width / 2, vp.height * 0.3);
+    else await page.mouse.click(vp.width / 2, vp.height * 0.3);
+    await expect(text).toHaveAttribute('data-full', 'Second line.');
+    await playThrough(page); // (let the conversation finish before the test ends)
   });
 });

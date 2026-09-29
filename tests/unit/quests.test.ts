@@ -56,7 +56,7 @@ describe('quests', () => {
   it('reports newly finished steps and quests exactly once, and runs rewards once', () => {
     const d = defaultSave();
     d.flags.started = true;
-    const seen = new Map<string, number>();
+    const seen = new Map<string, Set<string>>();
     checkQuests(d, seen); // prime
     d.flags.a = true;
     let r = checkQuests(d, seen);

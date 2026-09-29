@@ -6,7 +6,7 @@ import { makeCanvas, sparkle, OUTLINE } from './draw';
  * glassy wings. Drawn around (cx, cy) = centre of her head; `s` scales everything.
  * `wing` in [0,1] animates the flap.
  */
-export function drawPip(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, wing = 0.5, happy = false): void {
+export function drawPip(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, wing = 0.5, happy = false, glowR = 70): void {
   const L = OUTLINE * 0.9;
   ctx.save();
   ctx.translate(cx, cy);
@@ -14,13 +14,16 @@ export function drawPip(ctx: CanvasRenderingContext2D, cx: number, cy: number, s
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
   // glow
-  const glow = ctx.createRadialGradient(0, 20, 5, 0, 20, 70);
-  glow.addColorStop(0, 'rgba(255,240,170,0.55)');
-  glow.addColorStop(1, 'rgba(255,240,170,0)');
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(0, 20, 70, 0, Math.PI * 2);
-  ctx.fill();
+  if (glowR > 0) {
+    const glow = ctx.createRadialGradient(0, 20, 4, 0, 20, glowR);
+    glow.addColorStop(0, 'rgba(255,240,170,0.55)');
+    glow.addColorStop(0.6, 'rgba(255,240,170,0.22)');
+    glow.addColorStop(1, 'rgba(255,240,170,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 20, glowR, 0, Math.PI * 2);
+    ctx.fill();
+  }
   // wings (behind)
   const flap = 0.55 + wing * 0.45;
   const wingShape = (side: number, upper: boolean) => {
@@ -204,6 +207,10 @@ export function renderPipSheet(): HTMLCanvasElement {
 
 export function renderPipPortrait(size = 160, happy = false): HTMLCanvasElement {
   const { c, ctx } = makeCanvas(size, size);
-  drawPip(ctx, size / 2, size * 0.36, size / 115, 0.6, happy);
+  // the glow must fade out inside the canvas, or its clipped edge shows as a pale square
+  const s = size / 115;
+  const cy = size * 0.36;
+  const room = Math.min(size / 2, cy + 20 * s, size - (cy + 20 * s)) / s;
+  drawPip(ctx, size / 2, cy, s, 0.6, happy, Math.max(20, room - 2));
   return c;
 }

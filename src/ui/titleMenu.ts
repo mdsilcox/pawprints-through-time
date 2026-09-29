@@ -1,7 +1,7 @@
 import { app } from '../app';
 import { startNewGame, continueGame } from '../flow';
 import { h } from './dom';
-import { pickSlot } from './slots';
+import { pickSlot, slotNames } from './slots';
 import { button, ui } from './ui';
 import { openSettings } from './settingsScreen';
 import { audio } from '../audio/audio';
@@ -9,6 +9,7 @@ import { audio } from '../audio/audio';
 export async function showTitleMenu(): Promise<void> {
   ui.pop('title');
   const cont = await app.saves.continueSlot().catch(() => null);
+  const summary = cont !== null ? (await app.saves.list().catch(() => [])).find((s) => s.slot === cont && s.exists) : undefined;
   // The player (or a test) may already have started a game while we were reading the saves.
   if (!app.phaser.scene.isActive('title') || ui.has('title')) return;
   const anySave = cont !== null;
@@ -16,7 +17,13 @@ export async function showTitleMenu(): Promise<void> {
   const buttons = h(
     'div',
     { class: 'title-buttons' },
-    anySave ? button('Continue', () => void continueGame(cont!), { icon: '▶', autofocus: true, testid: 'title-continue' }) : null,
+    anySave
+      ? button(
+          h('span', { class: 'btn-label' }, 'Continue', summary ? h('small', { class: 'btn-sub' }, `${slotNames(summary)} · Day ${summary.day}`) : null),
+          () => void continueGame(cont!),
+          { icon: '▶', autofocus: true, testid: 'title-continue' },
+        )
+      : null,
     button(
       'New Game',
       async () => {
@@ -31,6 +38,7 @@ export async function showTitleMenu(): Promise<void> {
           async () => {
             const slot = await pickSlot('load');
             if (slot) await continueGame(slot);
+            else void showTitleMenu(); // slots may have been deleted: refresh Continue
           },
           { icon: '📖', cls: 'secondary', testid: 'title-load' },
         )

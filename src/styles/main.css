@@ -694,3 +694,41 @@ p {
 .pause-grid .btn {
   width: 100%;
 }
+
+/* ---------- comfort: reduce motion ---------- */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  animation-delay: 0s !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* short landscape phones: keep the whole title menu on screen */
+@media (max-height: 440px) {
+  .title-screen {
+    gap: 0.55rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  .logo-top {
+    font-size: 2.55rem;
+  }
+  .logo-bottom {
+    font-size: 1.8rem;
+  }
+  .logo-paw {
+    top: -0.8rem;
+    font-size: 1.25rem;
+  }
+  .title-buttons {
+    gap: 0.45rem;
+  }
+  .title-buttons .btn {
+    font-size: 1rem;
+    padding-top: 0.32em;
+    padding-bottom: 0.32em;
+  }
+}

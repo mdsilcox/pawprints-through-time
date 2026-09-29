@@ -120,7 +120,7 @@ registerDebug({
   triggerLateNight: () => reminder.forceLate(),
   reminderState: () => ({
     state: reminder.timer.state,
-    elapsedMs: reminder.timer.elapsedMs,
+    elapsedMs: reminder.timer.liveElapsedMs,
     snoozes: reminder.timer.snoozes,
     nextAt: reminder.timer.nextAt,
     intervalMs: reminder.timer.cfg.intervalMs,
@@ -136,6 +136,7 @@ registerDebug({
   // audio
   audioState: () => ({ unlocked: audio.unlocked, music: audio.current, played: { ...audio.played } }),
   saves: () => app.saveCount,
+  readSlot: (n: number) => app.saves.load(n),
   gallery: () => showGallery(),
   // world & story (M3)
   goTo: (map: string, spawn = 'in') => world().goTo(map, spawn),

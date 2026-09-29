@@ -4,6 +4,8 @@ import { iconUrl } from '../art/icons';
 import { ITEM_BY_ID } from '../data/items';
 import { h } from '../ui/dom';
 import { toast, ui } from '../ui/ui';
+import { dialogue } from '../ui/dialogue';
+import { Cancelled, endSession, isCancelled, sessionEpoch } from '../core/session';
 import type { WorldScene } from '../scenes/WorldScene';
 
 /**
@@ -43,18 +45,32 @@ let busy = false;
 async function run(fn: Handler | undefined, ctx: StoryCtx): Promise<void> {
   if (!fn || busy) return;
   busy = true;
+  const session = sessionEpoch();
   try {
     await fn(ctx);
   } catch (err) {
-    console.error('[story] handler failed', err);
+    if (!isCancelled(err)) console.error('[story] handler failed', err);
   } finally {
-    busy = false;
+    // a script cancelled by leaving play must not unlock a newer session's script
+    if (session === sessionEpoch()) busy = false;
   }
 }
 export const storyBusy = () => busy;
-/** Called when leaving play (e.g. back to the title) so an interrupted scene can't lock the story. */
+/**
+ * Called when leaving play (e.g. Pip's "Take a break", back to the title): cancels whatever
+ * scene was running and clears the dialogue box, so nothing from before can lock the story.
+ */
 export function resetStory(): void {
+  endSession();
   busy = false;
+  dialogue.reset();
+}
+
+/** Fire-and-forget story work (e.g. Biscuit trotting ahead) that quietly stops when play ends. */
+export function background(fn: () => Promise<void>): void {
+  fn().catch((err) => {
+    if (!isCancelled(err)) console.error('[story] background task failed', err);
+  });
 }
 
 export function triggerTalk(npcId: string, ctx: StoryCtx) {
@@ -164,15 +180,20 @@ export function oncePerDay(key: string): boolean {
   return true;
 }
 
-export const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Pause a script; rejects with Cancelled if play ended meanwhile. */
+export function wait(ms: number): Promise<void> {
+  const session = sessionEpoch();
+  return new Promise<void>((resolve, reject) => setTimeout(() => (session === sessionEpoch() ? resolve() : reject(new Cancelled())), ms));
+}
 
 /** Block player movement for a scripted moment (dialogue still works). */
 export async function cutscene<T>(fn: () => Promise<T>): Promise<T> {
   const screen = { id: 'cutscene', el: h('div', { class: 'cutscene-bars' }, h('div', { class: 'bar top' }), h('div', { class: 'bar bottom' })), dim: false, passive: false };
-  ui.push(screen);
+  const session = sessionEpoch();
+  const own = ui.push(screen) === screen; // nested cutscenes share the outer bars
   try {
     return await fn();
   } finally {
-    ui.pop('cutscene');
+    if (own && session === sessionEpoch()) ui.pop('cutscene');
   }
 }

@@ -6,7 +6,7 @@ import { checkQuests, currentObjective } from './quests';
 
 /** Watches quest progress while playing: celebrates finished steps/quests and updates the HUD. */
 export function installQuestRuntime(): void {
-  const seen = new Map<string, number>();
+  const seen = new Map<string, Set<string>>();
   let primed = false;
   app.events.on('data-loaded', () => {
     seen.clear();
@@ -22,7 +22,7 @@ export function installQuestRuntime(): void {
         audio.sfx('success');
       }
       for (const q of res.quests) {
-        toast(`${q.title} — complete!`, { icon: q.icon, cls: 'quest', ms: 3200 });
+        toast(`${q.title} — complete!${q.reward ? ` ${q.reward}` : ''}`, { icon: q.icon, cls: 'quest', ms: 3600 });
         audio.sfx('fanfare');
       }
       if (res.steps.length || res.quests.length) app.autosave.request();

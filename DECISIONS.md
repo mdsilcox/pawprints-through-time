@@ -47,3 +47,10 @@ One line each: decision — reason.
 - Tops, bottoms and shoes can be swapped but not removed; hats and extras can be "none".
 - Shop items are bought with Tockens; era outfits are earned in their eras (not for sale) — outfits double as souvenirs.
 - Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.
+- Pip's reminders wait for a calm moment — never during dialogue, cutscenes, storybooks, running story scripts or the first 3 s of play — but never more than 60 s; the 45-minute count keeps running meanwhile — story beats stay intact and the reminder still can't be dodged.
+- Pip's card owns all input while visible and ignores presses for its first second — a child mashing the action button can't dismiss (or accept) a break they never saw.
+- Leaving play ends a "story session": scripts from the old session are cancelled at their next wait (dialogue line, choice, timer, scripted walk) instead of resuming later — robust against any exit mid-scene without threading tokens through every script.
+- News toasts (quest steps, friendship, "Player 2 joined") wait while a menu is open and appear when it closes; direct feedback to a menu action shows immediately (or on the button itself, like the pause menu's "Saved!") — toasts never cover a panel on small phones.
+- Menu arrow-key navigation prefers items in the same row (left/right) or column (up/down), falling back to the nearest item — predictable movement in forms and grids.
+- Dr. Quill is a hedgehog time historian who runs the "Museum of Time" (not an owl curator lecturing about fossils) — the critic noted the owl-curator-with-fossils combination echoes a famous life-sim character; the spec's museum stays, with its own identity.
+- Colourblind setting is stored and applied as a root class now; the colour cues it changes (soup, dance, bowling, puzzles) arrive with those systems in M5/M7/M8. Reduce motion switches off UI animations now and will also calm world effects as they are added.

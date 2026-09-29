@@ -117,3 +117,53 @@ export async function press(page: Page, selector: string): Promise<void> {
   if (touch) await loc.tap();
   else await loc.click();
 }
+
+/** Press through dialogue (tapping the first choice) until the box stays closed. */
+export async function advanceDialogue(page: Page, max = 30): Promise<void> {
+  for (let i = 0; i < max; i++) {
+    if (!(await hook<boolean>(page, 'dialogueOpen'))) {
+      await page.waitForTimeout(500);
+      if (!(await hook<boolean>(page, 'dialogueOpen'))) return;
+    }
+    if (await page.getByTestId('choice-0').isVisible().catch(() => false)) {
+      await press(page, '[data-testid="choice-0"]');
+      continue;
+    }
+    await page.waitForTimeout(160);
+    await page.keyboard.press('KeyE');
+  }
+}
+
+/** Walk up to a neighbour (they wander) and chat until the conversation ends. */
+export async function talkTo(page: Page, npc: string): Promise<void> {
+  const list = await hook<{ id: string; x: number; y: number }[]>(page, 'npcs');
+  const n = list.find((x) => x.id === npc)!;
+  expect(n).toBeTruthy();
+  // neighbours wander a little, so keep stepping up to them until the prompt shows
+  await expect
+    .poll(async () => {
+      const cur = (await hook<{ id: string; x: number; y: number }[]>(page, 'npcs')).find((x) => x.id === npc)!;
+      await hook(page, 'teleport', cur.x, cur.y + 0.9, 0);
+      await page.waitForTimeout(120);
+      return hook(page, 'prompt');
+    }, { timeout: 12000 })
+    .toBe('Talk');
+  await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
+  await advanceDialogue(page);
+}
+
+/** Pretend the app went to the background / came back (real visibilitychange event). */
+export async function setHidden(page: Page, hidden: boolean): Promise<void> {
+  await page.evaluate((hid) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hid });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (hid ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+}
+
+/** Pin the device clock the reminder sees (tests default to noon). */
+export async function setDeviceHour(page: Page, hour: number): Promise<void> {
+  await page.evaluate((hr) => {
+    (window as unknown as { __testDeviceHour: number }).__testDeviceHour = hr;
+  }, hour);
+}

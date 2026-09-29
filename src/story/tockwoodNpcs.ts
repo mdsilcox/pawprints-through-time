@@ -46,34 +46,34 @@ async function chat(id: string, first: string[], daily: string[], opts: { nightL
   return false;
 }
 
-// ------------------------------------------------------------------ Dr. Quill (owl, museum)
+// ------------------------------------------------------------------ Dr. Quill (hedgehog, time historian)
 onTalk('quill', async () => {
   const first = await chat(
     'quill',
     [
-      'Hoo! A new face in Tockwood! Welcome, welcome! I am Dr. Quill, keeper of the Tockwood Museum.',
-      'At the moment it is... a little empty. The storm scattered everything! But history is everywhere, if you know where to look.',
-      'Bring me anything interesting — shells, fossils, treasures from long ago — and I shall display it with your name on the little card!',
+      'Prickles and pocketwatches — visitors! Welcome! I’m Dr. Quill, Tockwood’s time historian.',
+      'This is the Museum of Time. Well... it WILL be. The storm that cracked Pip’s hourglass whisked my whole collection off into the past!',
+      'If you find anything old and wonderful — on the beach, under the ground, or in another century — bring it here. It gets a little card with your names on it!',
     ],
     [
-      'Did you know? A fossil forms when an ancient plant or animal is slowly replaced by stone. It takes thousands and thousands of years!',
-      'I sort my notes by century. Then by decade. Then by how much they make me go "hoo!"',
-      'Owls can turn their heads almost all the way around. Very handy for keeping an eye on a museum.',
-      'The clocktower has been ticking backwards all morning. Most unscholarly!',
-      'Every object has a story. Even a button! Especially a button.',
+      'Did you know? Long before clocks had gears, people told the time with sundials — by watching a shadow move!',
+      'I sort my notes by century, then by decade, then by how much they make my prickles stand up.',
+      'A hedgehog’s prickles are really just stiff, hollow hairs. Very handy for holding pencils!',
+      'The clocktower ticked backwards all morning. Most irregular!',
+      'Every object has a story. Even a button! ESPECIALLY a button.',
       'A good historian asks three questions: Who? When? And... is there cake?',
     ],
-    { nightLine: 'Ah, the night! My favourite time for reading. Hoo-hoo!', hearts: { 2: 'You know, you have the eyes of a true historian. Curious and kind. Hoo!' } },
+    { nightLine: 'Working late? Me too! I’m labelling every drawer — twice.', hearts: { 2: 'Curious, careful and kind — that’s what makes a true historian. And that’s {you}! Prickles and pocketwatches!' } },
   );
   if (first) return;
   const fossils = ['fossil-ammonite', 'fossil-trilobite', 'fossil-fern', 'fossil-tooth'].filter((f) => count(f) > 0);
   if (fossils.length && !flag('quill:first-fossil')) {
-    const pick = await ask('quill', 'Is that... a FOSSIL in your pocket? May I see it? For the museum?', ['Here you go!', 'Maybe later']);
+    const pick = await ask('quill', 'My prickles are tingling... is that something ANCIENT in your pocket? Would you lend it to the Museum of Time?', ['Here you go!', 'Maybe later']);
     if (pick === 0) {
       take(fossils[0]);
       app.data!.museum.push(fossils[0]);
       setFlag('quill:first-fossil');
-      await talk('quill', 'HOO! Magnificent! It shall be the very first exhibit of the new Tockwood Museum! Here — a reward for our finest fossil finder.');
+      await talk('quill', 'Splendid! Spectacular! The very first treasure of the new Museum of Time! Here — a thank-you for our finest finders.');
       giveTockens(25);
       befriend('quill', 20);
     }

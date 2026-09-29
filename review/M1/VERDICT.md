@@ -1,126 +1,166 @@
-# M1 Review — a1b871ccabe7a00e28d57dbb643f288aeb3f68fb
+# M1 Review — e273ba8169ad7c332d44627a8788984252d80267 (re-review 1)
 
 **Verdict:** REVISE
 
-M1 is close. Tockwood Isle already looks like a finished cozy game, walking feels good, touch controls work well, and the tether never traps anyone in a wall. But two controls bugs break normal play in common family setups. Both are small fixes.
+Both previous blockers are fixed, and each now has a regression test that would have caught it. All three top improvements landed too. Movement and controls are now PASS quality on keyboard, gamepad and touch, in 1P and 2P.
+
+One blocker remains, and it's in the test suite, not the game. `npm test` fails every night from 9 PM to 5 AM, because Pip's late-night nudge (M2) interrupts every e2e game. On an overnight build, that means every run for the rest of the night. The fix is a few lines in the test helpers.
+
+Separately, I found a family-facing input bug in the M2/M3 code. It's in its own section below so the M2 and M3 reviews don't miss it.
+
+## Previous blockers
+
+1. **Menus skipped every other button once a gamepad was connected — FIXED.**
+   - **Code:**
+     - `src/input/input.ts` lines 215–229: each pad emits `nav` only for its own `padDir`, not the merged player direction.
+     - Keys pressed in a menu no longer leak into gameplay presses.
+   - **Tests:**
+     - Two new unit tests: an idle pad plus a key press, and two pads with one d-pad press. I traced both against the old loop: each would have produced `['down','down']` and failed.
+     - A new e2e test runs with an idle pad connected.
+   - **By hand** (emulated pads): with 0, 1 or 2 pads connected, every key, d-pad and stick press moves exactly one step:
+     - Pause menu.
+     - Title: Continue → New Game → Load Game → Settings, and back.
+     - Slot picker: 1 → 2 → 3 → 2.
+
+2. **Clicking 👥 left Enter toggling Player 2 — FIXED.**
+   - **Code:**
+     - HUD buttons are `tabindex=-1`, block focus on `pointerdown`, and `blur()` after a click.
+     - Enter and NumpadEnter are prevented outside menus.
+   - **Test:** a new e2e test clicks 👥, has P2 press Enter at the sign, and expects the dialogue to open with 2 players still there.
+   - **By hand:**
+     - After clicking 👥, focus stays on the page.
+     - Enter, Enter, NumpadEnter and Space all leave P2 joined.
+     - P2's Enter at the sign opens its dialogue.
+     - The same holds after clicking pause → Resume, and after clicking the new objective pill.
 
 ## Blockers
 
-- **Once a gamepad has been used, menus skip every other button.**
-  - **Where:** `src/input/input.ts` lines 221–222.
-    - The per-pad loop emits `nav` from the shared `p.dir`.
-    - That field already holds this frame's keyboard direction (set by `applyKeys`, line 167) or an earlier pad's direction.
-    - In 1-player mode every pad writes into player 1's slot (line 184), so the same direction is emitted again.
-    - Chrome only lists a pad after one of its buttons has been pressed. So this starts as soon as a controller has been touched in the session, and it's an everyday situation.
-  - **What I saw** (emulated pads, desktop):
-
-    | Setup | Action | Result |
-    |---|---|---|
-    | Keyboard, one idle pad connected | One `S` or `↓` in the pause menu | Resume → **Save & quit to title**, skipping Player 2: Join. With no pad connected: Resume → Player 2: Join. |
-    | Two pads, 1 player | Pad 1 d-pad `↓` in pause | Resume → Save & quit. In my gamepad playthrough, `↓` then `A` quit me to the title. |
-    | Two pads, title screen with a save | Pad 1 `↓ ↓ ↑ ↑` (d-pad or stick) | Continue → Load Game → Load Game → Continue → Continue. **New Game can't be reached.** |
-    | Two pads, slot picker | Pad 1 `↓` from slot 1 | Lands on slot 3; slot 2 can't be reached. |
-
-    Pad 2 steps correctly because it's processed last, so behaviour also depends on pad order.
-  - **Why it blocks:**
-    - M1 is the controls milestone, and spec 5.8 names "two gamepads".
-    - With both controllers on, pad 1 can't reach New Game (once a save exists), slot 2, or "Player 2: Join".
-    - One stray tap in pause lands on "Save & quit".
-    - The tests can't catch it: the d-pad unit test connects one pad, and the keyboard-menu e2e test connects none.
+- **`npm test` fails every night (21:00–04:59) because Pip's late-night nudge interrupts every e2e game.**
+  - **Cause:**
+    - `isLateNight()` (`src/core/sessionTimer.ts:177`) is true from 21:00 to 04:59 by the device clock, and the nudge opens within about a second of play starting.
+    - `bootToTitle` and `startGame` in `tests/e2e/helpers.ts` never pin the clock or turn the nudge off. Only the dedicated late-night test touches it, via `triggerLateNight`.
+    - The commit was made at 20:57, so a pre-commit run would have finished before the window opened.
+  - **What I saw** (this commit, machine clock 21:00–21:40):
+    - **`npm test`:**
+      - Unit tests passed, 73 of 73.
+      - The first two e2e tests failed. The WASD test moved 0 tiles because the nudge blocks the world. In the sign test, the test's `E` press hit the autofocused "Say goodnight" and ended on the goodbye screen.
+      - After 5 minutes only 2 of 63 tests had finished, with the rest waiting out timeouts, so I stopped the run.
+    - **`movement.spec.ts` (desktop), under the project's own config:**
+      - 7 of 8 failed, 1 passed, 1 skipped. The failures include both new regression tests for this review.
+      - All 7 failure snapshots show "It's getting late" or "See you soon".
+    - **The same full suite with one change** (a daytime `timezoneId`, via a scratch copy of the config): 61 passed, 2 conditional skips, 0 failed.
+  - **Also flaky under load (same fix pass):** two M1 tests still check distance after a fixed wait. Both failed while other reviews' suites had the CPU at 100%, which DECISIONS plans for:
+    - The WASD test's W leg moved 0.68 tiles against a limit of > 0.8 (`movement.spec.ts:28–31`).
+    - The tether test got 7.35 tiles apart against > 8 (`movement.spec.ts:60–80`).
+    - Each failed on one viewport and passed on the other.
+    - `walkUntil` (`helpers.ts:72`) was added for exactly this case but is never called.
+    - The M0 review made a flaky test a blocker, and these are the same kind.
   - **Fix:**
-    - In the pad loop, emit `nav` only for the direction *that pad* produced this frame. Use a local variable, never the merged `p.dir`.
-    - Add unit tests: a key press with an idle pad connected gives exactly one `nav`; two pads in 1P with one d-pad press gives exactly one `nav`.
-    - Add a variant of the e2e "menus work with the keyboard alone" test that runs with an emulated idle pad connected.
+    - Pin the reminder's device clock to midday in `bootToTitle`, for example with a `setDeviceClock(hour)` debug hook that sets `reminder.clock`. A fixed `timezoneId` alone isn't enough, because it's still night in any timezone for part of the day.
+    - Have the late-night test pin 22:00 and wait for the nudge to appear on its own, so the real trigger is covered instead of `triggerLateNight`.
+    - Switch the two movement tests to `walkUntil` or `expect.poll` on position.
+    - Re-run `npm test` after 9 PM.
 
-- **After clicking the 👥 HUD button, every Enter press toggles Player 2 out and back in.**
-  - **Where:**
-    - `src/ui/hud.ts` lines 24–35: the HUD button keeps DOM focus after a mouse click.
-    - `src/input/input.ts` line 49: outside menus, `Enter` isn't in `PREVENT`, so the browser "clicks" the focused button.
-  - **What I saw** (desktop):
-    1. Click 👥 → "Player 2 joined!".
-    2. Player 2 stands at the plaza sign and presses Enter, which the README lists as P2's action key ("/ (or Enter)").
-    3. The toast says "Player 2 is taking a rest.", `twoPlayer` becomes false, and the sign isn't read.
-    4. Further Enter presses toggle again: true → false → true → false. NumpadEnter does the same.
-    5. In 1P mode, where Enter is P1's action, the same trap re-adds Player 2.
-  - **Why it blocks:** the README sends desktop players to exactly this button, and "why did my sister vanish?" is an evening-ender.
+## Outside M1's scope: fix before M2/M3 can pass
+
+- **Pip's popups sit on top of the screen but not on top of the input, which can end a session nobody chose to end.**
+  - **Cause:** the reminder and the nudge draw on `ui.topLayer`, but `ui.top` is simply the last screen pushed onto the stack.
+  - **Desktop, new game at night:**
+    1. The nudge opens first.
+    2. The arrival cutscene's dialogue is then pushed above it in the stack.
+    3. Every `E` advances the hidden story underneath the nudge.
+    4. When the cutscene ends, the next `E` activates the focused "Say goodnight".
+
+    I reached "See you soon, Theo!" 12 seconds into a first game, having never seen the opening story.
+  - **Phone:** taps on the story do nothing; it stays frozen under the nudge until a button is tapped.
+  - **Any time:** pressing `E` through a dialogue at a normal pace when the 45-minute reminder opens, the first press after the 300 ms lock accepts "Take a break". I reproduced this with `triggerReminder`.
   - **Fix:**
-    - Don't let HUD buttons keep focus: `blur()` after activation, or `tabindex="-1"` plus `preventDefault` on `pointerdown`.
-    - And/or `preventDefault` Enter/NumpadEnter outside menus.
-    - Add an e2e test: click 👥, press Enter by the sign; there should still be 2 players and the sign toast should show.
+    - Make top-layer screens the input top.
+    - Hold reminders until the current cutscene or dialogue ends.
+    - Ignore confirm presses for about a second after Pip appears, or give her buttons no default focus.
 
 ## Top improvements
 
-1. **Phone 2P: keep players out from under the controls, and move the two A buttons apart.**
-   - At the tether limit on a 667×375 phone:
-     - **Vertical pull:** P2's feet ended at y=342 of 375 CSS px, wedged between the two A buttons, with the blue A covering their side.
-     - **Diagonal pull:** P1's head sat under the "Tockwood Isle" chip, and P2 sat under their joystick base.
-   - **Fix:** when touch controls are shown, add the HUD band (~3.6rem) to `marginTop` and the button band (~5rem) to `marginBottom` in `WorldScene.frameOpts()`, converted to world units at the current zoom. The tether will then stop players before they reach the controls.
-   - **Also:** the two A buttons are only ~29 CSS px apart at the centre line, so two kids' inner thumbs will collide. Move each A/B pair about 10% of the screen width outward.
-2. **Fix two art glitches a parent will see on the first walk north.**
-   - **The oak's crown is sliced flat.** The old oak is the Bubbling Burrow, one of the island's key landmarks. `src/art/props.ts:774` draws its canopy centred at y=140 with r=190 on a 480 px canvas, so about 50 px of crown is drawn above the canvas and cut off. Enlarge the canvas or shift the drawing down.
-   - **Trees stand in the sea.** 17 of the 75 trees and palms (the NW and NE corners of the north woods) and the rock at (14, 38.5) have their bases on water cells. The woods spots in `src/world/maps/tockwood.ts` lines 115–148 never check terrain; skip any spot whose base cell isn't grass or sand.
-3. **Don't let players get lost, and give each player their own prompt.**
-   - A player can walk fully behind the clocktower or a tree canopy and vanish, marker included. Draw a soft silhouette when occluded, or fade the occluding prop.
-   - In 2P only one world prompt is drawn. With P1 at the sign and P2 at the clocktower door, only "E Read" appears. P2's `/` still works, but they get no cue. Draw one bubble per player.
+1. **Keep action bubbles inside the view.** P2's "/ Enter" bubble at the clocktower door is clipped by the top of the screen when the players are far apart. Clamp bubbles to the camera's `worldView`.
+2. **Stop toasts covering open menus.** "Player 2 joined!" and quest toasts cover two pause-menu tiles on the phone (`review/M3/pause-2p-phone.png`). Hold toasts while a blocking screen is open, or draw them below screens.
+3. **Keep players out of the idle joystick ring on the phone.** At diagonal tether extremes, a player can stand inside their faint idle joystick ring. For example, P2 at x=614 of 667 with feet at y=279 is inside the ring at 526–634 × 225–333 px. Add a side margin when touch controls are shown, or fade the ring when someone is under it.
 
-**Smaller notes (unranked):**
-- `P` opens pause but doesn't close it.
-- On small phones, the "Player 2 joined!" toast covers the pause panel's "Paused" heading.
-- The B "Sniff" button does nothing yet. Until Biscuit arrives in M3, a gentle toast would stop it feeling broken.
-- **Timing flakiness under load.** In a `--repeat-each=2` run done while my own browsers were loading the machine, 3 of 46 tests narrowly missed their distance thresholds (0.93 and 0.99 vs >1; 1.17 vs >1.2). Frame dt is clamped at 50 ms, so a busy CPU plays in slow motion. DECISIONS plans concurrent `npm test` runs in two checkouts, so assert with `expect.poll` on position (or a larger hold time) instead of distance after a fixed wait. Clean re-run: CLEAN_RESULT.
+**Minor:** a double-tap on "Keep it" slower than about 220 ms still reaches slot 2's card and opens the names screen for a new game there. I measured 235–370 ms between clicks. Faster taps are swallowed, the names screen has Back, and slot 1 stayed intact in every run. A 400 ms lock after a dialog closes would cover normal double-tap speeds.
 
 ## Fun score
 
-3/10. Biggest thing holding it back: there's nothing to do or meet yet. The island is charming and pleasant to walk: walk bob, squash-and-stretch, a smooth camera, and a sparkly tether ribbon. But it's an empty, silent stage, which is expected at M1.
+5/10. What's working:
+- Movement is responsive, at a steady 3.6 tiles/s.
+- Biscuit trots along beside you.
+- Trees and buildings fade when you walk behind them.
+- 2P on one phone is now comfortable.
+- The village has neighbours, bunnies and day/night.
+
+Biggest thing holding it back: nothing to do yet beyond the first village errands. The eras and mini-games are still to come.
 
 ## Required features tally
 
-Working 0 · partial 2 · missing 12.
+Working 2 · partial 6 · missing 6. This is judged at this commit. I judged the M2/M3 items from their passing tests, the screenshots and spot checks; their own reviews will go deeper.
 
-1. Adventure story — missing
-2. Village life — partial. The whole hub is walkable: cottage and garden plots, tailor, museum, Tockwood Lanes (placeholder), plaza, beach, dock, the old oak, and the meadow with warren mounds. There are no neighbours, decorating or collecting yet.
-3. Time travel — missing
-4. Outfits — missing. Groundwork is in: a paper-doll rig with clothing layers, P1 and P2 already dressed differently, and a clothing catalogue in data. There's no wardrobe yet.
-5. Bowling — missing. The alley shows "Coming soon!".
-6. Corgi — missing
-7. Dancing — missing
-8. Riddles, logic and strategy — missing
-9. Playtime reminder — missing, due in M2. Settings still default to 45 min and can't be disabled. There's no session timer or fast-forward hook yet, so I couldn't trigger it.
-10. Map and pirates — missing
-11. Fairy — missing
-12. 1 or 2 players — partial.
-    - Working: drop-in/out via the pause menu, 👥, or pad 2's Start; split keyboard; two pads; phone thumb zones; shared camera with soft tether; a distinct-looking P2.
-    - Still broken: the two blockers above.
-13. Bunnies — missing (warren mounds only)
-14. Magic soup — missing (Bubbling Burrow exterior only)
+1. Adventure story — partial. There's the opening storybook, the ferry arrival, Pip's request and the "A Crack in Time" quest. There's no middle or ending yet.
+2. Village life — partial. There are 5 neighbours plus Clover and Grandma Hopkins, with daily lines and friendship, digging finds, museum donations, interiors, and day/night. There's no home decorating yet.
+3. Time travel — missing. The clocktower has a portal ring; it opens in M6.
+4. Outfits — missing. The paper-doll layers and the clothing catalogue exist; the wardrobe is M4.
+5. Bowling — missing.
+6. Corgi — partial. Biscuit follows you, sniffs, digs and leads the opening. His puzzle and dance roles come later.
+7. Dancing — missing.
+8. Riddles, logic and strategy — missing (M5).
+9. Playtime reminder — working. Verified via `fastForward` in 1P and 2P on desktop and phone:
+   - Nothing at 44.5 minutes.
+   - Pip appears at 45 minutes with an in-character line, and the game autosaves.
+   - Two snoozes, then the firm version with no snooze button.
+   - "Take a break" leads to a named goodbye, then the title.
+   - The late-night nudge appears and can be dismissed for the session.
 
-## Verified
+   Caveat: the input bug above.
+10. Map and pirates — partial. The local Tockwood map works; there are no pirates or world map yet.
+11. Fairy — partial. Pip opens the story and gives the reminders; hints and portals come later.
+12. 1 or 2 players — working for everything built so far (see below).
+13. Bunnies — partial. There are Clover, Grandma Hopkins, wild meadow bunnies that scatter and hop back, the warren and the bunny tracker. There are no rescues yet.
+14. Magic soup — missing. The Burrow's cauldron is scenery until M5.
 
-- **Tests**
-  - `npm test` passed: 43 unit + 22 e2e, with 1 conditional skip (the touch test in the desktop project; it runs in the phone project).
-  - The tests exercise real behaviour: movement deltas, collision, tether, two-thumb CDP touch, emulated pads. The gap is menus with more than one input device.
-- **M0 follow-ups**
-  - All five double-tap cases are fixed on phone and desktop: no duplicate screens, no accidental new game, saves intact.
-  - Menus now take keys and pads, with a clear gold focus ring (apart from blocker 1).
-  - The `pwa.spec` no-op is gone.
-  - `shots.mjs` now fails loudly on a missing hook.
-- **Keyboard**
-  - Title → slot → world → doors ("E Enter" prompt, then an "…opens soon!" toast) → sign.
-  - Diagonal movement is normalised: 3.85 vs 3.76 tiles/s.
-- **Gamepad**
-  - Stick, d-pad, A/B and Start all work.
-  - Pad 2's Start drops P2 in during play. On the title it shows a friendly "Player 2 can join once the adventure starts!" toast.
-  - Both pads move their players at once, and the prompt glyph switches to "A".
-- **Touch**
-  - Analog floating stick.
-  - A turns gold and reads "Read".
-  - Holding the stick and pressing A at once works.
-  - In 1P the right side ignores drags.
-  - Two thumbs drive two players at once.
-  - HUD pause and 👥 work.
-- **Tether stress test:** 60 s of random 2P movement on phone and desktop (~7,100 frames). Nobody ever overlapped a wall, and both players stayed on screen when pulled apart horizontally, vertically and diagonally.
-- **Collision:** the shoreline stop matches the drawn sand edge.
-- **Save & quit → Continue** restores position, and a page reload forgets P2, as DECISIONS says.
-- **Screen sizes:** layouts hold at 1920×1080, 1280×720, a 1024×768 tablet, and 667×375 and 568×320 phones. Portrait shows "Turn your phone sideways to play!".
+## Verified (M1 scope)
+
+- **Tests:**
+  - Unit tests: 73 of 73 pass.
+  - e2e with a daytime clock at normal load: 61 passed, 2 conditional skips (the touch test on desktop, the mouse-and-keyboard test on phone).
+- **Keyboard:**
+  - Steady 3.6 tiles/s.
+  - In 2P the split keys move each player independently.
+  - The dock edge and the clocktower walls stop you.
+  - `P` now opens and closes pause.
+- **Gamepads:**
+  - Both pads move their players at the same time.
+  - Pad 2's Start drops P2 in, and pauses once P2 is in; B closes the pause menu.
+  - Leaving from the pause menu, then rejoining with Start, works.
+- **Touch:**
+  - The floating stick walks the player.
+  - A reads "Read" and opens the sign's dialogue, and taps advance it.
+  - B sends Biscuit sniffing.
+  - The controls hide during dialogue and come back after.
+  - Two thumbs drive two players.
+  - The 2P A buttons are now 147 CSS px apart, up from about 29.
+- **Phone 2P framing:** at the vertical tether limit, heads stop at y=88 (the objective pill ends at 67) and feet stop at y=279 (the A buttons start at 300).
+- **Doors in 2P:**
+  - The tailor shows an "Enter" prompt.
+  - Both players arrive together, with P2 placed beside P1.
+  - Both stay on screen when pulled apart in the small room.
+- **Art fixes:**
+  - No trees or rocks on water: 0 of 58 trees and palms, down from 17 of 75.
+  - The oak's crown is fully round.
+  - Buildings and trees fade when a player or Biscuit walks behind them.
+  - Each player gets their own action bubble.
+- **M0 double-tap cases:**
+  - A double-tap on New Game opens one slot picker.
+  - A double-tap on a used slot opens one confirm dialog.
+  - The smoke test for these passes, and saves stayed intact.
 - **Console:** no errors in any session.
-- **Tone, originality and docs:** nothing scary. The names are original (Tockwood Isle, Bramble's Stitch & Style, The Bubbling Burrow, Tockwood Lanes), and the art is procedural. No DECISIONS entry quietly drops a spec requirement.
+- **Tone and originality:**
+  - The tone is warm throughout, and there are no franchise names in the source.
+  - One note for the M3 review: an owl museum curator who takes fossil donations closely echoes a famous life-sim character. A different species would keep Dr. Quill clearly original.
+- **Docs:** PROGRESS and DECISIONS are honest, and no decision quietly drops a spec requirement.

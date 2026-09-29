@@ -9,6 +9,8 @@ import { resetStory } from './story/hooks';
 
 export function switchToWorld(): void {
   ui.closeAll();
+  ui.clearToasts();
+  resetStory(); // cancels any old scene and clears the dialogue box
   const sm = app.phaser.scene;
   if (sm.isActive('title')) sm.stop('title');
   sm.start('world');
@@ -37,6 +39,7 @@ export async function returnToTitle(reason = 'quit'): Promise<void> {
   if (app.data) await app.saveNow();
   app.markPlayEnd(reason);
   ui.closeAll();
+  ui.clearToasts();
   resetStory();
   const sm = app.phaser.scene;
   for (const s of sm.getScenes(true)) if (s.scene.key !== 'title') sm.stop(s.scene.key);

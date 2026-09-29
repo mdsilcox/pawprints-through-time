@@ -194,11 +194,12 @@ export interface SlotSummary {
   bunnies: number;
   location: string;
   p1Name: string;
+  p2Name: string;
 }
 
 export function summarize(slot: number, data: SaveData | null): SlotSummary {
   if (!data) {
-    return { slot, exists: false, updatedAt: 0, playTimeMs: 0, day: 0, sands: 0, bunnies: 0, location: '', p1Name: '' };
+    return { slot, exists: false, updatedAt: 0, playTimeMs: 0, day: 0, sands: 0, bunnies: 0, location: '', p1Name: '', p2Name: '' };
   }
   return {
     slot,
@@ -210,5 +211,6 @@ export function summarize(slot: number, data: SaveData | null): SlotSummary {
     bunnies: data.bunnies.length,
     location: data.location.map,
     p1Name: data.players[0].name,
+    p2Name: data.players[1].name,
   };
 }

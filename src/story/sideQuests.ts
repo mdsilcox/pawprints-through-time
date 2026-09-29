@@ -14,6 +14,7 @@ registerQuest({
     { id: 'beach', text: 'Dip your toes on the south beach', done: flagDone('visited:beach'), where: () => ({ map: 'tockwood', ...TW.beach }) },
     { id: 'meadow', text: 'Find the bunny meadow in the west', done: flagDone('visited:meadow'), where: () => ({ map: 'tockwood', ...TW.meadow }) },
   ],
+  reward: '+10 Tockens',
   onComplete: (d) => {
     d.tockens += 10;
   },

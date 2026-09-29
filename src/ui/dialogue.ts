@@ -6,6 +6,7 @@ import { input } from '../input/input';
 import { h, clear } from './dom';
 import { portraitUrl } from './portraits';
 import { ui, type Screen } from './ui';
+import { Cancelled, sessionEpoch } from '../core/session';
 
 /**
  * Dialogue box with portrait, name tag and type-on text (tap / action to skip, again to advance).
@@ -54,6 +55,8 @@ class DialogueBox {
   private raf = 0;
   private depth = 0;
   private typeDone: (() => void) | null = null;
+  /** rejects whatever the current script is waiting on (typing, the next press, a choice) */
+  private cancel: ((err: Error) => void) | null = null;
   /** lines shown since boot (tests) */
   shown: { who: string; text: string }[] = [];
 
@@ -62,6 +65,8 @@ class DialogueBox {
   }
 
   open(): void {
+    // a stale reference (screen removed behind our back) must not block new conversations
+    if (this.screen && !ui.has('dialogue')) this.screen = null;
     if (this.screen) return;
     this.portrait = h('img', { class: 'dlg-portrait', attrs: { alt: '' } });
     this.portraitWrap = h('div', { class: 'dlg-portrait-wrap' }, this.portrait);
@@ -69,13 +74,9 @@ class DialogueBox {
     this.text = h('div', { class: 'dlg-text', attrs: { 'aria-live': 'polite', 'data-testid': 'dialogue-text' } });
     this.next = h('div', { class: 'dlg-next', attrs: { 'aria-hidden': 'true' } }, '▼');
     this.choices = h('div', { class: 'dlg-choices' });
-    this.box = h(
-      'div',
-      { class: 'dlg-box', attrs: { 'data-testid': 'dialogue' }, onclick: () => this.press() },
-      this.portraitWrap,
-      h('div', { class: 'dlg-body' }, this.name, this.text, this.next),
-    );
-    const el = h('div', { class: 'dlg-screen' }, this.choices, this.box);
+    this.box = h('div', { class: 'dlg-box', attrs: { 'data-testid': 'dialogue' } }, this.portraitWrap, h('div', { class: 'dlg-body' }, this.name, this.text, this.next));
+    // tap anywhere to skip / continue (choice buttons stop the click themselves)
+    const el = h('div', { class: 'dlg-screen', onclick: () => this.press() }, this.choices, this.box);
     this.screen = ui.push({
       id: 'dialogue',
       el,
@@ -96,6 +97,23 @@ class DialogueBox {
     if (this.screen) ui.pop('dialogue');
     this.screen = null;
     this.advance = null;
+  }
+
+  /**
+   * Forget everything (used when leaving play, e.g. Pip's "Take a break"). Any script that was
+   * mid-conversation is abandoned; the next conversation starts from a clean box.
+   */
+  reset(): void {
+    cancelAnimationFrame(this.raf);
+    if (ui.has('dialogue')) ui.pop('dialogue');
+    this.screen = null;
+    this.advance = null;
+    this.typeDone = null;
+    this.typing = false;
+    this.depth = 0;
+    const cancel = this.cancel;
+    this.cancel = null;
+    cancel?.(new Cancelled());
   }
 
   private press(): void {
@@ -138,8 +156,9 @@ class DialogueBox {
     const node = document.createTextNode('');
     this.text.appendChild(node);
     this.text.dataset.full = text;
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.typeDone = resolve;
+      this.cancel = reject;
       const step = () => {
         if (!this.typing) {
           resolve();
@@ -183,9 +202,11 @@ class DialogueBox {
     this.setSpeaker(who);
     clear(this.choices);
     await this.type(who, text);
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       this.advance = resolve;
+      this.cancel = reject;
     });
+    this.cancel = null;
     audio.sfx('blip', { vol: 0.5 });
   }
 
@@ -196,7 +217,8 @@ class DialogueBox {
     this.setSpeaker(who);
     clear(this.choices);
     await this.type(who, text);
-    return new Promise<number>((resolve) => {
+    return new Promise<number>((resolve, reject) => {
+      this.cancel = reject;
       options.forEach((opt, i) => {
         const b = h(
           'button',
@@ -209,6 +231,7 @@ class DialogueBox {
               if (ui.locked) return;
               clear(this.choices);
               audio.sfx('select');
+              this.cancel = null;
               resolve(i);
             },
           },
@@ -224,11 +247,15 @@ class DialogueBox {
 
   async run<T>(fn: () => Promise<T>): Promise<T> {
     this.depth++;
+    const session = sessionEpoch();
     try {
       return await fn();
     } finally {
-      this.depth--;
-      if (this.depth === 0) this.close();
+      // after a reset the box belongs to the new session: leave it alone
+      if (session === sessionEpoch()) {
+        this.depth--;
+        if (this.depth === 0) this.close();
+      }
     }
   }
 
@@ -243,20 +270,22 @@ export const dialogue = new DialogueBox();
 export async function talk(who: string, lines: string | string[]): Promise<void> {
   const list = Array.isArray(lines) ? lines : [lines];
   const own = !dialogue.inConversation;
+  const session = sessionEpoch();
   try {
     for (const l of list) await dialogue.line(who, l);
   } finally {
-    if (own) dialogue.close();
+    if (own && session === sessionEpoch()) dialogue.close();
   }
 }
 
 /** Ask a question; resolves with the chosen option's index. */
 export async function ask(who: string, question: string, options: string[]): Promise<number> {
   const own = !dialogue.inConversation;
+  const session = sessionEpoch();
   try {
     return await dialogue.choice(who, question, options);
   } finally {
-    if (own) dialogue.close();
+    if (own && session === sessionEpoch()) dialogue.close();
   }
 }
 

@@ -36,7 +36,7 @@ export function installControls(): void {
   input.events.on('join-request', () => {
     if (!input.twoPlayer && hud.world) {
       setTwoPlayer(true);
-    } else if (!hud.world) toast('Player 2 can join once the adventure starts!', { icon: '🎮' });
+    } else if (!hud.world) toast('Player 2 can join once the adventure starts!', { icon: '🎮', now: true });
   });
 
   // Poll every frame, just before Phaser steps the scenes.

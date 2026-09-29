@@ -13,7 +13,7 @@
 - Opening story: a 4-page illustrated storybook (the island, Pip and the Great Hourglass, the gentle storm scattering the sands, backwards clocks and the ferry) → ferry arrival cutscene → Biscuit bounds up the dock, barks, and trots ahead to the clocktower (waiting when you fall behind) → Pip's scene at the cracked Great Hourglass with a choice → Biscuit becomes your companion.
 - Main quest "A Crack in Time": follow Biscuit, meet Pip, visit Clover, say hello to 3 neighbours, dig with Biscuit, tell Pip you're ready (the portal opens in M6).
 - Characters: animal-folk heads & tails for the shared paper-doll body (rabbit, owl, badger, frog, goat, raccoon, flamingo, bear, cat, dog, fox, mouse, hedgehog, parrot); all hats/accessories drawn (bunny ears poke through hats); Biscuit the corgi with 18 frames (walks in 3 directions, dig, sniff, bark-jump, sit, sleep, happy, dance) and his own outfit layers; Pip as a fluttering sprite; little bunnies with period outfits.
-- Neighbours (5 + Clover + Grandma Hopkins): Dr. Quill (museum), Bramble (tailor), Finnegan (dock), Juniper (garden stall), Rocco (clock stall) — each with a first meeting, rotating daily lines (night lines, friendship-heart lines), once-a-day friendship from chatting, daily gifts (kelp, honey), Juniper's seed gift, Dr. Quill's first-fossil donation, and Rocco's "Missing Gears" favour quest.
+- Neighbours (5 + Clover + Grandma Hopkins): Dr. Quill (hedgehog time historian, Museum of Time), Bramble (tailor), Finnegan (dock), Juniper (garden stall), Rocco (clock stall) — each with a first meeting, rotating daily lines (night lines, friendship-heart lines), once-a-day friendship from chatting, daily gifts (kelp, honey), Juniper's seed gift, Dr. Quill's first-fossil donation, and Rocco's "Missing Gears" favour quest.
 - Clover's story (her 12 Hopkins cousins lost in time), Grandma Hopkins by the warren; the warren shows rescued bunnies (hop, nap, wave, talk); 5 wild meadow bunnies scatter from Biscuit or a running player and always hop back.
 - Interiors with painted rooms: the Clocktower (Great Hourglass with 8 empty sockets, portal ring), your Cottage (bed to sleep until morning), The Bubbling Burrow (bubbling cauldron), Bramble's shop, the Museum; doors and doorway exits, both players move together, autosave on map change.
 - Day/night on an in-game clock (1 game minute per real second): warm dusk/dawn tint, blue night, glowing street lamps, fireflies in the meadow/woods/plaza, night music, HUD clock; sleeping skips to 6:30 AM.
@@ -22,7 +22,15 @@
 - Item catalogue with ~55 procedurally drawn icons (shells, fossils, trinkets, ingredients from every era, artifacts).
 - M1 review fixes: per-pad menu navigation (no double steps with pads connected), HUD buttons never keep focus (Enter no longer toggles P2), Enter/Space never click focused buttons during play, P toggles pause, phone 2P camera margins keep players clear of the HUD and buttons, 2P buttons spread apart, oak crown no longer clipped, no trees in the sea, one action bubble per player, buildings/trees fade when someone walks behind them.
 
-## M2 — Core systems ✅ (awaiting critic)
+## M2 — Core systems ✅ (critic: REVISE → all blockers fixed; re-review requested)
+- M2 review fixes:
+  - Taking Pip's break (or any exit) mid-conversation can no longer break the story: leaving play ends the "story session" — the dialogue box is fully reset, waiting lines/choices/timers/scripted walks of the old session are cancelled, and a cancelled scene can never unlock or close anything in the next one.
+  - Pip waits for a calm moment: never during dialogue, cutscenes, storybooks, running story scripts or the first 3 s of play (at most 60 s of waiting); her card owns all input while it is up and ignores presses for its first second (no mashing through her message).
+  - Tests can't turn red at night any more (the device hour is pinned; the night test sets 22:00 explicitly and waits for the nudge to appear by itself after the arrival scene).
+  - Manual save test now checks that a just-changed value reaches the stored slot; the pause-menu timer test is a real browser test (time counts in Pause → Settings, Pip appears on top and hands control back); a real `visibilitychange` test for backgrounding.
+  - Quest toasts come from finished step ids (no wrong-step toasts when steps are done out of order), rewards are announced ("+10 Tockens"), and news that arrives while a menu is open waits until the menus close (the pause menu's Save gives feedback on its own button).
+  - Title/new game: Load Game refreshes the title after deleting saves; the names screen flows with the keyboard (Enter → next box → "Let's go!", Esc leaves the box, arrows move in and out); save slots and Continue show both players' names; the controls guide's Back button is sticky on phones; the title menu fits on a 375 px-tall phone.
+  - Smaller notes: Reduce motion now switches off UI animation; Pip's portrait glow is round and feathered; tapping anywhere moves a conversation on; menu arrow keys prefer items in the same row/column.
 - Dialogue: portrait + name tag + type-on text with per-character voice blips; tap/action skips, then advances; choices (keyboard, pad, touch, either player); `{p1}/{p2}/{players}` name tokens; signs use it.
 - Quests & flags: quests are derived from save flags (always consistent with the save); HUD objective pill (tap → Adventure Log); step/quest-complete toasts + fanfare + autosave; rewards run once. First side quest: "Explore Tockwood Isle" (plaza, signpost, beach, meadow → 10 Tockens).
 - Saves: 3 IndexedDB slots with names ("Who's adventuring today?" on New Game, dice for random names), Continue/Load/delete (with confirm), manual save in the pause menu, autosave every minute, on quest progress, when Pip's reminder appears, and whenever the app is backgrounded/closed.
@@ -32,7 +40,7 @@
 - Audio engine: Web Audio synth instruments (bell, marimba, pluck, piano, flute, fiddle, accordion, organ, bass, pad, brass...) + drums, lookahead sequencer with a note-string DSL, original songs for the title, Tockwood day/night, interiors, clocktower and the Burrow; SFX incl. UI blips, footsteps per surface (grass/sand/wood/stone), corgi bark, sparkles, portal whoosh, bowling pins, dance hits.
 - Fixed along the way: skipping type-on could stall a line; a key that closed a menu leaked into gameplay (re-opening the sign); on phones the touch layer covered the HUD objective.
 
-## M1 — Movement and controls ✅ (critic: REVISE → both blockers fixed in the M3 commit; re-review requested)
+## M1 — Movement and controls ✅ (critic: REVISE → re-review 1: both blockers fixed, new blocker "npm test red after 9 PM" fixed by pinning the device hour; walking/tether/blocking tests poll instead of fixed waits; re-review 2 requested)
 - Tockwood Isle (60×46 cells): island, beach, dock, plaza with fountain, clocktower, cottage + garden plots, tailor, museum, bowling alley (closed), the old oak (Bubbling Burrow), meadow + warren mounds, north woods. Already in the house art style (not just graybox).
 - Terrain: dual-grid autotiling (16 variants per layer: foam, sand, grass, path, plaza) with extruded tilesets (no seams), dock planks, scattered decor (tufts, flowers, shells) via a Blitter; props depth-sorted by their base.
 - Paper-doll characters (one rig, 16 poses incl. walk cycles, dance and bowling poses) with clothing layers; P1 and P2 look different.
@@ -42,7 +50,7 @@
 - Contextual action prompts ("E Read", touch A-button relabels to the action).
 - Tests: terrain/collision/camera-tether/input unit tests; Playwright: WASD/arrows movement, 2P join/leave via pause menu, tether keeps both on screen, water/building collision, gamepad emulation (move + Start-to-join), touch joystick with two simultaneous thumbs on phone, keyboard-only menus.
 
-## M0 — Scaffold ✅ (critic: REVISE → fixed flaky PWA test; re-review requested)
+## M0 — Scaffold ✅ (critic: PASS after one revise)
 - Repo + private GitHub remote, `SPEC.md` saved verbatim, `.claude/agents/critic.md` from Appendix A.
 - Vite 8 + TypeScript + Phaser 3.90 boot → title → play loop; DOM overlay UI layer with a screen stack and spatial focus navigation.
 - HiDPI-aware scaling (device-pixel backing store, DPR ≤ 2) that fills any viewport; portrait-phone "turn sideways" hint.

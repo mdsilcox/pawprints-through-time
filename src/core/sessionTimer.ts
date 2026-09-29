@@ -120,6 +120,12 @@ export class SessionTimer {
     this.lastTick = t;
   }
 
+  /** Active play time right now (elapsedMs is only brought up to date by update/pause/end). */
+  get liveElapsedMs(): number {
+    const running = this.state === 'running' && this.pausedAt === null;
+    return this.elapsedMs + (running ? Math.max(0, this.now() - this.lastTick) : 0);
+  }
+
   /** Call regularly (e.g. every second). Returns a reminder event when one is due. */
   update(): ReminderEvent | null {
     if (this.state !== 'running') return null;

@@ -149,7 +149,7 @@ export function openControls(): void {
         h('ul', null, h('li', null, 'Drag on the left: move'), h('li', null, 'A: action · B: sniff'), h('li', null, '❚❚ top-right: pause'), h('li', null, '2 players: each gets half the screen')),
       ),
     ),
-    h('div', { class: 'row end' }, button('Back', close, { cls: 'secondary', autofocus: true, testid: 'controls-back' })),
+    h('div', { class: 'row end sticky-foot' }, button('Back', close, { cls: 'secondary', autofocus: true, testid: 'controls-back' })),
   );
   ui.push({ id: 'controls', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: close });
 }

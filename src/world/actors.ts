@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Cancelled } from '../core/session';
 import { TILE, type CollisionGrid } from './collision';
 import { FEET_Y, FH } from '../art/character';
 import { CW, CH, type CorgiFrame } from '../art/corgi';
@@ -277,9 +278,9 @@ export class BiscuitActor extends Actor {
     this.state = 'lead';
     this.leadSpeed = speed;
     this.leadTarget = { x, y };
-    await new Promise<void>((resolve) => {
+    await new Promise<void>((resolve, reject) => {
       const check = () => {
-        if (this.destroyed) return resolve();
+        if (this.destroyed) return reject(new Cancelled());
         if (!this.leadTarget || Math.hypot(this.x - x, this.y - y) < 8) return resolve();
         this.scene.time.delayedCall(80, check);
       };

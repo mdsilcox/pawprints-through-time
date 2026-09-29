@@ -4,7 +4,7 @@ import { input } from '../input/input';
 import { returnToTitle } from '../flow';
 import { setTwoPlayer } from '../players';
 import { h } from './dom';
-import { button, toast, ui } from './ui';
+import { button, ui } from './ui';
 import { openSettings } from './settingsScreen';
 
 /**
@@ -71,6 +71,22 @@ export function openPause(): void {
     },
     { icon: '👥', cls: 'blue', testid: 'pause-p2' },
   );
+  const saveBtn = button(
+    'Save',
+    async () => {
+      await app.saveNow();
+      audio.sfx('success');
+      // feedback right on the button (a toast would cover the panel on a phone)
+      const label = saveBtn.querySelector('.btn-label')!;
+      label.textContent = 'Saved!';
+      saveBtn.classList.add('saved');
+      setTimeout(() => {
+        label.textContent = 'Save';
+        saveBtn.classList.remove('saved');
+      }, 1800);
+    },
+    { icon: '💾', cls: 'gold', testid: 'pause-save' },
+  );
   const el = h(
     'div',
     { class: 'center-wrap' },
@@ -84,15 +100,7 @@ export function openPause(): void {
         { class: 'pause-actions' },
         button('Resume', close, { icon: '▶', autofocus: true, testid: 'pause-resume' }),
         p2,
-        button(
-          'Save',
-          async () => {
-            await app.saveNow();
-            audio.sfx('success');
-            toast('Adventure saved!', { icon: '💾' });
-          },
-          { icon: '💾', cls: 'gold', testid: 'pause-save' },
-        ),
+        saveBtn,
         button('Save & quit', () => void returnToTitle('quit'), { icon: '🏠', cls: 'secondary', testid: 'pause-quit' }),
       ),
     ),

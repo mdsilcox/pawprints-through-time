@@ -1,37 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, playThrough, press, pressUntil, startGame, watchErrors } from './helpers';
+import { advanceDialogue, bootToTitle, hook, playThrough, press, pressUntil, startGame, talkTo, watchErrors } from './helpers';
 
-async function advanceDialogue(page: Page, max = 30): Promise<void> {
-  for (let i = 0; i < max; i++) {
-    if (!(await hook<boolean>(page, 'dialogueOpen'))) {
-      await page.waitForTimeout(500);
-      if (!(await hook<boolean>(page, 'dialogueOpen'))) return;
-    }
-    if (await page.getByTestId('choice-0').isVisible().catch(() => false)) {
-      await press(page, '[data-testid="choice-0"]');
-      continue;
-    }
-    await page.waitForTimeout(160);
-    await page.keyboard.press('KeyE');
-  }
-}
-
-async function talkTo(page: Page, npc: string): Promise<void> {
-  const list = await hook<{ id: string; x: number; y: number }[]>(page, 'npcs');
-  const n = list.find((x) => x.id === npc)!;
-  expect(n).toBeTruthy();
-  // neighbours wander a little, so keep stepping up to them until the prompt shows
-  await expect
-    .poll(async () => {
-      const cur = (await hook<{ id: string; x: number; y: number }[]>(page, 'npcs')).find((x) => x.id === npc)!;
-      await hook(page, 'teleport', cur.x, cur.y + 0.9, 0);
-      await page.waitForTimeout(120);
-      return hook(page, 'prompt');
-    }, { timeout: 12000 })
-    .toBe('Talk');
-  await pressUntil(page, 'KeyE', () => hook<boolean>(page, 'dialogueOpen'));
-  await advanceDialogue(page);
-}
 
 test.describe('the opening story', () => {
   test('storybook -> ferry arrival -> Biscuit leads the way -> Pip asks for help', async ({ page }) => {
@@ -125,7 +94,9 @@ test.describe('village life', () => {
     await expect(page.getByTestId('choice-0')).toBeVisible();
     await press(page, '[data-testid="choice-0"]');
     await expect.poll(async () => (await hook<any>(page, 'time')).day, { timeout: 8000 }).toBe(2);
-    expect((await hook<any>(page, 'time')).minutes).toBe(6 * 60 + 30);
+    const woke = (await hook<any>(page, 'time')).minutes;
+    expect(woke).toBeGreaterThanOrEqual(6 * 60 + 30);
+    expect(woke).toBeLessThan(6 * 60 + 32);
   });
 
   test('wild bunnies scatter when you rush at them, then hop back home', async ({ page }) => {

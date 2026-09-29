@@ -636,3 +636,15 @@ table.keys td {
   border-radius: 1rem;
   padding: 0.3rem 0.8rem;
 }
+
+/* a second, smaller line inside a button (e.g. who's in the Continue save) */
+.btn-sub {
+  display: block;
+  font-size: 0.62em;
+  font-weight: 600;
+  opacity: 0.8;
+  margin-top: 0.05rem;
+}
+.btn.saved {
+  filter: saturate(1.2) brightness(1.05);
+}

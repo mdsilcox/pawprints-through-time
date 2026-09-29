@@ -53,10 +53,17 @@ describe('SessionTimer (playtime reminder)', () => {
     expect(advance(1 * MIN)).toMatchObject({ kind: 'firm' }); // comes back, still firm
   });
 
-  it('keeps counting while the in-game pause menu is open (the family is still at the screen)', () => {
+  it('keeps the snooze count across a short trip to the background', () => {
     timer.start();
-    // (the pause menu does not call pause(); only backgrounding does)
-    expect(advance(45 * MIN)).not.toBeNull();
+    advance(45 * MIN);
+    timer.snooze();
+    advance(2 * MIN);
+    timer.pause(); // phone locked for a minute
+    t += MIN;
+    expect(timer.resume()).toBe(false);
+    expect(timer.snoozes).toBe(1);
+    expect(advance(2 * MIN)).toBeNull();
+    expect(advance(1 * MIN)).toMatchObject({ kind: 'gentle', snoozesUsed: 1 }); // 5 active minutes after snoozing
   });
 
   it('does not count time while the app is in the background', () => {

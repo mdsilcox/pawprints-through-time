@@ -7,7 +7,7 @@ import { toast } from '../ui/ui';
 import { TILE } from '../world/collision';
 import { TW } from '../world/maps/tockwood';
 import { registerQuest, type QuestDef } from './quests';
-import { cutscene, flag, onEnterMap, onTalk, onUse, setFlag, wait, give } from './hooks';
+import { cutscene, flag, onEnterMap, onTalk, onUse, setFlag, wait, give, background } from './hooks';
 import type { WorldScene } from '../scenes/WorldScene';
 
 /**
@@ -80,7 +80,7 @@ async function arrival(world: WorldScene): Promise<void> {
   setFlag('met:biscuit');
   const b = world.biscuit!;
   // Biscuit trots ahead to the clocktower, pausing whenever you fall behind
-  void (async () => {
+  background(async () => {
     const path = [
       [30.5, 36],
       [30.5, 30],
@@ -106,7 +106,7 @@ async function arrival(world: WorldScene): Promise<void> {
       b.emote('exclaim', 1500);
       audio.sfx('bark');
     }
-  })();
+  });
 }
 
 // ------------------------------------------------------------------ the clocktower & Pip

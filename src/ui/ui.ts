@@ -54,13 +54,20 @@ class UIManager {
     this.root.classList.toggle('kbd-nav', on);
   }
 
+  /** The screen that receives input: anything on the top layer (Pip's reminder) wins. */
   get top(): Screen | undefined {
+    for (let i = this.stack.length - 1; i >= 0; i--) if (this.stack[i].el.parentElement === this.topLayer) return this.stack[i];
     return this.stack[this.stack.length - 1];
   }
 
   /** True while any blocking screen is open (world input should pause). */
   get blocking(): boolean {
     return this.stack.some((s) => !s.passive);
+  }
+
+  /** A menu, panel or card is open (not just a conversation or cutscene over the world). */
+  get menuOpen(): boolean {
+    return this.stack.some((s) => !s.passive && s.id !== 'dialogue' && s.id !== 'cutscene');
   }
 
   has(id: string): boolean {
@@ -123,6 +130,23 @@ class UIManager {
 
   private changed() {
     for (const fn of this.listeners) fn();
+    if (!this.menuOpen) this.flushToasts();
+  }
+
+  // ------------------------------------------------------------ toasts
+  /** News that arrived while a menu was open waits until the menus close (never covers a panel). */
+  private toastQueue: { text: string; opts: ToastOpts }[] = [];
+  queueToast(text: string, opts: ToastOpts): void {
+    if (this.toastQueue.length < 6) this.toastQueue.push({ text, opts });
+  }
+  clearToasts(): void {
+    this.toastQueue = [];
+  }
+  private flushToasts(): void {
+    const q = this.toastQueue;
+    if (!q.length) return;
+    this.toastQueue = [];
+    q.forEach((t, i) => setTimeout(() => toast(t.text, t.opts), 350 + i * 450));
   }
 
   private syncDim() {
@@ -196,7 +220,13 @@ class UIManager {
         secondary = Math.abs(dy);
       }
       if (primary <= 4) continue;
-      const score = primary + secondary * 2.2;
+      // Items in the same row (for left/right) or column (for up/down) come first, so "left"
+      // from a button goes to its neighbour rather than to something below that's a bit left.
+      const inBeam =
+        dir === 'up' || dir === 'down'
+          ? Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2
+          : Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+      const score = primary + secondary * 2.2 + (inBeam ? 0 : 100_000);
       if (score < bestScore) {
         bestScore = score;
         best = el;
@@ -258,9 +288,21 @@ export function button(
   return b;
 }
 
+export interface ToastOpts {
+  icon?: string;
+  ms?: number;
+  cls?: string;
+  /** direct feedback to what the player just did in a menu: show right away */
+  now?: boolean;
+}
+
 /** Transient message bubble ("Saved!", "Got 3 carrots"). */
-export function toast(text: string, opts: { icon?: string; ms?: number; cls?: string } = {}): void {
+export function toast(text: string, opts: ToastOpts = {}): void {
   if (!ui.toastLayer) return;
+  if (!opts.now && ui.menuOpen) {
+    ui.queueToast(text, opts);
+    return;
+  }
   const el = h('div', { class: `toast ${opts.cls ?? ''}` }, opts.icon ? h('span', { class: 'toast-icon' }, opts.icon) : null, text);
   ui.toastLayer.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));

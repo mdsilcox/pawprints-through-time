@@ -33,10 +33,13 @@ export class GameApp {
   events = new Emitter<AppEvents>();
   playing = false;
   booted = false;
+  /** set by mini-games and other moments that must not be interrupted */
+  busy = false;
   autosave = new AutoSaver(() => this.saveNow());
   private playStartedAt = 0;
 
   boot(scenes: Phaser.Types.Scenes.SceneType[]): void {
+    this.applyComfort();
     this.phaser = new Phaser.Game({
       type: Phaser.AUTO,
       parent: 'game',
@@ -66,7 +69,16 @@ export class GameApp {
   setSettings(patch: Partial<Settings>): void {
     this.settings = sanitizeSettings({ ...this.settings, ...patch });
     storeSettings(this.settings);
+    this.applyComfort();
     this.events.emit('settings', this.settings);
+  }
+
+  /** Comfort settings that are pure presentation live as classes on <html>. */
+  applyComfort(): void {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.classList.toggle('reduce-motion', this.settings.reduceMotion);
+    root.classList.toggle('colorblind', this.settings.colorblind);
   }
 
   // ---------------------------------------------------------------- saves

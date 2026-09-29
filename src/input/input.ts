@@ -114,9 +114,14 @@ export class InputManager {
 
   private onKeyDown(e: KeyboardEvent): void {
     if (this.typing()) {
-      if (e.code === 'Escape') {
+      // Escape/Enter just leave the text box (never cancel the whole screen);
+      // up/down hop to the next thing on the screen like any other menu item.
+      if (e.code === 'Escape' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+        e.preventDefault();
         (document.activeElement as HTMLElement).blur();
-        this.events.emit('back', 0);
+      } else if (e.code === 'ArrowUp' || e.code === 'ArrowDown') {
+        e.preventDefault();
+        this.events.emit('nav', e.code === 'ArrowUp' ? 'up' : 'down');
       }
       return;
     }

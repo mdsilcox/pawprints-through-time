@@ -242,11 +242,11 @@ export function openWardrobe(opts: { who?: Wearer; shop?: boolean } = {}): void 
               equip(d, who, tryItem.id, tryItem.color);
               trying = null;
               audio.sfx('coin');
-              toast('Bought! Bramble wraps it up with a bow.', { icon: '🛍️' });
+              toast('Bought! Bramble wraps it up with a bow.', { icon: '🛍️', now: true });
               changed();
             } else if (r === 'poor') {
               audio.sfx('error');
-              toast('Not enough Tockens yet — Biscuit can dig up treasure to sell to Dr. Quill!', { icon: '🪙', ms: 3200 });
+              toast('Not enough Tockens yet — Biscuit can dig up treasures to sell to Dr. Quill!', { icon: '🪙', ms: 3200, now: true });
             }
             render();
           },

@@ -19,6 +19,11 @@ export function placeName(map: string): string {
   return PLACE_NAMES[map] ?? map.replace(/[-_]/g, ' ');
 }
 
+/** "Maisie & Theo" — siblings can tell their saves apart at a glance. */
+export function slotNames(s: SlotSummary): string {
+  return s.p2Name ? `${s.p1Name} & ${s.p2Name}` : s.p1Name;
+}
+
 /**
  * Pick one of the save slots. `mode` decides which slots are selectable:
  * new: all (occupied ones ask before overwriting); load: only occupied ones.
@@ -38,7 +43,7 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
         ? h(
             'div',
             { class: 'slot-info' },
-            h('div', { class: 'slot-title' }, `${s.p1Name} · Day ${s.day}`),
+            h('div', { class: 'slot-title' }, `${slotNames(s)} · Day ${s.day}`),
             h('div', { class: 'slot-sub' }, `${placeName(s.location)} · ⌛ ${s.sands} sands · 🐰 ${s.bunnies}`),
             h('div', { class: 'slot-sub small' }, formatPlayTime(s.playTimeMs)),
           )
@@ -59,7 +64,7 @@ export async function pickSlot(mode: 'new' | 'load'): Promise<number | null> {
           ? button(
               '🗑',
               async () => {
-                const ok = await confirmDialog(`Delete the adventure in slot ${s.slot} (${s.p1Name})? This can't be undone.`, 'Delete it', 'Keep it');
+                const ok = await confirmDialog(`Delete the adventure in slot ${s.slot} (${slotNames(s)})? This can't be undone.`, 'Delete it', 'Keep it');
                 if (!ok) return;
                 await app.saves.delete(s.slot);
                 ui.pop('slots');

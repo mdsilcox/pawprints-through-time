@@ -2,6 +2,7 @@ import { app } from '../app';
 import { audio } from '../audio/audio';
 import { DEFAULT_TIMER, SessionTimer, isLateNight, type ReminderEvent } from '../core/sessionTimer';
 import { returnToTitle } from '../flow';
+import { storyBusy } from '../story/hooks';
 import { input } from '../input/input';
 import { renderPipPortrait } from '../art/fairy';
 import { h } from './dom';
@@ -39,7 +40,10 @@ class ReminderController {
   install(): void {
     this.timer.setInterval(app.settings.reminderMinutes * MIN);
     app.events.on('settings', (s) => this.timer.setInterval(s.reminderMinutes * MIN));
-    app.events.on('play-start', () => this.timer.start());
+    app.events.on('play-start', () => {
+      this.playStartAt = Date.now();
+      this.timer.start();
+    });
     app.events.on('play-end', () => this.timer.end());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.timer.pause();
@@ -56,8 +60,28 @@ class ReminderController {
     return this.showing;
   }
 
+  private deferredSince = 0;
+  private playStartAt = 0;
+
+  /**
+   * Dialogue, cutscenes, storybooks and running story scripts finish first (up to a minute) —
+   * Pip never interrupts a story beat. The first few seconds of play are also left alone, so a
+   * scene that starts as you arrive (the ferry landing) gets going before Pip could pop in.
+   */
+  private busyMoment(): boolean {
+    const settling = Date.now() - this.playStartAt < 3000;
+    const busy = settling || ['dialogue', 'cutscene', 'intro', 'storybook', 'names'].some((id) => ui.has(id)) || storyBusy() || app.busy;
+    if (!busy) {
+      this.deferredSince = 0;
+      return false;
+    }
+    if (!this.deferredSince) this.deferredSince = Date.now();
+    return Date.now() - this.deferredSince < 60_000;
+  }
+
   check(): void {
     if (!app.playing || this.showing) return;
+    if (this.busyMoment()) return;
     const ev = this.timer.update();
     if (ev) {
       this.show(ev);
@@ -131,6 +155,8 @@ class ReminderController {
       ),
     );
     ui.push({ id: 'reminder', el, onBack: () => undefined }, ui.topLayer);
+    // a child mashing the action button can't pick an answer without seeing Pip first
+    ui.lock(1000);
   }
 
   private close(): void {

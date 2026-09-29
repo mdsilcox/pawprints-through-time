@@ -36,10 +36,10 @@ export const CHARACTERS: Record<string, CharacterDef> = {
   quill: {
     id: 'quill',
     name: 'Dr. Quill',
-    title: 'Museum Curator',
+    title: 'Time Historian',
     art: 'doll',
-    spec: doll('owl', '#b88c63', { top: P('cardigan', '#6f9fd8', '#fff'), bottom: P('pants', '#8a5a3a', '#fff'), shoes: P('boots', '#5a4a3a', '#f7c65a'), acc: P('glasses', '#d9a23a', '#dff3ff') }, { fur2: '#f3dcb8' }),
-    voice: { midi: 62, kind: 'deep' },
+    spec: doll('hedgehog', '#a0785a', { top: P('cardigan', '#6f9fd8', '#fff'), bottom: P('skirt', '#8a5a3a', '#fff'), shoes: P('boots', '#5a4a3a', '#f7c65a'), acc: P('glasses', '#d9a23a', '#dff3ff') }, { fur2: '#f6e3c8' }),
+    voice: { midi: 69, kind: 'soft' },
     color: '#6f9fd8',
   },
   bramble: {
