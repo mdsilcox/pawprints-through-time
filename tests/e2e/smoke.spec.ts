@@ -26,6 +26,8 @@ test.describe('smoke', () => {
     await expect(page.getByTestId('name-p1')).toBeVisible();
     await page.getByTestId('name-p1').fill('Robin');
     await press(page, '[data-testid="names-ok"]');
+    await expect(page.locator('[data-screen="intro"]')).toBeVisible();
+    await press(page, '[data-testid="story-skip"]');
     await expect.poll(() => activeScenes(page)).toContain('world');
     expect((await hook<any>(page, 'state')).players[0].name).toBe('Robin');
     expect(await hook(page, 'slot')).toBe(2);
@@ -94,6 +96,7 @@ test('a quick double-tap never skips a menu or stacks duplicate screens', async 
   // ...while a deliberate tap a moment later works
   await press(page, '[data-testid="slot-1"]');
   await press(page, '[data-testid="names-ok"]');
+  await press(page, '[data-testid="story-skip"]');
   await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
 });
 

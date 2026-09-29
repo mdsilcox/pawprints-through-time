@@ -1,5 +1,18 @@
 # Progress log
 
+## M3 — Tockwood comes alive ✅ (awaiting critic)
+- Opening story: a 4-page illustrated storybook (the island, Pip and the Great Hourglass, the gentle storm scattering the sands, backwards clocks and the ferry) → ferry arrival cutscene → Biscuit bounds up the dock, barks, and trots ahead to the clocktower (waiting when you fall behind) → Pip's scene at the cracked Great Hourglass with a choice → Biscuit becomes your companion.
+- Main quest "A Crack in Time": follow Biscuit, meet Pip, visit Clover, say hello to 3 neighbours, dig with Biscuit, tell Pip you're ready (the portal opens in M6).
+- Characters: animal-folk heads & tails for the shared paper-doll body (rabbit, owl, badger, frog, goat, raccoon, flamingo, bear, cat, dog, fox, mouse, hedgehog, parrot); all hats/accessories drawn (bunny ears poke through hats); Biscuit the corgi with 18 frames (walks in 3 directions, dig, sniff, bark-jump, sit, sleep, happy, dance) and his own outfit layers; Pip as a fluttering sprite; little bunnies with period outfits.
+- Neighbours (5 + Clover + Grandma Hopkins): Dr. Quill (museum), Bramble (tailor), Finnegan (dock), Juniper (garden stall), Rocco (clock stall) — each with a first meeting, rotating daily lines (night lines, friendship-heart lines), once-a-day friendship from chatting, daily gifts (kelp, honey), Juniper's seed gift, Dr. Quill's first-fossil donation, and Rocco's "Missing Gears" favour quest.
+- Clover's story (her 12 Hopkins cousins lost in time), Grandma Hopkins by the warren; the warren shows rescued bunnies (hop, nap, wave, talk); 5 wild meadow bunnies scatter from Biscuit or a running player and always hop back.
+- Interiors with painted rooms: the Clocktower (Great Hourglass with 8 empty sockets, portal ring), your Cottage (bed to sleep until morning), The Bubbling Burrow (bubbling cauldron), Bramble's shop, the Museum; doors and doorway exits, both players move together, autosave on map change.
+- Day/night on an in-game clock (1 game minute per real second): warm dusk/dawn tint, blue night, glowing street lamps, fireflies in the meadow/woods/plaza, night music, HUD clock; sleeping skips to 6:30 AM.
+- Digging: daily dig spots per zone (beach shells, woods fossils & Glowcap mushrooms, meadow trinkets, village clock gears), some hidden until Biscuit sniffs (B / Q / . ), a guaranteed first dig by the plaza; Biscuit runs over and digs with dirt particles and an item pop-up.
+- Screens: local Map (terrain, landmarks, both players, Biscuit, goal star, revealed dig spots; "you are inside X" for interiors), Backpack (tabs, icons, descriptions, Tockens), Bunny Tracker (12 cousins by era with hints, rewards progress).
+- Item catalogue with ~55 procedurally drawn icons (shells, fossils, trinkets, ingredients from every era, artifacts).
+- M1 review fixes: per-pad menu navigation (no double steps with pads connected), HUD buttons never keep focus (Enter no longer toggles P2), Enter/Space never click focused buttons during play, P toggles pause, phone 2P camera margins keep players clear of the HUD and buttons, 2P buttons spread apart, oak crown no longer clipped, no trees in the sea, one action bubble per player, buildings/trees fade when someone walks behind them.
+
 ## M2 — Core systems ✅ (awaiting critic)
 - Dialogue: portrait + name tag + type-on text with per-character voice blips; tap/action skips, then advances; choices (keyboard, pad, touch, either player); `{p1}/{p2}/{players}` name tokens; signs use it.
 - Quests & flags: quests are derived from save flags (always consistent with the save); HUD objective pill (tap → Adventure Log); step/quest-complete toasts + fanfare + autosave; rewards run once. First side quest: "Explore Tockwood Isle" (plaza, signpost, beach, meadow → 10 Tockens).
@@ -10,7 +23,7 @@
 - Audio engine: Web Audio synth instruments (bell, marimba, pluck, piano, flute, fiddle, accordion, organ, bass, pad, brass...) + drums, lookahead sequencer with a note-string DSL, original songs for the title, Tockwood day/night, interiors, clocktower and the Burrow; SFX incl. UI blips, footsteps per surface (grass/sand/wood/stone), corgi bark, sparkles, portal whoosh, bowling pins, dance hits.
 - Fixed along the way: skipping type-on could stall a line; a key that closed a menu leaked into gameplay (re-opening the sign); on phones the touch layer covered the HUD objective.
 
-## M1 — Movement and controls ✅ (critic review in progress)
+## M1 — Movement and controls ✅ (critic: REVISE → both blockers fixed in the M3 commit; re-review requested)
 - Tockwood Isle (60×46 cells): island, beach, dock, plaza with fountain, clocktower, cottage + garden plots, tailor, museum, bowling alley (closed), the old oak (Bubbling Burrow), meadow + warren mounds, north woods. Already in the house art style (not just graybox).
 - Terrain: dual-grid autotiling (16 variants per layer: foam, sand, grass, path, plaza) with extruded tilesets (no seams), dock planks, scattered decor (tufts, flowers, shells) via a Blitter; props depth-sorted by their base.
 - Paper-doll characters (one rig, 16 poses incl. walk cycles, dance and bowling poses) with clothing layers; P1 and P2 look different.
@@ -32,7 +45,7 @@
 - `node scripts/shots.mjs <milestone>` captures review screenshots.
 
 ## Next
-- M2: dialogue system, quest/flag system, autosave + save slots UI, full pause menu, settings, playtime reminder.
+- M4: wardrobe (mirror + cottage wardrobe), looks, Biscuit's wardrobe, Bramble's shop.
 
 ## Known issues
 - (none yet)

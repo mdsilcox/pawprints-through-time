@@ -4,6 +4,7 @@ import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
 import './styles/main.css';
 import './styles/menus.css';
+import './styles/world.css';
 
 import { app } from './app';
 import { installDebugHooks, registerDebug } from './core/debug';
@@ -27,6 +28,20 @@ import { installQuestRuntime } from './story/runtime';
 import { currentObjective, questLog } from './story/quests';
 import { TILE } from './world/collision';
 import './story/sideQuests';
+import './art/species';
+import './art/items';
+import { showGallery } from './art/gallery';
+import './story/opening';
+import './story/tockwoodNpcs';
+import { openMap } from './ui/mapScreen';
+import { openBackpack } from './ui/backpack';
+import { openBunnyTracker } from './ui/bunnyTracker';
+import { registerPortraitSource } from './ui/portraits';
+import { renderCorgiPortrait } from './art/corgi';
+import { renderBunnyPortrait } from './art/bunny';
+import { biscuitPieces } from './data/clothes';
+import { GRANDMA } from './data/bunnies';
+import { toast } from './ui/ui';
 
 ui.mount(document.getElementById('ui-root')!);
 audio.installUnlock();
@@ -37,6 +52,12 @@ installControls();
 hud.onObjective = () => openQuestLog();
 reminder.install();
 installQuestRuntime();
+registerPortraitSource((id) => {
+  if (id === 'biscuit') return renderCorgiPortrait(biscuitPieces(app.data?.biscuit.outfit ?? {}), 160);
+  if (id === 'grandma') return renderBunnyPortrait(GRANDMA, 160);
+  return null;
+});
+app.events.on('open-portal-map', () => toast('The first Time Sand is calling from the Golden Age of Piracy... (the voyage opens in the next chapter!)', { icon: '🏴', ms: 4000 }));
 
 const world = () => app.phaser.scene.getScene('world') as WorldScene;
 registerDebug({
@@ -111,7 +132,37 @@ registerDebug({
   },
   // audio
   audioState: () => ({ unlocked: audio.unlocked, music: audio.current, played: { ...audio.played } }),
-  saves: () => app.autosave.saves,
+  saves: () => app.saveCount,
+  gallery: () => showGallery(),
+  // world & story (M3)
+  goTo: (map: string, spawn = 'in') => world().goTo(map, spawn),
+  mapId: () => world().def.id,
+  setTime: (hours: number) => {
+    if (app.data) app.data.minutes = hours * 60;
+  },
+  time: () => (app.data ? { day: app.data.day, minutes: app.data.minutes, night: world().isNight } : null),
+  digSpots: () => world().digSpots(),
+  sniff: () => world().sniff(),
+  npcs: () => [...world().npcs.values()].map((n) => ({ id: n.def.id, x: n.x / TILE, y: n.y / TILE })),
+  biscuit: () => {
+    const b = world().biscuit;
+    return b ? { x: b.x / TILE, y: b.y / TILE, state: b.state } : null;
+  },
+  bunnies: () => world().bunnies.map((b) => ({ x: b.x / TILE, y: b.y / TILE, mode: b.mode })),
+  give: (id: string, n = 1) => {
+    if (app.data) app.data.inventory[id] = (app.data.inventory[id] ?? 0) + n;
+  },
+  inventory: () => ({ ...(app.data?.inventory ?? {}) }),
+  rescueBunny: (id: string) => {
+    if (app.data && !app.data.bunnies.includes(id)) app.data.bunnies.push(id);
+  },
+  skipOpening: () => {
+    if (!app.data) return;
+    for (const f of ['met:biscuit', 'met:pip', 'biscuit:companion', 'visited:clocktower']) app.data.flags[f] = true;
+  },
+  openMap: () => openMap(),
+  openBackpack: () => openBackpack(),
+  openBunnies: () => openBunnyTracker(),
 });
 installDebugHooks(app);
 void registerPwa();

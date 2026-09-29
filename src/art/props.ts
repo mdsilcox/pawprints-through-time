@@ -734,8 +734,10 @@ export function bowlingAlley(open: boolean): PropArt {
 export function oakBurrow(): PropArt {
   const W = 440;
   const H = 480;
-  const cv = makeCanvas(W, H);
+  const PAD = 70; // headroom so the big round crown isn't clipped
+  const cv = makeCanvas(W, H + PAD);
   const { ctx } = cv;
+  ctx.translate(0, PAD);
   const base = H - 12;
   // roots + trunk
   ctx.beginPath();
@@ -811,7 +813,7 @@ export function oakBurrow(): PropArt {
   ctx.moveTo(135, 272);
   ctx.lineTo(135, 300);
   ctx.stroke();
-  return { cv, ox: 0.5, oy: base / H };
+  return { cv, ox: 0.5, oy: (base + PAD) / (H + PAD) };
 }
 
 export const PROP_ART: Record<string, () => PropArt> = {

@@ -1,15 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, press, watchErrors } from './helpers';
+import { bootToTitle, hook, playThrough, press, startGame, watchErrors } from './helpers';
 
 type Pos = { x: number; y: number; facing: string };
 
 async function startAt(page: Page, x = 30.5, y = 27): Promise<void> {
-  await bootToTitle(page);
-  await hook(page, 'newGame', 1);
-  await hook(page, 'startWorld');
-  await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
-  await hook(page, 'teleport', x, y, 0);
-  await page.waitForTimeout(150);
+  await startGame(page, [x, y]);
 }
 
 const players = (page: Page) => hook<Pos[]>(page, 'players');
@@ -119,10 +114,8 @@ test.describe('movement & controls', () => {
       }, pads);
     const a = (await players(page))[0];
     await setPads([{ axes: [1, 0, 0, 0], pressed: [] }]);
-    await page.waitForTimeout(500);
+    await expect.poll(async () => (await players(page))[0].x - a.x, { timeout: 6000 }).toBeGreaterThan(1);
     await setPads([{ axes: [0, 0, 0, 0], pressed: [] }]);
-    const b = (await players(page))[0];
-    expect(b.x - a.x).toBeGreaterThan(1);
     await setPads([
       { axes: [0, 0, 0, 0], pressed: [] },
       { axes: [0, 0, 0, 0], pressed: [9] },
@@ -134,10 +127,8 @@ test.describe('movement & controls', () => {
       { axes: [0, 0, 0, 0], pressed: [] },
       { axes: [0, 1, 0, 0], pressed: [] },
     ]);
-    await page.waitForTimeout(500);
+    await expect.poll(async () => (await players(page))[1].y - p2a.y, { timeout: 6000 }).toBeGreaterThan(0.8);
     await setPads([]);
-    const [, p2b] = await players(page);
-    expect(p2b.y - p2a.y).toBeGreaterThan(0.8);
   });
 
   test('menus work with the keyboard alone', async ({ page }) => {
@@ -151,7 +142,16 @@ test.describe('movement & controls', () => {
     await expect(page.locator('[data-screen="names"]')).toBeVisible();
     await page.waitForTimeout(350);
     await page.keyboard.press('Enter'); // "Let's go!" has focus
+    await expect(page.locator('[data-screen="intro"]')).toBeVisible();
+    for (let i = 0; i < 4; i++) {
+      await page.waitForTimeout(320);
+      await page.keyboard.press('KeyE'); // page through the storybook
+    }
     await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+    // the arrival cutscene talks first; play through it with the action key
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    await playThrough(page);
+    expect(await hook<string[]>(page, 'ui')).toEqual([]);
     expect(await hook(page, 'slot')).toBe(2);
     await page.keyboard.press('Escape'); // pause
     await expect(page.locator('[data-screen="pause"]')).toBeVisible();
@@ -198,5 +198,36 @@ test.describe('touch controls', () => {
     // action buttons are big enough to hit with a thumb
     const box = await page.getByTestId('touch-a-p1').boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(44);
+  });
+});
+
+test.describe('controls regressions (M1 review)', () => {
+  test('with an idle gamepad connected, one key press moves menu focus exactly one step', async ({ page }) => {
+    await page.addInitScript(() => {
+      const pad = { index: 0, connected: true, id: 'idle', mapping: 'standard', axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+      navigator.getGamepads = () => [pad as unknown as Gamepad];
+    });
+    await startGame(page, [30.5, 24]);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-screen="pause"]')).toBeVisible();
+    await page.waitForTimeout(350);
+    await page.getByTestId('pause-resume').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByTestId('pause-p2')).toBeFocused();
+    await page.keyboard.press('KeyD');
+    await expect(page.getByTestId('pause-save')).toBeFocused();
+  });
+
+  test('clicking the 👥 button never leaves Enter toggling player 2', async ({ page }, info) => {
+    test.skip(info.project.name === 'phone', 'mouse + keyboard scenario');
+    await startGame(page, [29.2, 27]);
+    await page.getByTestId('hud-p2').click();
+    await expect.poll(async () => (await hook<any[]>(page, 'players')).length).toBe(2);
+    await hook(page, 'teleport', 29.2, 27, 1); // player 2 at the signpost
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Enter'); // P2's action key
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen')).toBe(true);
+    expect((await hook<any[]>(page, 'players')).length).toBe(2);
+    expect(await hook(page, 'twoPlayer')).toBe(true);
   });
 });

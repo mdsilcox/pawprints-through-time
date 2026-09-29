@@ -1,4 +1,5 @@
 import type { TerrainGrid } from './terrain';
+import type { DigZone } from './dig';
 
 /** Everything placed on a map besides terrain: props, buildings, doors, people, dig spots... */
 export interface MapObject {
@@ -37,6 +38,24 @@ export interface Zone {
   h: number;
 }
 
+/** Walking into this rectangle (cells) moves the party to another map. */
+export interface Exit {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  to: string;
+  spawn: string;
+}
+
+/** A labelled landmark for local maps (cell coordinates). */
+export interface Poi {
+  x: number;
+  y: number;
+  icon: string;
+  label: string;
+}
+
 export interface MapDef {
   id: string;
   name: string;
@@ -51,6 +70,14 @@ export interface MapDef {
   spawns: Record<string, SpawnPoint>;
   /** named areas; entering one sets the `visited:<id>` flag */
   zones?: Zone[];
+  exits?: Exit[];
+  pois?: Poi[];
+  /** where Biscuit can dig up treasure */
+  digZones?: DigZone[];
+  /** interiors: a single painted room image instead of terrain layers */
+  backdrop?: () => HTMLCanvasElement;
+  /** fixed time of day for eras/interiors (Tockwood exterior follows the clock) */
+  timeOfDay?: 'clock' | 'day' | 'golden' | 'evening' | 'night';
   build(): BuiltMap;
 }
 

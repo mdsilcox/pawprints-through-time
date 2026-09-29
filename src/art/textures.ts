@@ -3,10 +3,16 @@ import { drawClocktower } from './clocktower';
 import { makeCanvas, sparkle } from './draw';
 import { PAL } from './palette';
 import { PROP_ART } from './props';
+import { FURNITURE_ART } from './furniture';
 import { TERRAIN_LAYERS, drawDecorAtlas, DECOR_FRAMES, DECOR_SIZE } from './decor';
 import { drawLayerTileset, drawPlankTile, drawFloorTile, extrudeTileset } from './terrainTiles';
 import { FRAMES, FW, FH, renderCharacterSheet, type CharSpec } from './character';
 import { TILE } from '../world/collision';
+import { EMOTES, drawEmote } from './emotes';
+import { renderCorgiSheet, CORGI_FRAMES, CW, CH } from './corgi';
+import { renderBunnySheet, BUNNY_FRAMES, BW, BH, type BunnyLook } from './bunny';
+import { renderPipSheet } from './fairy';
+import type { WornPiece } from './character';
 
 /** Anchor (as fraction of width/height) for every prop/building texture. */
 export const TEXTURE_ORIGIN: Record<string, { ox: number; oy: number }> = {};
@@ -107,7 +113,7 @@ function registerTerrain(scene: Phaser.Scene) {
 }
 
 function registerProps(scene: Phaser.Scene) {
-  for (const [key, make] of Object.entries(PROP_ART)) {
+  for (const [key, make] of Object.entries({ ...PROP_ART, ...Object.fromEntries(Object.entries(FURNITURE_ART).map(([k, v]) => [`fur-${k}`, v])) })) {
     const art = make();
     addCanvasTexture(scene, key, art.cv.c);
     TEXTURE_ORIGIN[key] = { ox: art.ox, oy: art.oy };
@@ -124,8 +130,36 @@ export function ensureCharacterTexture(scene: Phaser.Scene, key: string, spec: C
   return key;
 }
 
+/** Biscuit's sprite sheet for a given outfit (cached per outfit). */
+export function ensureBiscuitTexture(scene: Phaser.Scene, outfit: { hat?: WornPiece | null; neck?: WornPiece | null }): string {
+  const k = (p?: WornPiece | null) => (p ? `${p.kind}:${p.main}` : '-');
+  const key = `biscuit-${k(outfit.hat)}-${k(outfit.neck)}`;
+  if (scene.textures.exists(key)) return key;
+  const tex = addCanvasTexture(scene, key, renderCorgiSheet(outfit));
+  CORGI_FRAMES.forEach((f, i) => tex?.add(f, 0, i * CW, 0, CW, CH));
+  return key;
+}
+
+export function ensureBunnyTexture(scene: Phaser.Scene, key: string, look: BunnyLook): string {
+  if (scene.textures.exists(key)) return key;
+  const tex = addCanvasTexture(scene, key, renderBunnySheet(look));
+  BUNNY_FRAMES.forEach((f, i) => tex?.add(f, 0, i * BW, 0, BW, BH));
+  return key;
+}
+
 export function registerAllTextures(scene: Phaser.Scene): void {
   registerFx(scene);
+  for (const e of EMOTES) addCanvasTexture(scene, `emote-${e}`, drawEmote(e));
+  {
+    const tex = addCanvasTexture(scene, 'pip', renderPipSheet());
+    for (let i = 0; i < 4; i++) tex?.add(i, 0, i * 80, 0, 80, 100);
+  }
+  ensureBiscuitTexture(scene, { neck: { kind: 'bandana', main: '#e46a6a', accent: '#ffffff' } });
+  addCanvasTexture(scene, 'biscuit', renderCorgiSheet({ neck: { kind: 'bandana', main: '#e46a6a', accent: '#ffffff' } }));
+  {
+    const tex = scene.textures.get('biscuit');
+    CORGI_FRAMES.forEach((f, i) => tex.add(f, 0, i * CW, 0, CW, CH));
+  }
   addCanvasTexture(scene, 'clocktower', drawClocktower({ tangled: true }).c);
   addCanvasTexture(scene, 'clocktower-fixed', drawClocktower({ tangled: false }).c);
   registerTerrain(scene);

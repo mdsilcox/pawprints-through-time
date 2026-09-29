@@ -7,6 +7,10 @@
 }
 .hud-objective {
   pointer-events: auto;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   font: inherit;
   font-size: 0.8rem;
   font-weight: 600;

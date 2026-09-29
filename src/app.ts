@@ -15,6 +15,9 @@ export interface AppEvents extends Record<string, unknown> {
   'two-player': boolean;
   reminder: boolean;
   'map-changed': string;
+  'outfit-changed': number;
+  'new-day': number;
+  'open-portal-map': unknown;
 }
 
 /**
@@ -87,11 +90,15 @@ export class GameApp {
   }
 
   /** Write the current game to its slot (autosave + manual save both land here). */
+  /** number of saves written this session (tests) */
+  saveCount = 0;
+
   async saveNow(): Promise<void> {
     if (!this.data || !this.slot) return;
     this.accumulatePlayTime();
     this.events.emit('before-save', this.data);
     await this.saves.save(this.slot, this.data);
+    this.saveCount++;
     this.events.emit('saved', { slot: this.slot, at: Date.now() });
   }
 

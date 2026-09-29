@@ -144,3 +144,41 @@ describe('InputManager gamepads', () => {
     expect(nav).toEqual(['down', 'down']);
   });
 });
+
+describe('InputManager menu navigation with several devices (M1 review)', () => {
+  let pads: Gamepad[] = [];
+  const orig = navigator.getGamepads;
+  beforeEach(() => {
+    pads = [];
+    (navigator as any).getGamepads = () => pads;
+  });
+  afterEach(() => {
+    (navigator as any).getGamepads = orig;
+  });
+
+  it('a key press with an idle pad connected gives exactly one nav', () => {
+    const im = new InputManager();
+    im.attach(window);
+    im.menuMode = true;
+    const nav: string[] = [];
+    im.events.on('nav', (d) => nav.push(d));
+    pads = [fakePad(0)];
+    key(window, 'keydown', 'ArrowDown');
+    im.update(0);
+    im.update(16);
+    key(window, 'keyup', 'ArrowDown');
+    expect(nav).toEqual(['down']);
+  });
+
+  it('two pads in 1-player mode: one d-pad press gives exactly one nav', () => {
+    const im = new InputManager();
+    im.menuMode = true;
+    const nav: string[] = [];
+    im.events.on('nav', (d) => nav.push(d));
+    pads = [fakePad(0, { pressed: [13] }), fakePad(1)];
+    im.update(0);
+    pads = [fakePad(0), fakePad(1)];
+    im.update(16);
+    expect(nav).toEqual(['down']);
+  });
+});

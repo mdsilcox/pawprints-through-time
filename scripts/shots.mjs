@@ -34,9 +34,13 @@ async function boot(page) {
 }
 
 /** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
-async function play(page, players = 1, at) {
+async function play(page, players = 1, at, opts = {}) {
   await boot(page);
   await g(page, 'newGame', 1);
+  if (!opts.opening) await g(page, 'skipOpening');
+  if (opts.map) {
+    await page.evaluate((m) => { const d = window.__game.state(); }, opts.map);
+  }
   await g(page, 'startWorld');
   await page.waitForFunction(() => window.__game.scenes().includes('world'));
   await wait(400);
@@ -50,6 +54,7 @@ async function play(page, players = 1, at) {
 
 /** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
 const SCENARIOS = [
+  { name: 'gallery', run: async (page) => { await boot(page); await g(page, 'gallery'); await wait(300); } },
   { name: 'title', run: async (page) => boot(page) },
   {
     name: 'slots',
@@ -151,6 +156,45 @@ const SCENARIOS = [
       await wait(400);
     },
   },
+  {
+    name: 'intro',
+    run: async (page) => {
+      await boot(page);
+      await page.click('[data-testid="title-new"]');
+      await wait(400);
+      await page.click('[data-testid="slot-1"]');
+      await wait(400);
+      await page.click('[data-testid="names-ok"]');
+      await page.waitForSelector('[data-screen="intro"]');
+      await wait(700);
+    },
+  },
+  {
+    name: 'intro3',
+    run: async (page) => {
+      await boot(page);
+      await page.click('[data-testid="title-new"]');
+      await wait(400);
+      await page.click('[data-testid="slot-1"]');
+      await wait(400);
+      await page.click('[data-testid="names-ok"]');
+      await page.waitForSelector('[data-screen="intro"]');
+      for (let i = 0; i < 2; i++) { await wait(400); await page.click('[data-testid="story-next"]'); }
+      await wait(700);
+    },
+  },
+  { name: 'arrival', players: [1], run: async (page) => { await play(page, 1, null, { opening: true }); await wait(4500); } },
+  { name: 'meadow-bunnies', players: [1, 2], run: async (page, players) => { await play(page, players, [11, 26.5]); await wait(1500); } },
+  { name: 'night', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'setTime', 22); await wait(1200); } },
+  { name: 'dusk', players: [1], run: async (page) => { await play(page, 1, [14, 29]); await g(page, 'setTime', 19.2); await wait(1200); } },
+  { name: 'clocktower-in', players: [1, 2], run: async (page, players) => { await play(page, players); await g(page, 'goTo', 'clocktower', 'in'); await wait(1800); } },
+  { name: 'burrow-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'burrow', 'in'); await wait(1800); } },
+  { name: 'cottage-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'cottage', 'in'); await wait(1800); } },
+  { name: 'museum-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'museum', 'in'); await wait(1800); } },
+  { name: 'tailor-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'tailor', 'in'); await wait(1800); } },
+  { name: 'map', players: [1], run: async (page) => { await play(page, 1, [30.5, 26]); await g(page, 'openMap'); await wait(700); } },
+  { name: 'dock-finnegan', players: [1], run: async (page) => { await play(page, 1, [30.8, 40.5]); await wait(900); } },
+  { name: 'dig', players: [1], run: async (page) => { await play(page, 1, [31.2, 26.6]); await wait(600); await page.keyboard.press('KeyE'); await wait(2600); } },
   {
     name: 'pause',
     players: [1, 2],

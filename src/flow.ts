@@ -2,6 +2,8 @@ import { app } from './app';
 import { ui } from './ui/ui';
 import { askNames } from './ui/newGame';
 import { audio } from './audio/audio';
+import { playIntroStorybook } from './story/opening';
+import { resetStory } from './story/hooks';
 
 /** High-level game flow: title <-> play. */
 
@@ -20,6 +22,7 @@ export async function startNewGame(slot: number): Promise<boolean> {
     d.players[0].name = names.p1;
     d.players[1].name = names.p2;
   });
+  await playIntroStorybook();
   switchToWorld();
   return true;
 }
@@ -34,6 +37,7 @@ export async function returnToTitle(reason = 'quit'): Promise<void> {
   if (app.data) await app.saveNow();
   app.markPlayEnd(reason);
   ui.closeAll();
+  resetStory();
   const sm = app.phaser.scene;
   for (const s of sm.getScenes(true)) if (s.scene.key !== 'title') sm.stop(s.scene.key);
   sm.start('title');

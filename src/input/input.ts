@@ -46,7 +46,7 @@ const DIR_KEYS: Record<string, Dir> = {
   ArrowLeft: 'left',
   ArrowRight: 'right',
 };
-const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Slash', 'Period', 'Tab', 'Backspace']);
+const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Slash', 'Period', 'Tab', 'Backspace', 'Enter', 'NumpadEnter']);
 
 export interface TouchSource {
   /** per-player virtual stick + buttons, or null when that player has no touch zone */
@@ -127,6 +127,7 @@ export class InputManager {
     } else if (PAUSE_KEYS.has(e.code) && !e.repeat) {
       this.events.emit('pause', 0);
     }
+    if (this.menuMode && e.code === 'KeyP' && !e.repeat) this.events.emit('back', 0);
   }
 
   private setDevice(d: 'kb' | 'pad' | 'touch') {
@@ -211,16 +212,20 @@ export class InputManager {
       // discrete direction with auto-repeat (menus) — d-pad or stick
       let d: Dir | null = null;
       if (Math.abs(mx) > 0.55 || Math.abs(my) > 0.55) d = Math.abs(mx) > Math.abs(my) ? (mx > 0 ? 'right' : 'left') : my > 0 ? 'down' : 'up';
+      // The direction *this pad* produced this frame (never the merged player state, which may
+      // already hold a keyboard or other-pad direction — that caused double menu steps).
+      let padDir: Dir | null = null;
       if (d && d !== mem.heldDir) {
-        p.dir = d;
+        padDir = d;
         mem.repeatAt = now + 380;
       } else if (d && now >= mem.repeatAt) {
-        p.dir = d;
+        padDir = d;
         mem.repeatAt = now + 115;
       }
+      if (padDir) p.dir = padDir;
       mem.heldDir = d;
       if (this.menuMode) {
-        if (p.dir) this.events.emit('nav', p.dir);
+        if (padDir) this.events.emit('nav', padDir);
         if (edge(0)) this.events.emit('confirm', slot);
         if (edge(1)) this.events.emit('back', slot);
       }

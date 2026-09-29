@@ -36,4 +36,11 @@ One line each: decision — reason.
 - Late-night nudge shows once per session after 9 PM (device clock), can be turned off in Settings (the 45-minute reminder itself cannot).
 - Quests are computed from save flags rather than stored as separate state — no way for quest progress and the world to disagree after loads/migrations.
 - Story/dialogue scripts are plain async TypeScript functions (`await talk(...)`, `await ask(...)`) — full control flow, easy to test, no custom script language to debug.
+- Eight Time Sands scattered but four required eras: each era chapter restores one sand, and in the finale the restored hourglass "sings" and the celebration dance calls the last four sands home (stretch eras can later add them as bonus adventures) — keeps the spec's premise and a satisfying ending without requiring stretch content.
+- In-game clock: 1 game minute per real second (a day is 24 real minutes) and only ticks in Tockwood; eras have fixed lighting — enough day/night variety in a 45-minute session without long dark stretches in puzzle-heavy eras.
+- Biscuit follows the midpoint of the players, catches up at a trot, teleports next to them if left far behind or stuck — a companion should never be a chore.
+- Five neighbours at the start (Quill, Bramble, Finnegan, Juniper, Rocco); Rosita (dance teacher) and Rollo (lanes keeper) move in later chapters — "new neighbours move in" as the village grows; 6+ neighbours total.
+- Twelve Hopkins cousins (3 per era), each with a hint in the Bunny Tracker; rescue milestones unlock soups, headbands and Biscuit's bunny-ear hat.
+- Friendship: chatting gives points once per in-game day, gifts/favours give more; 5 hearts max with special lines at some hearts — gentle, no decay.
+- Interiors are painted as one backdrop per room with collision from a small grid; furniture and people are depth-sorted sprites on top.
 - Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.

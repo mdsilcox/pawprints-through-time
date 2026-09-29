@@ -29,7 +29,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     name: 'Clover',
     title: 'Bunny Chef',
     art: 'doll',
-    spec: doll('rabbit', '#f4ede4', { hat: P('chef', '#ffffff', '#7cc47f'), top: P('shirt', '#9fe0c0', '#fff'), bottom: P('skirt', '#f4a3b4', '#fff'), shoes: P('slippers', '#e46a6a', '#fff') }, { fur2: '#fff8f0' }),
+    spec: doll('rabbit', '#f4ede4', { hat: P('bandana', '#7cc47f', '#ffffff'), top: P('shirt', '#9fe0c0', '#fff'), bottom: P('skirt', '#f4a3b4', '#fff'), shoes: P('slippers', '#e46a6a', '#fff') }, { fur2: '#fff8f0' }),
     voice: { midi: 76, kind: 'soft' },
     color: '#7cc47f',
   },
@@ -87,6 +87,7 @@ export const CHARACTERS: Record<string, CharacterDef> = {
     voice: { midi: 79, kind: 'soft' },
     color: '#f4a3b4',
   },
+  grandma: { id: 'grandma', name: 'Grandma Hopkins', title: 'Warren Elder', art: 'doll', voice: { midi: 64, kind: 'soft' }, color: '#a58bd6' },
   rollo: {
     id: 'rollo',
     name: 'Rollo',

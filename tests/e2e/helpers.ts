@@ -29,6 +29,61 @@ export async function hook<T = unknown>(page: Page, name: string, ...args: unkno
   ) as Promise<T>;
 }
 
+/** New game in slot 1, skip the opening story, walk into Tockwood (optionally teleport). */
+export async function startGame(page: Page, at?: [number, number], opts: { opening?: boolean } = {}): Promise<void> {
+  await bootToTitle(page);
+  await hook(page, 'newGame', 1);
+  if (!opts.opening) await hook(page, 'skipOpening');
+  await hook(page, 'startWorld');
+  await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+  await page.waitForTimeout(150);
+  if (at) await hook(page, 'teleport', at[0], at[1], 0);
+  await page.waitForTimeout(150);
+}
+
+/** Press the action key through dialogue (picking the first choice) until no scene/dialogue is open. */
+export async function playThrough(page: Page, maxMs = 30_000): Promise<void> {
+  const end = Date.now() + maxMs;
+  let quiet = 0;
+  while (Date.now() < end) {
+    const ids = await hook<string[]>(page, 'ui');
+    if (!ids.includes('dialogue') && !ids.includes('cutscene')) {
+      quiet++;
+      if (quiet >= 3) return;
+      await page.waitForTimeout(250);
+      continue;
+    }
+    quiet = 0;
+    if (ids.includes('dialogue')) {
+      const choice = page.getByTestId('choice-0');
+      if (await choice.isVisible().catch(() => false)) {
+        await page.waitForTimeout(330);
+        await choice.click();
+      } else {
+        await page.keyboard.press('KeyE');
+      }
+    }
+    await page.waitForTimeout(180);
+  }
+  throw new Error('cutscene/dialogue did not finish');
+}
+
+/** Hold a direction for player 1 until they have moved `dist` tiles (robust under CPU load). */
+export async function walkUntil(page: Page, dx: number, dy: number, dist: number, timeout = 6000): Promise<void> {
+  const start = (await hook<{ x: number; y: number }[]>(page, 'players'))[0];
+  await hook(page, 'hold', 0, dx, dy);
+  try {
+    await expect
+      .poll(async () => {
+        const p = (await hook<{ x: number; y: number }[]>(page, 'players'))[0];
+        return Math.hypot(p.x - start.x, p.y - start.y);
+      }, { timeout })
+      .toBeGreaterThan(dist);
+  } finally {
+    await hook(page, 'release', 0);
+  }
+}
+
 export async function activeScenes(page: Page): Promise<string[]> {
   return hook<string[]>(page, 'scenes');
 }

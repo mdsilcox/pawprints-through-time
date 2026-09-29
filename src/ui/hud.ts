@@ -10,6 +10,8 @@ import type { WorldScene } from '../scenes/WorldScene';
 class Hud {
   el!: HTMLElement;
   private place!: HTMLElement;
+  private placeName!: HTMLElement;
+  private clock!: HTMLElement;
   private objective!: HTMLButtonElement;
   onObjective: () => void = () => undefined;
   private p2Btn!: HTMLButtonElement;
@@ -22,14 +24,18 @@ class Hud {
   twoPlayer = false;
 
   mount(): void {
-    this.place = h('div', { class: 'hud-place' });
+    this.placeName = h('span', { class: 'hud-place-name' });
+    this.clock = h('span', { class: 'hud-clock', attrs: { 'data-testid': 'hud-clock' } });
+    this.place = h('div', { class: 'hud-place' }, this.placeName, this.clock);
     this.p2Btn = h(
       'button',
       {
         class: 'hud-btn',
-        attrs: { type: 'button', 'aria-label': 'Player 2 join or leave', 'data-testid': 'hud-p2' },
+        attrs: { type: 'button', tabindex: -1, 'aria-label': 'Player 2 join or leave', 'data-testid': 'hud-p2' },
+        onpointerdown: (e: Event) => e.preventDefault(),
         onclick: (e: Event) => {
           e.stopPropagation();
+          (e.currentTarget as HTMLElement).blur();
           this.onToggleP2();
         },
       },
@@ -39,9 +45,11 @@ class Hud {
       'button',
       {
         class: 'hud-btn',
-        attrs: { type: 'button', 'aria-label': 'Pause', 'data-testid': 'hud-pause' },
+        attrs: { type: 'button', tabindex: -1, 'aria-label': 'Pause', 'data-testid': 'hud-pause' },
+        onpointerdown: (e: Event) => e.preventDefault(),
         onclick: (e: Event) => {
           e.stopPropagation();
+          (e.currentTarget as HTMLElement).blur();
           this.onPause();
         },
       },
@@ -49,9 +57,11 @@ class Hud {
     );
     this.objective = h('button', {
       class: 'hud-objective hidden',
-      attrs: { type: 'button', 'data-testid': 'hud-objective' },
+      attrs: { type: 'button', tabindex: -1, 'data-testid': 'hud-objective' },
+      onpointerdown: (e: Event) => e.preventDefault(),
       onclick: (e: Event) => {
         e.stopPropagation();
+        (e.currentTarget as HTMLElement).blur();
         this.onObjective();
       },
     });
@@ -62,7 +72,10 @@ class Hud {
 
   setWorld(scene: WorldScene | null): void {
     this.world = scene;
-    if (scene) this.place.textContent = scene.def.name;
+    if (scene) {
+      this.placeName.textContent = scene.def.name;
+      if (!scene.usesClock && scene.def.region !== 'tockwood') this.clock.textContent = '';
+    }
     this.sync();
   }
 
@@ -71,6 +84,10 @@ class Hud {
     this.p2Btn.classList.toggle('on', on);
     this.p2Btn.title = on ? 'Player 2: leave' : 'Player 2: join';
     this.touch?.setTwoPlayer(on);
+  }
+
+  setClock(text: string): void {
+    if (this.clock && this.clock.textContent !== text) this.clock.textContent = text;
   }
 
   setObjective(text: string | null, icon = '📍'): void {

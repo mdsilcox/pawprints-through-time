@@ -8,7 +8,11 @@ import { makeCanvas, OUTLINE } from './draw';
  */
 
 export const FW = 96;
-export const FH = 128;
+/** frame height includes headroom above the rig for tall hats and bunny ears */
+export const TOP_PAD = 26;
+export const FH = 128 + TOP_PAD;
+/** y of the feet inside a frame (sprite origin) */
+export const FEET_Y = 122 + TOP_PAD;
 
 export type Facing = 'down' | 'up' | 'side';
 export type Pose = 'idle' | 'walkA' | 'walkB' | 'cheer' | 'left' | 'right' | 'squat' | 'clap' | 'bowl' | 'wave' | 'sit';
@@ -919,9 +923,11 @@ export interface HeadApi {
 }
 const headDrawers: Partial<Record<Species, HeadDrawer>> = {};
 const tailDrawers: Partial<Record<Species, HeadDrawer>> = {};
-export function registerSpecies(s: Species, head: HeadDrawer, tail?: HeadDrawer): void {
+const overHatDrawers: Partial<Record<Species, HeadDrawer>> = {};
+export function registerSpecies(s: Species, head: HeadDrawer, tail?: HeadDrawer, overHat?: HeadDrawer): void {
   headDrawers[s] = head;
   if (tail) tailDrawers[s] = tail;
+  if (overHat) overHatDrawers[s] = overHat;
 }
 const headApi: HeadApi = { ellipse, rrect, drawFace, limb };
 
@@ -989,7 +995,10 @@ export function drawCharacter(ctx: CanvasRenderingContext2D, spec: CharSpec, fac
   if (back && spec.species === 'human') drawHairBack(ctx, spec, rig);
   if (accDef?.layer === 'face' && !back) accDef.draw(ctx, acc!, rig, spec, headApi);
   const hat = spec.outfit.hat;
-  if (hat) (hatDrawers[hat.kind] ?? hatDrawers.beanie)(ctx, hat, rig, spec, headApi);
+  if (hat) {
+    (hatDrawers[hat.kind] ?? hatDrawers.beanie)(ctx, hat, rig, spec, headApi);
+    overHatDrawers[spec.species]?.(ctx, spec, rig, headApi); // e.g. bunny ears poke through hats
+  }
   if (accDef?.layer === 'shoulder') accDef.draw(ctx, acc!, rig, spec, headApi);
   ctx.restore();
 }
@@ -999,7 +1008,7 @@ export function renderCharacterSheet(spec: CharSpec): HTMLCanvasElement {
   const { c, ctx } = makeCanvas(FW * FRAMES.length, FH);
   FRAMES.forEach((f, i) => {
     ctx.save();
-    ctx.translate(i * FW, 0);
+    ctx.translate(i * FW, TOP_PAD);
     drawCharacter(ctx, spec, f.facing, f.pose);
     ctx.restore();
   });

@@ -3,6 +3,7 @@ import type { PlayerProfile } from '../core/state';
 import { ensureCharacterTexture } from '../art/textures';
 import { lookKey, specForPlayer } from '../data/clothes';
 import { TILE, type Box } from './collision';
+import { FEET_Y, FH } from '../art/character';
 
 export type Facing4 = 'down' | 'up' | 'left' | 'right';
 
@@ -38,7 +39,7 @@ export class PlayerEntity {
     this.x = x;
     this.y = y;
     this.shadow = scene.add.image(0, 0, 'fx-shadow').setScale(1.1, 1);
-    this.sprite = scene.add.image(0, 0, '__DEFAULT').setOrigin(0.5, 122 / 128);
+    this.sprite = scene.add.image(0, 0, '__DEFAULT').setOrigin(0.5, FEET_Y / FH);
     this.marker = scene.add.image(0, -150, index === 0 ? 'marker-p1' : 'marker-p2').setScale(0.9).setVisible(false);
     this.container = scene.add.container(x, y, [this.shadow, this.sprite, this.marker]);
     this.refreshLook(profile);

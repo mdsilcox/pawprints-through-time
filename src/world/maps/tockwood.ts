@@ -60,7 +60,11 @@ function build() {
   return g;
 }
 
-function objects(): MapObject[] {
+function objects(grid: TerrainGrid): MapObject[] {
+  const onLand = (x: number, y: number) => {
+    const t = grid.get(Math.floor(x), Math.floor(y - 0.01));
+    return t === 'grass' || t === 'sand';
+  };
   const o: MapObject[] = [];
   let n = 0;
   const add = (kind: string, x: number, y: number, extra: Partial<MapObject> = {}) => {
@@ -96,6 +100,18 @@ function objects(): MapObject[] {
   o.push({ id: 'plaza-sign', kind: 'sign', x: 28.6, y: 26.4, texture: 'prop-sign', p: { text: ['Welcome to TOCKWOOD PLAZA!', 'North: the old clocktower. South: the beach and the dock. West: the meadow and the bunny warren. East: the museum and the lanes.'] } });
   add('stall', TW.rocco.x, TW.rocco.y, { texture: 'prop-stall', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
   add('stall-garden', TW.juniper.x, TW.juniper.y, { texture: 'prop-stall-green', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
+
+  // --- neighbours out and about
+  o.push({ id: 'finnegan', kind: 'npc', x: 31.2, y: 41.8, p: { id: 'finnegan', wander: 0.5 } });
+  o.push({ id: 'juniper', kind: 'npc', x: 22.5, y: 13.3, p: { id: 'juniper', wander: 1.2 } });
+  o.push({ id: 'rocco', kind: 'npc', x: 35.5, y: 18.9, p: { id: 'rocco', wander: 1 } });
+  o.push({ id: 'rosita', kind: 'npc', x: 28.5, y: 22.8, p: { id: 'rosita', wander: 2 }, when: 'rosita:arrived' });
+  o.push({ id: 'rollo', kind: 'npc', x: 47.5, y: 23.4, p: { id: 'rollo', wander: 1 }, when: 'bowling:open' });
+  // --- meadow: wild bunnies, the Hopkins warren and Grandma Hopkins
+  o.push({ id: 'wild-bunnies', kind: 'wildbunnies', x: 5.5, y: 22.5, p: { w: 11, h: 5, count: 5 } });
+  o.push({ id: 'warren', kind: 'warren', x: 7.5, y: 28.5, p: { w: 7, h: 5 } });
+  o.push({ id: 'grandma-chair', kind: 'prop', x: 11.2, y: 30.35, texture: 'fur-rockingchair', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
+  o.push({ id: 'grandma', kind: 'grandma', x: 11.2, y: 30.5 });
 
   // --- garden plots by the cottage
   for (let i = 0; i < 4; i++) o.push({ id: `plot-${i}`, kind: 'plot', x: 8.5 + (i % 2) * 1.2, y: 14.4 + Math.floor(i / 2) * 1.2, texture: 'prop-plot', p: { index: i } });
@@ -144,6 +160,7 @@ function objects(): MapObject[] {
   for (const [x, y, t] of [...treeSpots, ...edge]) {
     if (!clear(x, y) && y > 10) continue;
     if (y < 10.5 && Math.abs(x - 30.5) < 3.5) continue; // behind the clocktower
+    if (!onLand(x, y) || !onLand(x - 0.4, y) || !onLand(x + 0.4, y)) continue; // no trees in the sea
     add('tree', x, y, { texture: t, foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   }
   for (const [x, y] of [
@@ -154,7 +171,7 @@ function objects(): MapObject[] {
     [26, 38.5],
     [49, 30.5],
   ])
-    add('palm', x, y, { texture: 'tree-palm', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
+    if (onLand(x, y)) add('palm', x, y, { texture: 'tree-palm', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   // bushes & rocks
   for (const [x, y] of [
     [20, 16],
@@ -175,10 +192,11 @@ function objects(): MapObject[] {
     [7, 33.5],
     [50, 12],
   ])
-    add('rock', x, y, { texture: 'prop-rock', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
+    if (onLand(x, y)) add('rock', x, y, { texture: 'prop-rock', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
 
   return o;
 }
+
 
 registerMap({
   id: 'tockwood',
@@ -188,6 +206,26 @@ registerMap({
   music: 'tockwood',
   bg: '#6cc4d8',
   layers: ['foam', 'sand', 'grass', 'path', 'plaza'],
+  pois: [
+  { x: 30.5, y: 12.4, icon: '🕰️', label: 'Clocktower' },
+  { x: 13, y: 8.6, icon: '🏠', label: 'Home' },
+  { x: 9.6, y: 16.4, icon: '🌱', label: 'Garden' },
+  { x: 18.5, y: 14.6, icon: '🧵', label: 'Tailor' },
+  { x: 42.5, y: 9.6, icon: '🏛️', label: 'Museum' },
+  { x: 47.5, y: 18.6, icon: '🎳', label: 'Lanes' },
+  { x: 18, y: 25.4, icon: '🍲', label: 'Burrow' },
+  { x: 10.5, y: 32.6, icon: '🐰', label: 'Warren' },
+  { x: 30.5, y: 21, icon: '⛲', label: 'Plaza' },
+  { x: 31, y: 43.4, icon: '⚓', label: 'Dock' },
+  { x: 23, y: 11, icon: '🍯', label: 'Juniper' },
+  { x: 36.5, y: 17, icon: '⏰', label: 'Rocco' },
+],
+  digZones: [
+    { id: 'beach', x: 15, y: 35, w: 32, h: 4, on: ['sand'], perDay: 3, hidden: 0.4, loot: [['shell-scallop', 30], ['shell-spiral', 30], ['sand-dollar', 14], ['sea-glass', 14], ['shell-conch', 5], ['fossil-tooth', 5], ['kelp', 8]] },
+    { id: 'woods', x: 12, y: 5, w: 36, h: 5, on: ['grass'], perDay: 3, hidden: 0.5, loot: [['glowcap', 35], ['fossil-ammonite', 10], ['fossil-trilobite', 10], ['fossil-fern', 10], ['old-key', 8], ['clock-gear', 15], ['golden-acorn', 3]] },
+    { id: 'meadow', x: 5, y: 22, w: 12, h: 12, on: ['grass'], perDay: 2, hidden: 0.4, loot: [['clover-leaf', 40], ['button', 15], ['marble', 15], ['clock-gear', 20], ['golden-acorn', 3]] },
+    { id: 'village', x: 20, y: 12, w: 26, h: 16, on: ['grass'], perDay: 2, hidden: 0.3, loot: [['clock-gear', 45], ['button', 20], ['marble', 20], ['old-key', 10], ['fossil-fern', 5]] },
+  ],
   zones: [
     { id: 'plaza', x: 24, y: 16, w: 13, h: 9 },
     { id: 'beach', x: 14, y: 34, w: 34, h: 6 },
@@ -205,5 +243,8 @@ registerMap({
     'bowling-out': { x: 47.5, y: 22.9, facing: 'down' },
     'burrow-out': { x: 18, y: 29.4, facing: 'down' },
   },
-  build: () => ({ grid: build(), objects: objects() }),
+  build: () => {
+    const grid = build();
+    return { grid, objects: objects(grid) };
+  },
 });

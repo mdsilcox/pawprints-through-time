@@ -1,15 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
-import { bootToTitle, hook, press, watchErrors } from './helpers';
+import { bootToTitle, hook, press, startGame, watchErrors } from './helpers';
 
 const MIN = 60_000;
 
 async function play(page: Page, at?: [number, number]): Promise<void> {
-  await bootToTitle(page);
-  await hook(page, 'newGame', 1);
-  await hook(page, 'startWorld');
-  await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
-  if (at) await hook(page, 'teleport', at[0], at[1], 0);
-  await page.waitForTimeout(200);
+  await startGame(page, at);
+  await page.waitForTimeout(100);
 }
 
 /** Advance dialogue by pressing the action key until the box closes. */
@@ -66,6 +62,8 @@ test.describe('dialogue & quests', () => {
 
   test('the island quest tracks progress on the HUD and completes with a reward', async ({ page }) => {
     await play(page);
+    // the main story quest takes the HUD first; finish its steps so the side quest shows
+    for (const f of ['met:clover', 'met:rocco', 'met:juniper', 'met:finnegan', 'dug:first', 'portal:ready']) await hook(page, 'setFlag', f, true);
     await expect(page.getByTestId('hud-objective')).toContainText('Walk up to the town plaza');
     const tockens = (await hook<any>(page, 'state')).tockens;
     await hook(page, 'teleport', 30.5, 22);
