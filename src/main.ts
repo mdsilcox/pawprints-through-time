@@ -8,6 +8,9 @@ import './styles/world.css';
 import './styles/wardrobe.css';
 
 import { app } from './app';
+import { installCancelGuard } from './core/session';
+import { openSellScreen } from './ui/sellScreen';
+import { maxSeparation } from './world/cameraMath';
 import { installDebugHooks, registerDebug } from './core/debug';
 import { returnToTitle, switchToWorld } from './flow';
 import { registerPwa } from './core/pwa';
@@ -45,6 +48,8 @@ import { renderBunnyPortrait } from './art/bunny';
 import { biscuitPieces } from './data/clothes';
 import { GRANDMA } from './data/bunnies';
 import { toast } from './ui/ui';
+
+installCancelGuard();
 
 ui.mount(document.getElementById('ui-root')!);
 audio.installUnlock();
@@ -94,6 +99,11 @@ registerDebug({
     return !!p && world().isOnScreen(p.x, p.y - TILE * 0.6);
   },
   isSolid: (cx: number, cy: number) => world().coll.isSolid(cx, cy),
+  /** how far apart (in tiles) two players may get before the tether stops them */
+  tetherLimit: () => {
+    const l = maxSeparation(world().frameOpts());
+    return { w: l.w / TILE, h: l.h / TILE };
+  },
   openPause: () => openPause(),
   openSettings: () => openSettings(),
   ui: () => ui.ids,
@@ -152,7 +162,8 @@ registerDebug({
     const b = world().biscuit;
     return b ? { x: b.x / TILE, y: b.y / TILE, state: b.state } : null;
   },
-  bunnies: () => world().bunnies.map((b) => ({ x: b.x / TILE, y: b.y / TILE, mode: b.mode })),
+  bunnies: () =>
+    world().bunnies.map((b) => ({ x: b.x / TILE, y: b.y / TILE, mode: b.mode, flees: b.flees, home: { x: (b.area.x + b.area.w / 2) / TILE, y: (b.area.y + b.area.h / 2) / TILE, w: b.area.w / TILE, h: b.area.h / TILE } })),
   give: (id: string, n = 1) => {
     if (app.data) app.data.inventory[id] = (app.data.inventory[id] ?? 0) + n;
   },
@@ -167,6 +178,7 @@ registerDebug({
   openMap: () => openMap(),
   openBackpack: () => openBackpack(),
   openBunnies: () => openBunnyTracker(),
+  openSell: () => void openSellScreen(),
   openWardrobe: (who: 0 | 1 | 'biscuit' = 0, shop = false) => openWardrobe({ who, shop }),
   equip: (who: 0 | 1 | 'biscuit', id: string, color = 0) => {
     const ok = app.data ? wEquip(app.data, who, id, color) : false;

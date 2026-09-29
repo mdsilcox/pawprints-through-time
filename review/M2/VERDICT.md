@@ -1,149 +1,137 @@
-# M2 Review — e273ba8169ad7c332d44627a8788984252d80267
+# M2 Review — bbfed4aead8cb09f586488d595485012a663e943 (re-review 1)
 
-**Verdict:** REVISE
+**Verdict:** PASS
 
-This commit also contains M3. I judged M2's systems (dialogue, quests/flags, saves, pause, settings, playtime reminder) and everything before them; M3 content is only noted where it touches those systems.
+All three blockers are fixed. I checked them in play at 22:30–23:00 CDT, when the real late-night nudge is active, on desktop and phone, in 1P and 2P.
 
-On their own the M2 systems are good:
-- The dialogue box is warm and readable on a 375-px-tall phone, with portraits, voice blips, tap-to-skip, and choices either player can answer.
-- Pip's reminder is charming: she flutters in over a starry backdrop and says a gentle goodbye with break ideas.
-- The session timer is well designed and well unit-tested.
+Following Pip's advice can no longer break the story. She now waits for the end of a scene, and her card owns the controls. `npm test` is no longer tied to the time of day.
 
-But following Pip's advice at the wrong moment freezes the game, and `npm test` is red every night after 9 PM.
+The build also contains M3 and M4. I judged M2's systems and everything before them.
+
+## Previous blockers
+
+### 1. Taking a break mid-dialogue froze the game — FIXED
+
+- **Evening new game, desktop, keyboard only, mashing E from the title:**
+  - Pip waited for the whole ferry arrival. Her card appeared at 9.0 s, after `met:biscuit` was set.
+  - Continued mashing went through her card: Say goodnight → Bye → title.
+  - After Continue:
+    - The player walked 3.6 tiles.
+    - The plaza sign opened a visible dialogue.
+    - There were no console errors.
+- **Evening new game, phone, tapping at a relaxed reading pace:**
+  - Pip appeared at 19 s, after the arrival.
+  - Say goodnight led to a title reading "Continue · Bean & Sky · Day 1".
+  - After Continue the player walked normally.
+- **Card forced inside the arrival's nested `conversation()`** (the "corgi in a red bandana" lines): Say goodnight → Continue replays the arrival to the end. The box closes, `met:biscuit` is set, the player walks, and there are no errors. This path depends on the reset of the conversation depth.
+- **Card forced over an NPC choice** (Bramble's three-way question), on desktop and phone:
+  - E or a tap went to the card, not the hidden choice.
+  - After Say goodnight → Continue, Bramble asked again, the conversation finished, and there were no console errors.
+- **Plaza sign left open for more than 60 s:**
+  - At the cap, the card appeared over the sign.
+  - After Take a break → Continue, the sign and Rocco both talk.
+- **Other exits:** the HUD pause button can't be clicked during dialogue or cutscenes. Pip's card is therefore the only way to leave mid-scene, and that path is now covered.
+
+### 2. `npm test` failed after 9 PM — FIXED
+
+- **Full run:** started 22:31 CDT with `PW_WORKERS=2`. Unit tests: 84/84. E2E: 88 passed, 2 skipped, 1 failed.
+- **The one failure isn't clock-related.** It was the M1 soft-tether test on desktop, while the M1 critic was running on the same machine. The failure screenshot shows P2 half off the right edge at the tether limit. It passed 6/6 on re-run.
+- **New tests are stable:** the eight new "M2 review" tests passed 32/32 (`--repeat-each=2`, desktop and phone).
+
+### 3. Tests that couldn't fail — FIXED, with one caveat
+
+- **Now meaningful:**
+  - The session-timer unit test (snoozes survive a short trip to the background).
+  - The Pause → Settings e2e test, driven by the real 1 s check.
+  - The real `visibilitychange` test.
+  - The arrival replay test (`core.spec.ts:331`). It checks that E reaches the card and not the hidden line, and that the replayed arrival is visible and finishes.
+  - The test forces the card during a plain `talk()`. The nested-`conversation()` case, which needs the depth reset, is untested; I checked it by hand (above). Worth adding as a test.
+- **Caveat — the manual-save test (`core.spec.ts:126`):**
+  - Its save-count and stored-slot checks can be met by the 1.5 s debounced autosave. That autosave starts from `setFlag` and from opening Pause, which sets `opened:pause`.
+  - Control run with the same steps but no Save press: `saves` went 0→1 after about 1.1 s, with `justChanged='banana'` and 5 shells stored.
+  - Only the "Saved!" label depends on the button. Save itself works; I checked it against IndexedDB.
+  - This is no longer a blocker; tighten it as described in the notes.
 
 ## Blockers
 
-### 1. Taking Pip's break while any dialogue is open breaks dialogue for the rest of the session. An evening new game freezes on the dock.
-
-- **Where:**
-  - `returnToTitle()` (`src/flow.ts:36-45`) runs `ui.closeAll()` + `resetStory()`, but never resets the `DialogueBox` singleton (`src/ui/dialogue.ts`).
-  - The popped dialogue screen has no `onClose`, so `dialogue.screen` stays set.
-  - The interrupted `talk()` never reaches its `finally`, so neither `close()` nor `depth--` runs.
-  - Every later `open()` returns early (`dialogue.ts:65`). New lines are typed into a detached element and their promise never resolves.
-  - `run()` in `src/story/hooks.ts:43-53` then keeps `busy = true` forever, and a `cutscene` screen keeps blocking movement.
-  - `reminder.check()` (`src/ui/reminder.ts:59-70`) shows the card every second regardless of what is on screen, so the natural timer hits this exactly like the debug fast-forward does.
-- **Repro A** (desktop, late-night nudge switched off so only the 45-minute reminder is involved):
-  1. Read the plaza sign.
-  2. While it is open, Pip's 45-minute reminder arrives (`triggerReminder`).
-  3. Choose **Take a break** → **Bye for now!** → **Continue**.
-  - Result:
-    - Reading the sign again shows nothing, though the line is logged in `dialogueLines`.
-    - Talking to Rocco shows nothing, and after that every sign, NPC and door is dead because `storyBusy()` is stuck.
-    - Walking still works.
-    - Starting a **new game in slot 2** without reloading doesn't help: the arrival cutscene runs invisibly, the UI stack is stuck at `['cutscene']`, and the player can't move (0.00 tiles).
-- **Repro B** (the default path for any family starting after 9 PM — i.e. tonight):
-  1. New Game → names → storybook.
-  2. Within about 0.5 s of the world appearing, the late-night card lands on top of the ferry-arrival narration.
-  3. A keyboard player mashing **E**: E picks "Say goodnight" (autofocused) → E returns to the title → E presses Continue.
-  - Result: the arrival replays with an invisible dialogue, the UI stays `['cutscene']`, and the player can't move 10 s later (screenshot shows only letterbox bars on the dock).
-  - The phone behaves the same when tapping "Say goodnight" → Continue.
-  - Only a page reload recovers. For an installed PWA, that means force-closing the app.
-- **Input goes to the hidden dialogue too:**
-  - If Pip's card is pushed first and a story line arrives afterwards (a cutscene resuming after a `wait()`), the dialogue becomes `ui.top` (`src/ui/ui.ts:86-99`) even though it is drawn *under* Pip's full-screen card.
-  - E, Enter and pad A then advance invisible story lines. In my test, two presses skipped "Line two/three" and closed the box; the next E chose "Take a break" without the player ever choosing it.
-  - I saw both orderings during the evening arrival.
-- **Fix:**
-  - On `returnToTitle` / `switchToWorld`, fully reset dialogue: pop it, null the screen, set `depth = 0`, and settle pending line and choice promises.
-  - Cancel running story scripts, e.g. with a session token checked after each `await`, or make `wait`/`talk` reject once the session ends.
-  - While Pip's card is visible it must own input — or don't show it while a dialogue, cutscene or storybook is open (see improvement 1).
-  - Add e2e tests for both repros: after the break, Continue, then the sign dialogue is visible and the arrival completes.
-
-### 2. `npm test` fails whenever it runs between 9 PM and 5 AM.
-
-- **What I saw:**
-  - My run started at 20:59 CDT. Unit: 73/73 pass. E2E: **28 passed, 33 failed, 2 skipped, exit 1**.
-  - All 33 failure snapshots show the "It's getting late" card. The late-night nudge covers the world about 1 s into every test.
-- **Control run:** I ran the unchanged e2e suite with only the browser timezone forced to daytime (my own scratch config, `timezoneId: 'Asia/Tokyo'`). Result: 60 passed, 2 skipped, 1 failed (an M3 flake, see notes).
-- **Why it blocks:** this is an overnight build, so every pre-commit run until 5 AM will be red. `scripts/shots.mjs` will also capture the nudge in review screenshots.
-- **Fix:**
-  - Make the device clock injectable from tests. `reminder.clock` already exists (`src/ui/reminder.ts:37`); expose a hook for it, or set `lateNightNudge: false` in `bootToTitle`/`startGame` and in `shots.mjs`.
-  - Make the late-night test force 9:30 PM explicitly. Alternatively, pin `timezoneId`/`page.clock` in `playwright.config.ts`.
-
-### 3. Two M2 tests can't fail.
-
-- **Manual save** (`tests/e2e/core.spec.ts:111-120`):
-  - `expect(before).toBeGreaterThanOrEqual(0)` is always true, and `slots[0].exists` was already true from `newGame`. Only the toast is really checked, so a Save button that wrote nothing would still pass.
-  - (Save does work: I checked by hand that a `give('shell', 5)` wasn't in IndexedDB before Save and was after.)
-  - Fix: assert that `saves` increased and that a just-changed value is in the stored slot.
-- **Pause-menu timer test** (`tests/unit/sessionTimer.test.ts:56-60`, "keeps counting while the in-game pause menu is open"):
-  - It never touches pause; it is the 45-minute test again. The spec requires testing the timer "across pause".
-  - Fix: add an e2e check — open Pause → Settings, let time pass, and assert Pip appears on top and hands control back to Settings. I checked that this works by hand.
+- None.
 
 ## Top improvements
 
-1. **Let Pip wait for a calm moment.**
-   - Queue the 45-minute reminder and the late-night nudge until no dialogue, cutscene or storybook is running (cap the wait at about 60 s).
-   - Ignore input on her card for about 1 s, so a child mashing E through dialogue can't pick "Take a break" or "Say goodnight" without reading it.
-   - Why: in the evening the card lands on top of the opening arrival, so the first story beat a family sees is Pip telling them to stop. Once blocker 1 is fixed this is small, and it makes the reminder feel like part of the story instead of an interruption.
-2. **Make quest feedback trustworthy.**
-   - Step toasts are computed from counts (`src/story/quests.ts:108`), so out-of-order progress announces the wrong step. Going beach → meadow → plaza:
-     - The beach and meadow gave no toast.
-     - The plaza toasted "Dip your toes on the south beach".
-     - Reading the sign toasted "Find the bunny meadow in the west".
-   - The +10 Tockens reward is silent.
-   - On phones, toasts cover open menus: "Player 2 joined!" plus a step toast sit over the Pause panel's heading and the Settings tile.
-   - Fix: track finished step ids, toast the reward, and keep toasts clear of open panels.
-3. **Tidy the title and new-game flow.**
-   - **Stale title after deleting saves:** after deleting the save that Continue points to (or all saves), Continue and Load Game stay on the title and Continue silently does nothing (`src/ui/titleMenu.ts:19`, `src/ui/slots.ts:66`). Rebuild the title after a delete.
-   - **Keyboard trap on the names screen:** after typing a name, arrows only jump back into the first text box, Enter blurs to nothing, and Esc cancels the whole New Game (`src/input/input.ts:106`, `src/ui/newGame.ts:38`). Make Enter/↓ go to the next field or "Let's go!", and make Esc just leave the field.
-   - **Controls guide on phone:** the Back button is below the fold; make its footer sticky like Settings' "Done".
+1. **Give Pip's grace period a fairer start, and slow the mash-through.**
+   - **When the 60 s cap starts:** `busyMoment()` (`src/ui/reminder.ts:71-80`) starts counting the cap at the first busy second, whether or not a reminder is due.
+     - A conversation that began 50 s before break time gets only 10 s of grace.
+     - The 3 s "settling" period counts as busy, so in the evening the cap runs from the first second of play. A family reading the arrival slowly can still get the card mid-scene.
+     - Start the cap when the reminder falls due, and give the late-night nudge a longer cap.
+   - **Mashing:** a child still mashing E after a scene ends goes Pip → goodbye → title in about 2.5 s (in my run: card at 9.0 s, goodbye at 10.9 s, title at 11.6 s). Also lock "Bye for now!" for about 1 s, or require a fresh key press after the card appears.
+2. **Silence the "cancelled story" errors.** Three `talk()` calls run outside `run()`:
+   - the sign (`src/scenes/WorldScene.ts:308-311`)
+   - the warren bunnies (`:453`)
+   - the Lanes door (`:639`)
 
-**Smaller notes:**
-- **Settings that don't do anything yet:**
-  - "Reduce motion" is read by nothing.
-  - The colourblind option has nothing to recolour until M5/M7.
-  - Wire both when those systems land, or hide Reduce motion until then.
-- **Pip's portrait:** on every screen size she sits on a visibly square pale glow, which looks pasted on. A round, feathered glow would fix it.
-- **Taps during dialogue:** the dialogue layer swallows taps across the whole screen, but only the box advances. Kids expect tap-anywhere.
-- **Slot cards:** they show only Player 1's name. Showing both names (and the name on Continue) helps siblings tell saves apart.
-- **M3 flake** (for the M3 review): `tockwood.spec.ts:110` checks the in-game minutes after sleeping with `toBe(390)`; it got 390.08 when the clock ticked one frame.
-- **Real background test:** the e2e "pauses in background" test uses the `simulateBackground` hook, not a real `visibilitychange`. I checked the real event by hand:
-  - 4 minutes hidden didn't count.
-  - 12 minutes hidden while Pip was showing started a fresh session and closed her card.
+   These reject unhandled when play ends mid-line. I got `pageerror: story cancelled` when the capped card appeared over an open sign and I chose Take a break. Nothing breaks, but any test that watches for errors will go red. Route them through `run()` or `background()`, or catch `isCancelled`.
+3. **Keep toasts off menus on phones.** Toasts that were already showing when a menu opens stay over it. In `review/M2/pause-2p-phone.png`, "Player 2 joined!" and the plaza step cover the Player 2 / Save & quit row for about 2 s. Hide the toast layer while a menu is open and re-show those toasts when it closes.
+
+**Notes:**
+- **Missing unit test:** the fix notes mention an out-of-order unit test in `tests/unit/quests.test.ts`. It isn't there: there are 4 tests, all completing steps in order. The fix does work in play:
+  - Going beach → meadow → plaza → sign toasts each correct step.
+  - The completion toast says "+10 Tockens".
+  - Please add the test.
+- **Tightening the manual-save test:** read the slot right when "Saved!" appears (well under 1.5 s after opening Pause). Alternatively, cancel the pending autosave through a hook before pressing Save.
+- **Test-only code in production:** `window.__testDeviceHour` is read by production code (`src/ui/reminder.ts:91`). It's harmless, but it belongs behind `debugEnabled()`.
+- **For the M1 reviewer:** the soft-tether test flaked once under parallel load; details above.
 
 ## Fun score
 
-4/10. Biggest thing holding it back: M2's centrepiece, the break reminder, can freeze the game the moment a family follows its advice mid-conversation. Beyond that, M2 alone is plumbing — signs and one explore quest. The dialogue and Pip's card are lovely.
+6/10. Biggest thing holding it back: the systems are solid and Tockwood is charming, but there's still nowhere to go. There are no eras, puzzles, soups or mini-games yet (M5+).
 
 ## Required features tally
 
-Working 1 · partial 7 · missing 6. Items built in M3 are marked (M3); they are in this build but judged in the M3 review.
+Working 2 · partial 7 · missing 5. M3 and M4 content is judged in their own reviews.
 
-1. Adventure story — partial. M2 delivers dialogue, choices and quests derived from save flags (HUD objective, Adventure Log, rewards). The opening chapter is M3.
-2. Village life — partial. The M1 hub is here; neighbours and digging are M3; no decorating yet.
-3. Time travel — missing.
-4. Outfits — missing.
-5. Bowling — missing (only the pin sound effects).
-6. Corgi — partial (M3).
-7. Dancing — missing (only the dance-hit sound effects).
-8. Riddles, logic and strategy — missing (a puzzle-difficulty setting exists).
-9. Playtime reminder — partial. Broken by blockers 1 and 2. What works:
-   - One timer shared by both players, 45 minutes by default, 15/30/45/60/90 in Settings, and it can't be switched off.
+1. Adventure story — partial. Dialogue, choices and flag-driven quests work, and so does the opening chapter. There are no eras and no ending yet.
+2. Village life — partial. The hub, neighbours and dig-up collecting are in; home decorating isn't yet.
+3. Time travel — missing (the portal opens in M6).
+4. Outfits — partial (M4 wardrobe: both players and Biscuit).
+5. Bowling — missing.
+6. Corgi — partial (Biscuit is a companion who digs and sniffs).
+7. Dancing — missing.
+8. Riddles, logic and strategy — missing.
+9. Playtime reminder — **working**:
+   - One shared timer, 45 minutes by default, 15/30/45/60/90 in Settings, and it can't be switched off.
+   - It counts in Pause and pauses in the background; 10+ minutes away starts a fresh session.
    - Two snoozes, then a firm reminder that can still be dismissed.
    - Autosave when Pip appears, and a gentle goodbye back to the title.
-   - Backgrounding pauses the count, and 10+ minutes away starts a fresh session.
-   - Late-night nudge and fast-forward hooks.
-10. Map and pirates — partial. A local map exists (M3); no world map or pirates.
-11. Fairy — partial. Pip voices the reminder and has a portrait; her story role is M3.
-12. 1 or 2 players — working for all M2 systems:
-    - P2 joins and leaves from Pause, answers choices with ↓↓ + `/`, and snoozes Pip with → + `/`.
+   - Late-night nudge.
+   - It waits for calm moments and never breaks a scene.
+10. Map and pirates — partial (a local map; no world map or pirates yet).
+11. Fairy — partial (Pip guides the story and gives the reminders).
+12. 1 or 2 players — **working** for everything built so far:
+    - P2 joins from Pause with the keyboard, answers choices with ↓↓ + `/`, and snoozes Pip with → + `/`.
     - The goodbye names both players ("See you soon, Maisie and Theo!").
-    - Phone 2P thumb zones are intact, and the M1 controls regression tests pass.
+    - On the phone, P2 joins from Pause and Pip can be snoozed with a tap.
 13. Bunnies — partial (M3).
 14. Magic soup — missing.
 
-## Verified
+## Verified in this re-review
 
-- **Build and tests:** `tsc` is clean; e2e results as reported above.
-- **Saves:**
-  - Manual Save writes the current state.
-  - Periodic autosave fires after about 60 s.
-  - Continue restores position.
-  - Deleting a slot asks for confirmation.
-- **Reminder on the natural timer path** (not the debug hook), driven with Playwright's clock:
-  - Fires at 15 minutes.
-  - 4 minutes hidden doesn't count.
-  - After Take a break, coming back in 2 minutes keeps the session (next reminder at 50 min); coming back after 11 minutes starts fresh (45 min).
-  - Pip appears over Pause → Settings and hands control back.
-- **Phone layouts:** reminder, firm and goodbye screens fit at 667×375 and 568×320. Tapping the HUD objective opens the Adventure Log in 1P and 2P.
-- **Tone, originality and docs:** tone is gentle and names are original. No DECISIONS entry quietly drops a spec requirement; counting time while paused and the firm 5-minute repeat are recorded, reasonable choices.
+- **Natural timer path (Playwright clock):**
+  - 4 minutes in the background didn't count.
+  - The reminder fired after about 15 minutes of visible play.
+  - 12 minutes in the background while it showed closed the card and started a fresh session.
+  - Manual Save writes to IndexedDB, and the periodic autosave runs every 60 s.
+- **Title and saves:**
+  - After deleting the save Continue points to, the title rebuilds and Continue moves to the remaining slot.
+  - With every save deleted, only New Game and Settings remain, with New Game focused.
+  - Double-clicking or double-tapping Load Game at 30–200 ms never stacks screens.
+- **Names screen, keyboard only:** ↑ ← ↑ reaches name 1. Typing "Sadie Wade" (W, A, S and D included) stays in the box. Enter moves to name 2, then to "Let's go!", and both names are saved.
+- **Phones:**
+  - The title fits at 375 px tall.
+  - The controls guide's Back button stays on screen.
+  - Pip's glow is round.
+  - Tap-to-skip and advance work.
+- **Tone, originality and docs:**
+  - Tone is gentle.
+  - The new DECISIONS entries (calm-moment deferral capped at 60 s, the card owning input, story sessions, toast queueing) don't drop any spec requirement.
+  - Renaming the museum curator to a hedgehog time historian helps originality.
+- **Cleanup:** every server and test process I started is stopped.

@@ -47,6 +47,11 @@ One line each: decision — reason.
 - Tops, bottoms and shoes can be swapped but not removed; hats and extras can be "none".
 - Shop items are bought with Tockens; era outfits are earned in their eras (not for sale) — outfits double as souvenirs.
 - Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.
+- Economy: Dr. Quill buys spare finds (shells, fossils, trinkets) at their listed value; the first of every museum-worthy piece is donated to the Museum of Time with a +5 finder's fee — digging every day funds Bramble's shop, and the museum fills up along the way.
+- Clock gears can't be sold until Rocco's favour is done — selling must never break a quest.
+- Map labels and markers are HTML over a terrain canvas (fixed readable font size), not text drawn into the canvas — a phone scales the canvas down to a third, so drawn text became unreadable.
+- Between the ferry and Pip's scene Biscuit is "leading the way": after a reload he waits at the clocktower door and follows the players inside — a story companion must never vanish because play stopped mid-step.
+- Camera smoothing is frame-rate independent and hard-clamped so every player stays inside the view even on a slow frame; on touch screens the shared camera may pull back to 60% of the normal zoom (72% on desktop) — phones are short, so two players need the extra vertical room.
 - Pip's reminders wait for a calm moment — never during dialogue, cutscenes, storybooks, running story scripts or the first 3 s of play — but never more than 60 s; the 45-minute count keeps running meanwhile — story beats stay intact and the reminder still can't be dodged.
 - Pip's card owns all input while visible and ignores presses for its first second — a child mashing the action button can't dismiss (or accept) a break they never saw.
 - Leaving play ends a "story session": scripts from the old session are cancelled at their next wait (dialogue line, choice, timer, scripted walk) instead of resuming later — robust against any exit mid-scene without threading tokens through every script.

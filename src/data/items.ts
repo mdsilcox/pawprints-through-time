@@ -51,6 +51,7 @@ export const ITEMS: ItemDef[] = [
   { id: 'seed-carrot', name: 'Carrot Seeds', kind: 'seed', icon: 'seeds-orange', origin: 'tockwood', value: 2, desc: 'Plant in the cottage garden.' },
   { id: 'seed-radish', name: 'Radish Seeds', kind: 'seed', icon: 'seeds-red', origin: 'tockwood', value: 2, desc: 'Plant in the cottage garden.' },
   { id: 'seed-pumpkin', name: 'Pumpkin Seeds', kind: 'seed', icon: 'seeds-cream', origin: 'tockwood', value: 3, desc: 'Plant in the cottage garden.' },
+  { id: 'seed-tomato', name: 'Tomato Seeds', kind: 'seed', icon: 'seeds-tomato', origin: 'tockwood', value: 3, desc: 'Plant in the cottage garden. Tomatoes came from the Americas long ago!' },
   // ---------------- era ingredients (real foods of each time and place)
   { id: 'coconut', name: 'Coconut', kind: 'ingredient', icon: 'coconut', origin: 'pirate', value: 5, tags: ['hairy', 'island', 'sweet'], desc: 'From a Caribbean palm. Hairy on the outside!' },
   { id: 'sea-salt', name: 'Sea Salt', kind: 'ingredient', icon: 'salt', origin: 'pirate', value: 4, tags: ['sea', 'white', 'salty'], desc: 'Salt dried from Caribbean seawater.' },

@@ -278,12 +278,16 @@ export function openWardrobe(opts: { who?: Wearer; shop?: boolean } = {}): void 
   };
 
   const render = () => {
+    // every pick rebuilds the lists: keep keyboard / gamepad focus on the button you just used
+    const active = document.activeElement as HTMLElement | null;
+    const focusId = active && panel.contains(active) ? active.getAttribute('data-testid') : null;
     coins.innerHTML = '';
     coins.append(h('img', { attrs: { src: iconUrl('tockens'), alt: '' } }), `${d.tockens}`);
     renderWho();
     renderSlots();
     renderGrid();
     redrawPreview();
+    if (focusId) panel.querySelector<HTMLElement>(`[data-testid="${focusId}"]`)?.focus({ preventScroll: true });
   };
 
   const turn = (dir: number) => {
@@ -329,8 +333,9 @@ export function openWardrobe(opts: { who?: Wearer; shop?: boolean } = {}): void 
           }, { cls: 'secondary small-btn', testid: 'wd-surprise' }),
           button('↻', () => turn(1), { cls: 'secondary small-btn', testid: 'wd-turn-right' }),
         ),
+        info,
       ),
-      h('div', { class: 'wd-right' }, slotTabs, grid, swatches, info),
+      h('div', { class: 'wd-right' }, slotTabs, grid, swatches),
     ),
     h('div', { class: 'row end wd-foot' }, buyRow, button('Done', close, { icon: '✔', testid: 'wardrobe-done' })),
   );

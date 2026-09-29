@@ -425,6 +425,8 @@ export class BunnyActor extends Actor {
   private next = 0;
   private hopping = false;
   private fleeing = 0;
+  /** how many times this bunny has fled (tests) */
+  flees = 0;
   private sleeping = false;
   private waved = 0;
   area: { x: number; y: number; w: number; h: number };
@@ -507,6 +509,7 @@ export class BunnyActor extends Actor {
         const dy = this.y - scary.y;
         const d = Math.hypot(dx, dy) || 1;
         this.fleeing = now + 2500;
+        this.flees++;
         this.hopTo(this.x + (dx / d) * TILE * 1.3, this.y + (dy / d) * TILE * 0.9, true);
         if (Math.random() < 0.3) this.emote('exclaim', 600);
         return;

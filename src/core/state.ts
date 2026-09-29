@@ -1,6 +1,6 @@
 /** The persistent save-data model and helpers. Everything that must survive a reload lives here. */
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type OutfitSlot = 'hat' | 'top' | 'bottom' | 'shoes' | 'acc';
 export const OUTFIT_SLOTS: OutfitSlot[] = ['hat', 'top', 'bottom', 'shoes', 'acc'];
@@ -44,10 +44,17 @@ export interface PlacedItem {
 }
 
 export interface GardenPlot {
-  seed: string | null; // ingredient id being grown
-  plantedDay: number;
-  wateredDay: number;
-  stage: number; // 0 seedling .. 3 ready
+  seed: string | null; // crop (ingredient id) growing here
+  plantedAt: number; // absolute in-game minute (day * 1440 + minutes)
+  wateredAt: number; // 0 = still needs water
+}
+
+/** A soup effect that is still running (seconds of play left). */
+export interface ActiveEffect {
+  effect: string;
+  soup: string;
+  left: number;
+  total: number;
 }
 
 export interface SaveData {
@@ -72,8 +79,12 @@ export interface SaveData {
   sands: string[];
   notes: string[];
   museum: string[];
+  /** soups discovered (magic and silly) */
   recipes: string[];
+  /** recipe clues players have heard (soup ids) */
+  clues: string[];
   triedCombos: string[];
+  effects: ActiveEffect[];
   puzzles: Record<string, PuzzleRecord>;
   skill: number;
   home: { items: PlacedItem[] };
@@ -136,11 +147,13 @@ export function defaultSave(now = Date.now()): SaveData {
     notes: [],
     museum: [],
     recipes: [],
+    clues: [],
     triedCombos: [],
+    effects: [],
     puzzles: {},
     skill: 0.4,
     home: { items: [] },
-    garden: [0, 1, 2, 3].map(() => ({ seed: null, plantedDay: 0, wateredDay: 0, stage: 0 })),
+    garden: [0, 1, 2, 3].map(() => ({ seed: null, plantedAt: 0, wateredAt: 0 })),
     dug: {},
     seen: {},
   };
@@ -163,6 +176,13 @@ export function migrateSave(raw: unknown): SaveData {
     PlayerProfile,
     PlayerProfile,
   ];
+  // garden plots from version 1 saves used a different shape
+  const plots: unknown[] = Array.isArray(out.garden) ? out.garden : [];
+  out.garden = [0, 1, 2, 3].map((i) => {
+    const p = (isPlainObject(plots[i]) ? plots[i] : {}) as Partial<GardenPlot>;
+    return { seed: typeof p.seed === 'string' ? p.seed : null, plantedAt: Number(p.plantedAt) || 0, wateredAt: Number(p.wateredAt) || 0 };
+  });
+  if (!Array.isArray(out.effects)) out.effects = [];
   out.version = SAVE_VERSION;
   return out;
 }

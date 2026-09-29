@@ -66,6 +66,108 @@ function seedPacket(c: Ctx, color: string) {
     e(c, x, y, 2, 1.5, INK, 0);
 }
 
+/** A corked potion-style bottle of soup. */
+function soupBottle(c: Ctx, color: string) {
+  r(c, 26, 8, 12, 9, 3, '#c89a6a');
+  c.beginPath();
+  c.moveTo(27, 16);
+  c.lineTo(37, 16);
+  c.lineTo(37, 24);
+  c.quadraticCurveTo(50, 28, 50, 42);
+  c.quadraticCurveTo(50, 56, 32, 56);
+  c.quadraticCurveTo(14, 56, 14, 42);
+  c.quadraticCurveTo(14, 28, 27, 24);
+  c.closePath();
+  c.fillStyle = 'rgba(232,251,255,0.9)';
+  c.fill();
+  c.lineWidth = 2.5;
+  c.strokeStyle = INK;
+  c.stroke();
+  c.save();
+  c.clip();
+  c.fillStyle = color;
+  c.fillRect(10, 34, 44, 24);
+  c.fillStyle = shade(color, 0.12);
+  c.beginPath();
+  c.ellipse(32, 34, 20, 4, 0, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+  shine(c, 22, 30, 3, 6);
+  sparkle(c, 46, 16, 5, '#ffffff');
+}
+
+/** A steaming bowl of soup. */
+function soupBowl(c: Ctx, color: string) {
+  c.strokeStyle = 'rgba(255,255,255,0.8)';
+  c.lineWidth = 3;
+  c.lineCap = 'round';
+  for (const x of [24, 32, 40]) {
+    c.beginPath();
+    c.moveTo(x, 22);
+    c.bezierCurveTo(x - 4, 16, x + 4, 12, x, 6);
+    c.stroke();
+  }
+  e(c, 32, 34, 24, 7, color, 2.5);
+  c.beginPath();
+  c.moveTo(8, 34);
+  c.quadraticCurveTo(10, 56, 32, 56);
+  c.quadraticCurveTo(54, 56, 56, 34);
+  c.closePath();
+  c.fillStyle = '#f3e6c8';
+  c.fill();
+  c.lineWidth = 2.5;
+  c.strokeStyle = INK;
+  c.stroke();
+  r(c, 22, 54, 20, 4, 2, '#e0c9a0', 2);
+  shine(c, 18, 42, 3, 5);
+}
+
+/** Code-breaking gears: colour AND a symbol, so colourblind players can tell them apart. */
+const CODE_COLORS = ['#e46a6a', '#6fb3e0', '#f7c65a', '#7cc47f', '#a58bd6', '#f29e4c'];
+function codeGear(c: Ctx, n: number) {
+  const col = CODE_COLORS[n % CODE_COLORS.length];
+  c.beginPath();
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * Math.PI * 2;
+    const rad = i % 2 ? 22 : 27;
+    c.lineTo(32 + Math.cos(a) * rad, 32 + Math.sin(a) * rad);
+  }
+  c.closePath();
+  c.fillStyle = col;
+  c.fill();
+  c.lineWidth = 2.5;
+  c.strokeStyle = INK;
+  c.stroke();
+  e(c, 32, 32, 13, 13, '#fff8ec', 2);
+  c.fillStyle = INK;
+  c.beginPath();
+  const sym = n % 6;
+  if (sym === 0) c.arc(32, 32, 6, 0, Math.PI * 2);
+  else if (sym === 1) {
+    c.moveTo(32, 25);
+    c.lineTo(39, 37);
+    c.lineTo(25, 37);
+  } else if (sym === 2) c.rect(26, 26, 12, 12);
+  else if (sym === 3) {
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i / 10) * Math.PI * 2;
+      const rad = i % 2 ? 3 : 7.5;
+      c.lineTo(32 + Math.cos(a) * rad, 32 + Math.sin(a) * rad);
+    }
+  } else if (sym === 4) {
+    c.moveTo(32, 38);
+    c.bezierCurveTo(22, 31, 27, 24, 32, 29);
+    c.bezierCurveTo(37, 24, 42, 31, 32, 38);
+  } else {
+    c.moveTo(32, 25);
+    c.lineTo(39, 32);
+    c.lineTo(32, 39);
+    c.lineTo(25, 32);
+  }
+  c.closePath();
+  c.fill();
+}
+
 const DRAW: Record<string, (ctx: Ctx) => void> = {
   scallop: (c) => {
     c.beginPath();
@@ -344,6 +446,14 @@ const DRAW: Record<string, (ctx: Ctx) => void> = {
   'seeds-orange': (c) => seedPacket(c, PAL.orange),
   'seeds-red': (c) => seedPacket(c, '#e0566b'),
   'seeds-cream': (c) => seedPacket(c, '#f3dca2'),
+  'seeds-tomato': (c) => {
+    seedPacket(c, '#ff6b57');
+    line(c, [
+      [29, 24],
+      [32, 26],
+      [35, 24],
+    ], '#5fa85a', 2.5);
+  },
   coconut: (c) => {
     e(c, 32, 34, 20, 19, '#8a5a3a');
     for (const [x, y] of [
@@ -629,7 +739,14 @@ export function iconCanvas(key: string, size = S): HTMLCanvasElement {
   const { c, ctx } = makeCanvas(size, size);
   ctx.lineJoin = 'round';
   ctx.scale(size / S, size / S);
-  (DRAW[key] ?? DRAW.marble)(ctx);
+  const dyn = key.startsWith('bottle:')
+    ? (c: Ctx) => soupBottle(c, key.slice(7))
+    : key.startsWith('bowl:')
+      ? (c: Ctx) => soupBowl(c, key.slice(5))
+      : key.startsWith('codegear:')
+        ? (c: Ctx) => codeGear(c, Number(key.slice(9)))
+        : null;
+  (DRAW[key] ?? dyn ?? DRAW.marble)(ctx);
   return c;
 }
 

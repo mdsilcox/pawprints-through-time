@@ -563,8 +563,12 @@ p {
   background: rgba(255, 248, 236, 0.18);
   border: 3px solid rgba(74, 59, 53, 0.28);
   pointer-events: none;
-  opacity: 0.55;
+  /* idle: just a faint hint of where the stick is, so it never hides a player */
+  opacity: 0.3;
   transition: opacity 0.15s;
+}
+.stick-base:not(.active) .stick-knob {
+  opacity: 0.6;
 }
 .stick-base.active {
   opacity: 1;

@@ -3,7 +3,7 @@ import { audio } from '../audio/audio';
 import { renderBunnyPortrait } from '../art/bunny';
 import { HOPKINS, BUNNY_REWARDS } from '../data/bunnies';
 import { h } from './dom';
-import { button, ui } from './ui';
+import { button, closeOnBackdrop, ui } from './ui';
 import { registerPauseEntry } from './pause';
 
 const ERA_NAMES: Record<string, string> = {
@@ -54,9 +54,9 @@ export function openBunnyTracker(): void {
     h('div', { class: 'bt-bar' }, h('div', { class: 'bt-fill', style: { width: `${(home.size / 12) * 100}%` } })),
     next ? h('p', { class: 'small' }, `Next surprise at ${next.count} bunnies home!`) : h('p', { class: 'small' }, 'Every bunny is home! 🥕'),
     eras,
-    h('div', { class: 'row end' }, button('Close', close, { cls: 'secondary', autofocus: true, testid: 'bunnies-close' })),
+    h('div', { class: 'row end sticky-foot' }, button('Close', close, { cls: 'secondary', autofocus: true, testid: 'bunnies-close' })),
   );
-  ui.push({ id: 'bunnies', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: close });
+  ui.push({ id: 'bunnies', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), close), onBack: close });
   audio.sfx('open');
 }
 

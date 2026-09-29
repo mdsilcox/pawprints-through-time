@@ -60,6 +60,52 @@ test.describe('movement & controls', () => {
     await expect.poll(async () => (await players(page)).length).toBe(1);
   });
 
+  test('the tether stops two players right at the edge of the screen, horizontally', async ({ page }) => {
+    await startAt(page, 30.5, 27);
+    await hook(page, 'joinP2');
+    const lim = await hook<{ w: number; h: number }>(page, 'tetherLimit');
+    // find a long open row on the island so nothing but the tether can stop them
+    const need = Math.ceil(lim.w) + 4;
+    const row = await page.evaluate((n) => {
+      const g = (window as any).__game;
+      for (let y = 4; y < 44; y++) {
+        let start = -1;
+        for (let x = 1; x < 59; x++) {
+          const free = !g.isSolid(x, y) && !g.isSolid(x, y - 1) && !g.isSolid(x, y + 1);
+          if (!free) start = -1;
+          else if (start < 0) start = x;
+          if (start >= 0 && x - start + 1 >= n) return { y: y + 0.5, x0: start + 1 };
+        }
+      }
+      return null;
+    }, need);
+    expect(row, `an open row of ${need} tiles`).not.toBeNull();
+    const mid = row!.x0 + need / 2;
+    await hook(page, 'teleport', mid - 0.5, row!.y, 0);
+    await hook(page, 'teleport', mid + 0.5, row!.y, 1);
+    await hook(page, 'hold', 0, -1, 0);
+    await hook(page, 'hold', 1, 1, 0);
+    // they walk apart until the separation stops growing...
+    let last = 0;
+    await expect
+      .poll(async () => {
+        const [p1, p2] = await players(page);
+        const sep = p2.x - p1.x;
+        const grew = sep - last;
+        last = sep;
+        return sep > lim.w * 0.9 && grew < 0.02;
+      }, { timeout: 30000, intervals: [700] })
+      .toBe(true);
+    // ...right at the tether limit (not earlier, not later), with both still on screen
+    const [p1, p2] = await players(page);
+    expect(p2.x - p1.x).toBeGreaterThan(lim.w * 0.97);
+    expect(p2.x - p1.x).toBeLessThan(lim.w + 0.05);
+    expect(await hook(page, 'onScreen', 0)).toBe(true);
+    expect(await hook(page, 'onScreen', 1)).toBe(true);
+    await hook(page, 'release', 0);
+    await hook(page, 'release', 1);
+  });
+
   test('the shared camera keeps both players on screen (soft tether)', async ({ page }) => {
     await startAt(page, 30.5, 27);
     await hook(page, 'joinP2');

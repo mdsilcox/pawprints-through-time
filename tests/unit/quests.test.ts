@@ -72,4 +72,17 @@ describe('quests', () => {
     expect(d.flags['quest:t-main']).toBe(true);
     expect(questLog(d).finished.map((p) => p.quest.id)).toContain('t-main');
   });
+
+  it('steps finished out of order are each announced as themselves (not by position)', () => {
+    const d = defaultSave();
+    d.flags.started = true;
+    const seen = new Map<string, Set<string>>();
+    checkQuests(d, seen); // prime
+    d.flags.b = true; // second step first
+    expect(checkQuests(d, seen).steps.map((s) => s.step.id)).toEqual(['b']);
+    d.flags.a = true;
+    const r = checkQuests(d, seen);
+    expect(r.steps.map((s) => s.step.id)).toEqual(['a']);
+    expect(r.quests.map((q) => q.id)).toEqual(['t-main']);
+  });
 });

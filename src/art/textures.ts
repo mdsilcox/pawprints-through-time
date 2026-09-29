@@ -11,7 +11,7 @@ import { TILE } from '../world/collision';
 import { EMOTES, drawEmote } from './emotes';
 import { renderCorgiSheet, CORGI_FRAMES, CW, CH } from './corgi';
 import { renderBunnySheet, BUNNY_FRAMES, BW, BH, type BunnyLook } from './bunny';
-import { renderPipSheet } from './fairy';
+import { PIP_FH, PIP_FW, renderPipSheet } from './fairy';
 import type { WornPiece } from './character';
 
 /** Anchor (as fraction of width/height) for every prop/building texture. */
@@ -152,7 +152,7 @@ export function registerAllTextures(scene: Phaser.Scene): void {
   for (const e of EMOTES) addCanvasTexture(scene, `emote-${e}`, drawEmote(e));
   {
     const tex = addCanvasTexture(scene, 'pip', renderPipSheet());
-    for (let i = 0; i < 4; i++) tex?.add(i, 0, i * 80, 0, 80, 100);
+    for (let i = 0; i < 4; i++) tex?.add(i, 0, i * PIP_FW, 0, PIP_FW, PIP_FH);
   }
   ensureBiscuitTexture(scene, { neck: { kind: 'bandana', main: '#e46a6a', accent: '#ffffff' } });
   addCanvasTexture(scene, 'biscuit', renderCorgiSheet({ neck: { kind: 'bandana', main: '#e46a6a', accent: '#ffffff' } }));

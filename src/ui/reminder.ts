@@ -79,18 +79,28 @@ class ReminderController {
     return Date.now() - this.deferredSince < 60_000;
   }
 
+  private lateDue(): boolean {
+    // Automated tests pin the device hour so results don't depend on when they run.
+    const testHour = (window as unknown as { __testDeviceHour?: number }).__testDeviceHour;
+    const now = testHour !== undefined ? new Date(2026, 0, 1, testHour) : this.clock();
+    return !this.lateShown && app.settings.lateNightNudge && isLateNight(now) && this.timer.state === 'running';
+  }
+
   check(): void {
     if (!app.playing || this.showing) return;
+    const reminderDue = this.timer.state === 'running' && this.timer.liveElapsedMs >= this.timer.nextAt;
+    const lateDue = this.lateDue();
+    if (!reminderDue && !lateDue) {
+      this.deferredSince = 0; // the calm-moment wait only starts once Pip actually has something to say
+      return;
+    }
     if (this.busyMoment()) return;
     const ev = this.timer.update();
     if (ev) {
       this.show(ev);
       return;
     }
-    // Automated tests pin the device hour so results don't depend on when they run.
-    const testHour = (window as unknown as { __testDeviceHour?: number }).__testDeviceHour;
-    const now = testHour !== undefined ? new Date(2026, 0, 1, testHour) : this.clock();
-    if (!this.lateShown && app.settings.lateNightNudge && isLateNight(now) && this.timer.state === 'running') {
+    if (lateDue) {
       this.lateShown = true;
       this.showLate();
     }
@@ -156,7 +166,7 @@ class ReminderController {
     );
     ui.push({ id: 'reminder', el, onBack: () => undefined }, ui.topLayer);
     // a child mashing the action button can't pick an answer without seeing Pip first
-    ui.lock(1000);
+    ui.lock(1500);
   }
 
   private close(): void {
@@ -208,6 +218,7 @@ class ReminderController {
       ),
     );
     ui.push({ id: 'goodbye', el, onBack: () => void done() }, ui.topLayer);
+    ui.lock(1200); // (same for the goodbye card)
   }
 }
 

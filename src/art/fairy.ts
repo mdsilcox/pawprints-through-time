@@ -198,10 +198,13 @@ export function drawPip(ctx: CanvasRenderingContext2D, cx: number, cy: number, s
 }
 
 /** Pip world sprite sheet: 4 frames (wing flap cycle), 80x100 each; head centre at (40, 34). */
+/** Frames are roomy enough for the wings and a glow that fades out inside the frame. */
+export const PIP_FW = 130;
+export const PIP_FH = 120;
 export function renderPipSheet(): HTMLCanvasElement {
   const F = 4;
-  const { c, ctx } = makeCanvas(80 * F, 100);
-  for (let i = 0; i < F; i++) drawPip(ctx, 40 + i * 80, 34, 0.95, [0, 0.5, 1, 0.5][i]);
+  const { c, ctx } = makeCanvas(PIP_FW * F, PIP_FH);
+  for (let i = 0; i < F; i++) drawPip(ctx, PIP_FW / 2 + i * PIP_FW, 44, 0.95, [0, 0.5, 1, 0.5][i], false, 56);
   return c;
 }
 

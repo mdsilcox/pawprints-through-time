@@ -155,7 +155,10 @@
 
 /* ---------- map ---------- */
 .map-panel {
-  width: min(96vw, 52rem);
+  width: min(96vw, 56rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 .map-head {
   display: flex;
@@ -163,31 +166,154 @@
   align-items: baseline;
   gap: 1rem;
 }
+.map-head h2 {
+  margin: 0;
+}
+.map-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-height: 0;
+}
 .map-note {
   font-weight: 600;
-  margin-bottom: 0.3rem;
 }
 .map-wrap {
+  position: relative;
   border: var(--border) solid var(--ink);
   border-radius: 1rem;
   overflow: hidden;
   background: #8fd3e6;
-  display: flex;
-  justify-content: center;
+  aspect-ratio: var(--ratio);
+  width: min(100%, calc((100vh - 15rem) * var(--ratio)));
+  margin: 0 auto;
+  flex: none;
 }
 .map-canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  max-height: calc(100vh - 12rem);
-  object-fit: contain;
+  height: 100%;
   display: block;
+}
+.map-marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.map-mark {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+.map-mark.poi .poi-icon {
+  font-size: 1.15rem;
+}
+.map-mark.poi .poi-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow:
+    0 0 3px #fff8ec,
+    0 0 3px #fff8ec,
+    0 0 2px #fff8ec;
+}
+.map-mark.dig {
+  color: var(--gold);
+  font-size: 1rem;
+  text-shadow: 0 0 2px var(--ink);
+}
+.map-mark.goal {
+  color: var(--gold);
+  font-size: 1.6rem;
+  -webkit-text-stroke: 2px var(--ink);
+  animation: goal-bob 1.2s ease-in-out infinite;
+}
+@keyframes goal-bob {
+  50% {
+    transform: translate(-50%, -62%);
+  }
+}
+.map-mark.who {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.map-mark.who.p1 {
+  background: var(--orange);
+}
+.map-mark.who.p2 {
+  background: var(--blue);
+}
+.map-mark.who.biscuit {
+  width: 0.95rem;
+  height: 0.95rem;
+  background: #e9a15a;
+}
+.map-mark.who.here {
+  background: var(--orange);
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.map-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 .map-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem 1rem;
+  gap: 0.3rem 0.9rem;
   font-size: 0.8rem;
-  margin: 0.4rem 0 0.2rem;
+}
+.legend-star {
+  color: var(--gold);
+  -webkit-text-stroke: 1px var(--ink);
+}
+.legend-dig {
+  color: var(--gold);
+}
+/* short screens (landscape phones): map on the left, everything else beside it — Close always visible */
+@media (max-height: 520px) {
+  .map-panel {
+    width: min(98vw, 60rem);
+    padding: 0.5rem 0.8rem;
+  }
+  .map-head h2 {
+    font-size: 1.1rem;
+  }
+  .map-main {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .map-wrap {
+    width: min(100%, calc((100vh - 4.8rem) * var(--ratio)));
+    margin: 0;
+  }
+  .map-side {
+    flex: 1;
+    min-width: 9rem;
+    justify-content: space-between;
+  }
+  .map-legend {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .map-mark.poi .poi-icon {
+    font-size: 0.95rem;
+  }
+  .map-mark.poi .poi-label {
+    font-size: 0.7rem;
+  }
 }
 .dot {
   display: inline-block;
@@ -362,4 +488,39 @@
 }
 .bt-name {
   font-weight: 700;
+}
+
+/* ---------- Dr. Quill's trading table ---------- */
+.sell-panel {
+  width: min(94vw, 34rem);
+}
+.sell-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.3rem 0 0.5rem;
+}
+.sell-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  padding: 0.3rem 0.5rem;
+}
+.sell-icon {
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: none;
+}
+.sell-info {
+  flex: 1;
+  min-width: 0;
+}
+.sell-name {
+  font-weight: 700;
+}
+.sell-empty {
+  opacity: 0.75;
 }

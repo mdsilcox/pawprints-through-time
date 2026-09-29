@@ -35,6 +35,13 @@ export function installDebugHooks(app: GameApp): void {
     slots: () => app.saves.list(),
     deleteSlot: (slot: number) => app.saves.delete(slot),
     setFlag: (k: string, v: boolean | number | string = true) => app.setFlag(k, v),
+    /** change live save data WITHOUT asking for an autosave (tests of the Save button) */
+    patchQuietly: (flags: Record<string, boolean | number | string>, inventory: Record<string, number> = {}) => {
+      if (!app.data) return false;
+      Object.assign(app.data.flags, flags);
+      Object.assign(app.data.inventory, inventory);
+      return true;
+    },
     getFlag: (k: string) => app.flag(k),
     settings: () => ({ ...app.settings }),
     setSettings: (p: Record<string, unknown>) => app.setSettings(p),

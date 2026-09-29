@@ -140,7 +140,7 @@ async function meetPip(world: WorldScene): Promise<void> {
         'Mending time takes a little getting ready, though.',
         'First, visit Clover at The Bubbling Burrow — the round red door under the old oak. Her grandma’s cauldron makes the most magical soups... and her family needs help too.',
         'And say hello to the neighbours! Friends make every adventure better.',
-        'Oh! And Biscuit can dig up buried treasure. Look for sparkly spots — or ask him to sniff with the B button!',
+        'Oh! And Biscuit can dig up buried treasure. Look for little sparkly mounds of dirt — or ask him to sniff! That’s Q on the keyboard (Player 2 uses the full stop), or B on a gamepad or the screen.',
         'I’ll get the portal warmed up. Biscuit, show them around!',
       ]);
     });

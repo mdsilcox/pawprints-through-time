@@ -128,9 +128,23 @@ class UIManager {
     return () => this.listeners.delete(fn);
   }
 
+  private wasMenuOpen = false;
   private changed() {
     for (const fn of this.listeners) fn();
-    if (!this.menuOpen) this.flushToasts();
+    const open = this.menuOpen;
+    if (open && !this.wasMenuOpen) this.clearVisibleToasts();
+    this.wasMenuOpen = open;
+    if (!open) this.flushToasts();
+  }
+
+  /** A menu just opened: toasts already on screen get out of its way. */
+  private clearVisibleToasts(): void {
+    if (!this.toastLayer) return;
+    for (const t of [...this.toastLayer.children] as HTMLElement[]) {
+      if (t.classList.contains('now')) continue;
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 250);
+    }
   }
 
   // ------------------------------------------------------------ toasts
@@ -261,6 +275,14 @@ class UIManager {
 
 export const ui = new UIManager();
 
+/** Tapping the dimmed backdrop around a panel closes it (for panels that can't lose anything). */
+export function closeOnBackdrop(wrap: HTMLElement, close: () => void): HTMLElement {
+  wrap.addEventListener('click', (e) => {
+    if (e.target === wrap && !ui.locked) close();
+  });
+  return wrap;
+}
+
 /** A chunky friendly button. */
 export function button(
   label: string | Node,
@@ -303,7 +325,7 @@ export function toast(text: string, opts: ToastOpts = {}): void {
     ui.queueToast(text, opts);
     return;
   }
-  const el = h('div', { class: `toast ${opts.cls ?? ''}` }, opts.icon ? h('span', { class: 'toast-icon' }, opts.icon) : null, text);
+  const el = h('div', { class: `toast ${opts.cls ?? ''} ${opts.now ? 'now' : ''}` }, opts.icon ? h('span', { class: 'toast-icon' }, opts.icon) : null, text);
   ui.toastLayer.appendChild(el);
   requestAnimationFrame(() => el.classList.add('show'));
   setTimeout(() => {

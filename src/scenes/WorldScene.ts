@@ -21,6 +21,7 @@ import { character } from '../data/characters';
 import { biscuitPieces } from '../data/clothes';
 import { HOPKINS_BY_ID, GRANDMA } from '../data/bunnies';
 import { triggerEnter, triggerTalk, triggerUse, storyBusy, give, setFlag } from '../story/hooks';
+import { quietCancel } from '../core/session';
 import '../world/maps/tockwood';
 import '../world/maps/interiors';
 
@@ -43,6 +44,7 @@ export interface Interactable {
 }
 
 interface SpotView {
+  mound?: Phaser.GameObjects.Graphics;
   spot: DigSpot;
   img: Phaser.GameObjects.Image;
   revealed: boolean;
@@ -462,7 +464,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   /** Biscuit (and later Pip) come along wherever the players go. */
   private spawnCompanions(): void {
     const d = app.data!;
-    if (d.flags['biscuit:companion']) {
+    const companion = !!d.flags['biscuit:companion'];
+    // Between the ferry and Pip's scene Biscuit is "leading the way": after a reload he waits for
+    // you at the clocktower door, and he comes inside with you to meet Pip.
+    const leading = !companion && !!d.flags['met:biscuit'];
+    if (companion || leading) {
       const p1 = this.players[0];
       const b = new BiscuitActor(this, p1.x - TILE * 0.8, p1.y + TILE * 0.2);
       b.setTexture(ensureBiscuitTexture(this, biscuitPieces(d.biscuit.outfit)));
@@ -473,6 +479,26 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       };
       this.biscuit = b;
       this.actors.push(b);
+      if (leading && this.def.id === 'tockwood') {
+        b.x = 30.5 * TILE;
+        b.y = 17.9 * TILE;
+        b.state = 'sit';
+        b.facing = 'down';
+        b.play('sit');
+        // a friendly bark whenever someone comes near, so kids know where to go
+        this.time.addEvent({
+          delay: 2600,
+          loop: true,
+          callback: () => {
+            if (app.data?.flags['biscuit:companion'] || b.destroyed) return;
+            const near = this.players.some((p) => Math.hypot(p.x - b.x, p.y - b.y) < TILE * 6);
+            if (near) {
+              b.bark();
+              b.emote('exclaim', 700);
+            }
+          },
+        });
+      }
     }
     if (d.flags['pip:companion'] && !this.pip) {
       const pip = new PipActor(this, this.players[0].x, this.players[0].y, () => {
@@ -505,20 +531,45 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     const zones = this.def.digZones;
     const d = app.data;
     if (!zones || !d) return;
-    for (const sv of this.spots) sv.img.destroy();
+    for (const sv of this.spots) {
+      sv.img.destroy();
+      sv.mound?.destroy();
+    }
     this.spots = [];
     this.interactables = this.interactables.filter((i) => !i.id.startsWith('dig:'));
     const spots = availableSpots(spotsForDay(this.def.id, d.day, zones, this.grid, this.coll), d.dug);
     // a guaranteed easy first dig right by the plaza path
     if (this.def.id === 'tockwood' && !d.flags['dug:first']) spots.push({ id: 'tockwood:tutorial', zone: 'plaza', cx: 32, cy: 27, item: 'clock-gear', hidden: false });
     for (const spot of spots) {
+      const sx = (spot.cx + 0.5) * TILE;
+      const sy = (spot.cy + 0.6) * TILE;
+      // a little mound of fresh dirt under the sparkle: readable on sand and on grass
+      const mound = this.add.graphics().setDepth((spot.cy + 0.25) * TILE).setVisible(!spot.hidden);
+      mound.fillStyle(0x4a3b35, 0.22).fillEllipse(sx, sy + 10, 70, 22);
+      mound.fillStyle(0x9a6a45, 1).fillEllipse(sx, sy + 4, 58, 20);
+      mound.fillStyle(0xc08a5a, 1).fillEllipse(sx - 4, sy, 36, 11);
       const img = this.add
-        .image((spot.cx + 0.5) * TILE, (spot.cy + 0.6) * TILE, 'fx-sparkle')
+        .image(sx, sy - 18, 'fx-sparkle')
         .setDepth((spot.cy + 0.3) * TILE)
-        .setTint(0xfff3a0)
+        .setTint(0xffc83a)
+        .setScale(1.25)
         .setVisible(!spot.hidden);
-      this.tweens.add({ targets: img, scale: { from: 0.7, to: 1.3 }, alpha: { from: 0.6, to: 1 }, angle: 45, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-      const sv: SpotView = { spot, img, revealed: !spot.hidden };
+      this.tweens.add({ targets: img, scale: { from: 1, to: 1.6 }, alpha: { from: 0.75, to: 1 }, angle: 45, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      const sv: SpotView = { spot, img, mound, revealed: !spot.hidden };
+      if (spot.hidden) {
+        // hidden treasure: every few seconds a tiny puff of dust gives it away to sharp eyes
+        this.time.addEvent({
+          delay: 3800 + Math.random() * 2500,
+          loop: true,
+          callback: () => {
+            if (sv.revealed || !img.active) return;
+            const puff = this.add.particles(sx, sy, 'fx-dot', { speed: { min: 20, max: 60 }, angle: { min: 230, max: 310 }, lifespan: 700, scale: { start: 0.45, end: 0.1 }, alpha: { start: 0.8, end: 0 }, tint: 0xb89068, emitting: false });
+            puff.setDepth(sy + 2);
+            puff.explode(5);
+            this.time.delayedCall(900, () => puff.destroy());
+          },
+        });
+      }
       this.spots.push(sv);
       this.interactables.push({
         id: `dig:${spot.id}`,
@@ -540,9 +591,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.interactables = this.interactables.filter((i) => i.id !== `dig:${sv.spot.id}`);
     b.emote('exclaim', 600);
     audio.sfx('bark');
-    await b.digAt(sv.img.x, sv.img.y);
+    const mx = (sv.spot.cx + 0.5) * TILE;
+    const my = (sv.spot.cy + 0.6) * TILE;
+    await b.digAt(mx, my);
     audio.sfx('dig');
-    const dirt = this.add.particles(sv.img.x, sv.img.y, 'fx-dot', {
+    const dirt = this.add.particles(mx, my, 'fx-dot', {
       speed: { min: 80, max: 220 },
       angle: { min: 200, max: 340 },
       gravityY: 500,
@@ -555,6 +608,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     dirt.explode(14);
     this.time.delayedCall(900, () => dirt.destroy());
     sv.img.destroy();
+    sv.mound?.destroy();
     this.spots = this.spots.filter((s) => s !== sv);
     give(sv.spot.item, 1, { from: 'Biscuit dug up...' });
     setFlag('dug:first');
@@ -573,6 +627,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       for (const s of nearHidden) {
         s.revealed = true;
         s.img.setVisible(true).setScale(0.1);
+        s.mound?.setVisible(true);
         this.tweens.add({ targets: s.img, scale: 1.3, duration: 350, ease: 'Back.easeOut' });
       }
       b.faceToward((nearHidden[0].spot.cx + 0.5) * TILE, (nearHidden[0].spot.cy + 0.5) * TILE);
@@ -764,20 +819,22 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
 
   frameOpts(): FrameOpts {
     const base = this.baseZoom();
+    // phones are short: let the shared camera pull back a bit further so two players have room
+    const minZoom = base * (hud.touch?.isShown ? 0.6 : 0.72);
     // With on-screen touch controls, keep players clear of the HUD band and the button band.
     let extraTop = 0;
     let extraBottom = 0;
     if (hud.touch?.isShown) {
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      const toWorld = (css: number) => (css / this.scale.zoom) / (base * 0.72);
-      extraTop = toWorld(rem * 3.2);
-      extraBottom = toWorld(rem * 5.2);
+      const toWorld = (css: number) => (css / this.scale.zoom) / minZoom;
+      extraTop = toWorld(rem * 2.7);
+      extraBottom = toWorld(rem * 4.4);
     }
     return {
       viewW: this.scale.width,
       viewH: this.scale.height,
       baseZoom: base,
-      minZoom: base * 0.72,
+      minZoom,
       marginX: TILE * 1.1,
       marginTop: TILE * 1.9 + extraTop,
       marginBottom: TILE * 0.8 + extraBottom,
@@ -789,16 +846,27 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.applyCamera(true);
   }
 
-  private applyCamera(snap = false): void {
+  private applyCamera(snap = false, dt = 1 / 60): void {
     const cam = this.cameras.main;
     const pts = this.players.map((p) => ({ x: p.x, y: p.y - TILE * 0.5 }));
     const target = midpoint(pts);
     const zTarget = frameZoom(pts, this.frameOpts());
-    this.camZoom += (zTarget - this.camZoom) * (snap ? 1 : 0.12);
-    this.camCenter.x += (target.x - this.camCenter.x) * (snap ? 1 : 0.14);
-    this.camCenter.y += (target.y - this.camCenter.y) * (snap ? 1 : 0.14);
+    // Smoothing that feels the same at any frame rate (tuned at 60 fps).
+    const kz = snap ? 1 : 1 - Math.pow(1 - 0.12, dt * 60);
+    const kc = snap ? 1 : 1 - Math.pow(1 - 0.14, dt * 60);
+    this.camZoom += (zTarget - this.camZoom) * kz;
+    // Zooming out never lags: the camera is never closer than it needs to be to show everyone.
+    if (this.camZoom > zTarget) this.camZoom = zTarget;
+    this.camCenter.x += (target.x - this.camCenter.x) * kc;
+    this.camCenter.y += (target.y - this.camCenter.y) * kc;
     const viewW = this.scale.width / this.camZoom;
     const viewH = this.scale.height / this.camZoom;
+    // ...and even on a slow frame, every player stays inside the view.
+    const mx = TILE * 0.55;
+    for (const p of pts) {
+      this.camCenter.x = Phaser.Math.Clamp(this.camCenter.x, p.x + mx - viewW / 2, p.x - mx + viewW / 2);
+      this.camCenter.y = Phaser.Math.Clamp(this.camCenter.y, p.y + TILE * 0.7 - viewH / 2, p.y - TILE * 0.7 + viewH / 2);
+    }
     const cx = this.mapW > viewW ? Phaser.Math.Clamp(this.camCenter.x, viewW / 2, this.mapW - viewW / 2) : this.mapW / 2;
     const cy = this.mapH > viewH ? Phaser.Math.Clamp(this.camCenter.y, viewH / 2, this.mapH - viewH / 2) : this.mapH / 2;
     cam.setZoom(this.camZoom);
@@ -950,7 +1018,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       it.y = b.y;
     }
     this.drawTether();
-    this.applyCamera();
+    this.applyCamera(false, dt);
     this.checkZones();
     this.checkExits();
     this.tickClock(deltaMs);
@@ -963,7 +1031,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         // ui.locked: a menu/dialogue just closed — don't let the same press re-trigger something.
         if (pad.aPressed && !ui.locked && !storyBusy()) {
           const it = this.nearestInteractable(p);
-          if (it) void it.run(p.index);
+          if (it) void Promise.resolve(it.run(p.index)).catch(quietCancel);
         }
         if (pad.bPressed && !ui.locked) void this.sniff();
       }

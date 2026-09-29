@@ -8,11 +8,11 @@ async function play(page: Page, at?: [number, number]): Promise<void> {
   await page.waitForTimeout(100);
 }
 
-/** Press a button on Pip's card. The card ignores presses for its first second (so nobody
+/** Press a button on Pip's cards. They ignore presses for their first 1.2-1.5 s (so nobody
  * skips Pip by mashing), so wait that out like a real player reading her message. */
 async function pressPip(page: Page, testid: string): Promise<void> {
   await expect(page.getByTestId(testid)).toBeVisible();
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1300);
   await press(page, `[data-testid="${testid}"]`);
 }
 
@@ -125,11 +125,24 @@ test.describe('saving', () => {
 
   test('manual save from the pause menu writes the latest progress to the slot', async ({ page }) => {
     await play(page);
-    await hook(page, 'setFlag', 'justChanged', 'banana');
-    await hook(page, 'give', 'shell-conch', 5);
-    const stored = await hook<any>(page, 'readSlot', 1);
-    expect(stored.flags.justChanged).toBeUndefined(); // not saved yet
+    // let any autosave already on its way (e.g. from starting the game) finish first
+    let prev = -1;
+    await expect
+      .poll(async () => {
+        const n = await hook<number>(page, 'saves');
+        const settled = n === prev;
+        prev = n;
+        return settled;
+      }, { intervals: [2000], timeout: 20000 })
+      .toBe(true);
+    // change the live game state directly (no autosave is asked for)...
+    expect(await hook(page, 'patchQuietly', { justChanged: 'banana' }, { 'shell-conch': 5 })).toBe(true);
+    // ...and prove nothing else writes it to the slot in the meantime
+    await page.waitForTimeout(2500);
     const before = await hook<number>(page, 'saves');
+    expect(before).toBe(prev);
+    const stored = await hook<any>(page, 'readSlot', 1);
+    expect(stored.flags.justChanged).toBeUndefined();
     await page.keyboard.press('Escape');
     await press(page, '[data-testid="pause-save"]');
     await expect(page.getByTestId('pause-save')).toContainText('Saved!');
@@ -234,7 +247,7 @@ test.describe('playtime reminder', () => {
     await pressPip(page, 'reminder-break');
     await expect(page.getByTestId('goodbye')).toBeVisible();
     await expect(page.getByTestId('goodbye')).toContainText('See you soon');
-    await press(page, '[data-testid="goodbye-ok"]');
+    await pressPip(page, 'goodbye-ok');
     await expect(page.locator('[data-screen="title"]')).toBeVisible();
     expect(await hook<string[]>(page, 'scenes')).toContain('title');
     expect((await hook<any>(page, 'reminderState')).state).toBe('idle');
@@ -285,7 +298,7 @@ test.describe('Pip never breaks the story (M2 review)', () => {
     await expect(page.getByTestId('reminder')).toBeVisible({ timeout: 4000 });
     // take the break, say bye, come back
     await pressPip(page, 'reminder-break');
-    await press(page, '[data-testid="goodbye-ok"]');
+    await pressPip(page, 'goodbye-ok');
     await expect(page.locator('[data-screen="title"]')).toBeVisible();
     await press(page, '[data-testid="title-continue"]');
     await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
@@ -345,7 +358,7 @@ test.describe('Pip never breaks the story (M2 review)', () => {
     await page.keyboard.press('KeyE'); // goes to the card ("Say goodnight"), not the hidden dialogue
     await expect(page.getByTestId('goodbye')).toBeVisible();
     expect((await hook<any[]>(page, 'dialogueLines')).length).toBe(lines);
-    await press(page, '[data-testid="goodbye-ok"]');
+    await pressPip(page, 'goodbye-ok');
     await expect(page.locator('[data-screen="title"]')).toBeVisible();
     // Continue: the arrival plays again, visibly, and finishes
     await press(page, '[data-testid="title-continue"]');
@@ -384,6 +397,22 @@ test.describe('Pip never breaks the story (M2 review)', () => {
     await page.waitForTimeout(400);
     await page.keyboard.press('Escape');
     await expect.poll(() => hook<string[]>(page, 'ui')).toEqual(['pause']);
+  });
+
+  test('Pip’s card over a question: the key goes to Pip, and the question still works afterwards', async ({ page }) => {
+    await play(page);
+    const answer = hook<number>(page, 'ask', 'bramble', 'Stripes or spots?', ['Stripes', 'Spots']);
+    await expect(page.getByTestId('choice-1')).toBeVisible();
+    await hook(page, 'triggerLateNight'); // (a card that arrives while a question is open)
+    await expect(page.getByTestId('reminder')).toBeVisible();
+    await page.waitForTimeout(1700);
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('KeyE'); // "Just a little longer" — not a choice under the card
+    await expect(page.getByTestId('reminder')).toHaveCount(0);
+    await expect(page.getByTestId('choice-1')).toBeVisible();
+    await page.waitForTimeout(400);
+    await press(page, '[data-testid="choice-1"]');
+    expect(await answer).toBe(1);
   });
 
   test('a real trip to the background pauses the reminder clock', async ({ page }) => {

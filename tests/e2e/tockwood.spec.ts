@@ -99,26 +99,109 @@ test.describe('village life', () => {
     expect(woke).toBeLessThan(6 * 60 + 32);
   });
 
-  test('wild bunnies scatter when you rush at them, then hop back home', async ({ page }) => {
-    await startGame(page, [11, 25]);
-    await page.waitForTimeout(800);
-    const wild = (await hook<any[]>(page, 'bunnies')).filter((b) => b.mode === 'wild');
-    expect(wild.length).toBeGreaterThanOrEqual(4);
-    const target = wild[0];
-    await hook(page, 'teleport', target.x - 2.2, target.y, 0);
+  test('wild bunnies scatter only when someone rushes at them, then hop back home', async ({ page }) => {
+    await startGame(page, [30.5, 24]); // far from the meadow
+    const wildNow = async () => (await hook<any[]>(page, 'bunnies')).filter((b) => b.mode === 'wild');
+    const flees = async () => (await wildNow()).reduce((n, b) => n + b.flees, 0);
+    expect((await wildNow()).length).toBeGreaterThanOrEqual(4);
+    // nobody nearby: they hop about, but nobody runs away
+    await page.waitForTimeout(3500);
+    expect(await flees()).toBe(0);
+    // walk calmly up to them and stand still: still no fleeing
+    const target = (await wildNow())[0];
+    await hook(page, 'teleport', target.x - 3.5, target.y, 0);
+    await page.waitForTimeout(1500);
+    const calm = await flees();
+    // now rush right at them
     await hook(page, 'hold', 0, 1, 0);
-    await page.waitForTimeout(700);
+    await expect.poll(flees, { timeout: 6000 }).toBeGreaterThan(calm);
     await hook(page, 'release', 0);
-    const moved = async () => {
-      const now = (await hook<any[]>(page, 'bunnies')).filter((b) => b.mode === 'wild');
-      return Math.max(...now.map((b, i) => Math.hypot(b.x - wild[i].x, b.y - wild[i].y)));
-    };
-    await expect.poll(moved, { timeout: 4000 }).toBeGreaterThan(0.5);
-    // they always come back to the meadow
+    // they always come back to their meadow
     await hook(page, 'teleport', 30.5, 24, 0);
     await expect
-      .poll(async () => (await hook<any[]>(page, 'bunnies')).filter((b) => b.mode === 'wild').every((b) => b.x > 4.5 && b.x < 17.5 && b.y > 21.5 && b.y < 28.5), { timeout: 20000 })
+      .poll(async () => (await wildNow()).every((b) => Math.abs(b.x - b.home.x) <= b.home.w / 2 + 0.6 && Math.abs(b.y - b.home.y) <= b.home.h / 2 + 0.6), { timeout: 25000 })
       .toBe(true);
+  });
+
+  test('Biscuit waits by the clocktower after a break during "Follow Biscuit", and joins Pip’s scene', async ({ page }) => {
+    const errors = watchErrors(page);
+    await bootToTitle(page);
+    await hook(page, 'newGame', 1);
+    await hook(page, 'startWorld');
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    await playThrough(page, 60_000);
+    expect(await hook(page, 'getFlag', 'met:biscuit')).toBe(true);
+    await expect(page.getByTestId('hud-objective')).toContainText('Follow Biscuit');
+    // stop playing here and come back later
+    await hook(page, 'toTitle');
+    await press(page, '[data-testid="title-continue"]');
+    await expect.poll(() => hook<string[]>(page, 'scenes')).toContain('world');
+    await page.waitForTimeout(600);
+    const b = await hook<any>(page, 'biscuit');
+    expect(b, 'Biscuit is still on the island').not.toBeNull();
+    expect(Math.abs(b.x - 30.5)).toBeLessThan(1.5);
+    expect(Math.abs(b.y - 17.9)).toBeLessThan(1.5);
+    // in through the door: he comes too, and he's there for Pip's big scene
+    await hook(page, 'teleport', 30.5, 16.7, 0);
+    await expect.poll(() => hook(page, 'prompt')).toBe('Enter');
+    await pressUntil(page, 'KeyE', async () => (await hook<string>(page, 'mapId')) === 'clocktower');
+    await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
+    expect(await hook(page, 'biscuit')).not.toBeNull();
+    await playThrough(page, 60_000);
+    expect(await hook(page, 'getFlag', 'biscuit:companion')).toBe(true);
+    expect(await hook(page, 'biscuit')).not.toBeNull();
+    expect(errors).toEqual([]);
+  });
+
+  test('the map is readable on every screen, and Close is always in reach', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'openMap');
+    const vp = page.viewportSize()!;
+    const inView = async (sel: string) => {
+      const box = await page.locator(sel).first().boundingBox();
+      return !!box && box.y >= 0 && box.y + box.height <= vp.height + 0.5 && box.x >= 0 && box.x + box.width <= vp.width + 0.5;
+    };
+    const label = page.locator('.map-mark.poi .poi-label').first();
+    await expect(label).toBeVisible();
+    expect(await label.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(9.5);
+    const me = await page.locator('.map-mark.who.p1').boundingBox();
+    expect(me!.width).toBeGreaterThanOrEqual(18);
+    expect(await inView('[data-testid="map-close"]')).toBe(true);
+    expect(await inView('[data-testid="map-view"]')).toBe(true);
+    // tapping outside the panel closes it
+    const touch = await page.evaluate(() => navigator.maxTouchPoints > 0);
+    await page.waitForTimeout(350);
+    if (touch) await page.touchscreen.tap(4, vp.height / 2);
+    else await page.mouse.click(4, vp.height / 2);
+    await expect(page.locator('[data-screen="map"]')).toHaveCount(0);
+    // indoors: the island with "you are inside", Close still in reach
+    await hook(page, 'goTo', 'museum', 'in');
+    await expect.poll(() => hook<string>(page, 'mapId')).toBe('museum');
+    await hook(page, 'openMap');
+    await expect(page.locator('.map-note')).toContainText('inside');
+    expect(await inView('[data-testid="map-close"]')).toBe(true);
+    await press(page, '[data-testid="map-close"]');
+    await expect(page.locator('[data-screen="map"]')).toHaveCount(0);
+  });
+
+  test('backpack and bunny tracker keep Close in reach, even after picking an item', async ({ page }) => {
+    await startGame(page, [30.5, 24]);
+    for (const id of ['scallop', 'fossil-ammonite', 'carrot', 'kelp', 'old-key', 'glowcap', 'honey', 'marble', 'button']) await hook(page, 'give', id, 2);
+    const vp = page.viewportSize()!;
+    const inView = async (sel: string) => {
+      const box = await page.locator(sel).first().boundingBox();
+      return !!box && box.y + box.height <= vp.height + 0.5;
+    };
+    await hook(page, 'openBackpack');
+    await press(page, '.bp-item');
+    expect(await inView('[data-testid="backpack-close"]')).toBe(true);
+    await press(page, '[data-testid="backpack-close"]');
+    await expect(page.locator('[data-screen="backpack"]')).toHaveCount(0);
+    await hook(page, 'openBunnies');
+    await expect(page.locator('.tracker-panel')).toBeVisible();
+    expect(await inView('[data-testid="bunnies-close"]')).toBe(true);
+    await press(page, '[data-testid="bunnies-close"]');
+    await expect(page.locator('[data-screen="bunnies"]')).toHaveCount(0);
   });
 
   test('map, backpack and bunny tracker open from the pause menu', async ({ page }) => {

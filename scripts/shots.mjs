@@ -142,7 +142,7 @@ const SCENARIOS = [
       for (let i = 0; i < 2; i++) {
         await g(page, 'triggerReminder');
         await page.waitForSelector('[data-testid="reminder-snooze"]');
-        await wait(1300); // Pip's card ignores presses for its first second
+        await wait(1700); // Pip's card ignores presses for its first 1.5 s
         await page.click('[data-testid="reminder-snooze"]');
         await page.waitForSelector('[data-testid="reminder"]', { state: 'detached' });
         await wait(400);
@@ -211,6 +211,18 @@ const SCENARIOS = [
   { name: 'museum-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'museum', 'in'); await wait(1800); } },
   { name: 'tailor-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'tailor', 'in'); await wait(1800); } },
   { name: 'map', players: [1], run: async (page) => { await play(page, 1, [30.5, 26]); await g(page, 'openMap'); await wait(700); } },
+  {
+    name: 'sell',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const [id, n] of [['scallop', 3], ['fossil-ammonite', 2], ['old-key', 1], ['golden-acorn', 1], ['sea-glass', 4]]) await g(page, 'give', id, n);
+      await g(page, 'goTo', 'museum', 'in');
+      await wait(1500);
+      await g(page, 'openSell');
+      await wait(600);
+    },
+  },
   { name: 'dock-finnegan', players: [1], run: async (page) => { await play(page, 1, [30.8, 40.5]); await wait(900); } },
   { name: 'dig', players: [1], run: async (page) => { await play(page, 1, [31.2, 26.6]); await wait(600); await page.keyboard.press('KeyE'); await wait(2600); } },
   { name: 'wardrobe', players: [1], run: async (page) => { await play(page, 1, [30.5, 24]); await g(page, 'openWardrobe', 0); await wait(700); } },

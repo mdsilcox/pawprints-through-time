@@ -127,23 +127,24 @@ export class InputManager {
     }
     if (PREVENT.has(e.code)) e.preventDefault();
     this.setDevice('kb');
+    // Decide once per key press: a press that opens the pause menu must not also count as "back".
+    const inMenu = this.menuMode;
     if (!e.repeat) {
       this.keys.add(e.code);
       // A press that goes to a menu must not also count as a gameplay press next frame.
-      if (!this.menuMode) this.pressedKeys.add(e.code);
+      if (!inMenu) this.pressedKeys.add(e.code);
     }
-    if (this.menuMode) {
+    if (inMenu) {
       // We activate the focused button ourselves; stop the browser's own Enter/Space click
       // so a single key press never "clicks" twice.
       if (CONFIRM_KEYS.has(e.code) || DIR_KEYS[e.code]) e.preventDefault();
       const d = DIR_KEYS[e.code];
       if (d) this.events.emit('nav', d);
       else if (CONFIRM_KEYS.has(e.code) && !e.repeat) this.events.emit('confirm', P2_KEYS.a === e.code ? 1 : 0);
-      else if (BACK_KEYS.has(e.code) && !e.repeat) this.events.emit('back', 0);
+      else if ((BACK_KEYS.has(e.code) || e.code === 'KeyP') && !e.repeat) this.events.emit('back', 0);
     } else if (PAUSE_KEYS.has(e.code) && !e.repeat) {
       this.events.emit('pause', 0);
     }
-    if (this.menuMode && e.code === 'KeyP' && !e.repeat) this.events.emit('back', 0);
   }
 
   private setDevice(d: 'kb' | 'pad' | 'touch') {

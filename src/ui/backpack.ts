@@ -3,7 +3,7 @@ import { audio } from '../audio/audio';
 import { iconUrl } from '../art/icons';
 import { ITEMS, type ItemKind } from '../data/items';
 import { h } from './dom';
-import { button, ui } from './ui';
+import { button, closeOnBackdrop, ui } from './ui';
 import { registerPauseEntry } from './pause';
 
 /** The backpack: everything you've collected, sorted into tabs, with descriptions. */
@@ -75,10 +75,10 @@ export function openBackpack(): void {
     h('div', { class: 'bp-head' }, h('h2', null, '🎒 Backpack'), h('div', { class: 'bp-tockens', attrs: { 'data-testid': 'bp-tockens' } }, h('img', { attrs: { src: iconUrl('tockens'), alt: '' } }), `${app.data.tockens} Tockens`)),
     tabRow,
     h('div', { class: 'bp-body' }, grid, detail),
-    h('div', { class: 'row end' }, button('Close', close, { cls: 'secondary', testid: 'backpack-close' })),
+    h('div', { class: 'row end sticky-foot' }, button('Close', close, { cls: 'secondary', testid: 'backpack-close' })),
   );
   render();
-  ui.push({ id: 'backpack', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: close });
+  ui.push({ id: 'backpack', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), close), onBack: close });
   audio.sfx('open');
 }
 

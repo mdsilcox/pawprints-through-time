@@ -47,9 +47,17 @@ export class PlayerEntity {
 
   refreshLook(profile: PlayerProfile): void {
     const key = `pc-${lookKey(profile)}`;
+    const old = this.textureKey;
     ensureCharacterTexture(this.scene, key, specForPlayer(profile));
     this.textureKey = key;
     this.applyFrame();
+    // each outfit is a big sprite sheet: drop the old one unless the other player wears the same
+    const others = (this.scene as unknown as { players?: { textureKey?: string }[] }).players ?? [];
+    if (old && old !== key && !others.some((p) => p !== (this as unknown) && p.textureKey === old)) {
+      this.scene.time.delayedCall(0, () => {
+        if (this.scene.textures.exists(old)) this.scene.textures.remove(old);
+      });
+    }
   }
 
   setMarkerVisible(v: boolean): void {

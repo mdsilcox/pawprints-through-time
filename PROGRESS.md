@@ -1,6 +1,9 @@
 # Progress log
 
-## M4 — Wardrobe ✅ (awaiting critic)
+## M4 — Wardrobe ✅ (critic: REVISE → blocker fixed; re-review requested)
+- M4 review fixes:
+  - A real Tocken loop: Dr. Quill's Trading Table buys spare shells, fossils and trinkets for their value; the first of every museum piece goes into the Museum of Time with a finder's fee (clock gears are kept until Rocco's favour is done). Tested end to end: dig → sell → buy something the starting Tockens couldn't.
+  - Wardrobe: the right column is the only scroll region, the preview is never squashed, item name/description sit under the preview, all three Look rows fit on a 375 px phone, bigger turn buttons; keyboard/gamepad focus stays on what you just picked; old outfit sprite sheets are freed.
 - Wardrobe screen (pause menu tile, the cottage wardrobe, Bramble's magic mirror): tabs for Player 1, Player 2 and Biscuit; Hat / Top / Bottoms / Shoes / Extras (+ Biscuit's Hat / Neck); item thumbnails drawn on a mannequin; colour-variant swatches; a Look tab (6 skin tones, 8 hair colours, 6 hairstyles); a live, rotatable preview (front/side/back) with a squishy bounce; "Surprise me!" dice.
 - 49 player clothing items (30+ required) incl. era pieces (tricorn, deckhand bandana, sailor shirt, captain's coat, parrot, linen tunic & shendyt, nemes, broad collar, poodle skirt, cat-eye glasses, letter jacket, bowling shirt, saddle shoes, roller skates, Renaissance cap, doublet, breeches, painter's smock...) and 9 Biscuit items (bandana, tiny pirate hat, party bow, bunny-ear hat...).
 - Starting wardrobe: 10 player pieces + Biscuit's bandana and party bow; both players always keep a top, bottoms and shoes.
@@ -9,7 +12,13 @@
 - Tests: catalogue integrity (30+ items, all kinds drawable, era pieces, shop prices), wardrobe rules (owned-only equip, colour clamping, essentials stay on, buying, looks, surprise); browser tests for dressing P1/P2/Biscuit, the shop (try on, buy, can't afford), mirror and cottage wardrobe, keyboard-only use.
 - Robustness: input "menu mode" is now read live from the UI (a key pressed as a menu opens/closes is always routed correctly); tests pin the device hour (the real late-night nudge can't interrupt them) and poll instead of fixed waits.
 
-## M3 — Tockwood comes alive ✅ (awaiting critic)
+## M3 — Tockwood comes alive ✅ (critic: REVISE → blockers fixed; re-review requested)
+- M3 review fixes:
+  - Biscuit is there for the whole opening: after a reload during "Follow Biscuit" he waits (and barks) by the clocktower door, and he comes inside for Pip's scene.
+  - The local map is readable on phones: labels, the goal star and player markers are crisp HTML on top of the terrain; on short screens the map sits beside the legend so Close is always visible; tap outside to close.
+  - The wild-bunny test now fails if bunnies flee without reason (flee events are counted: none when nobody is near or someone stands still; some when someone rushes at them; all return home).
+  - Pip's in-world sprite has room for her wings and a glow that fades inside the frame; dig spots are a sparkle over a little mound of dirt (readable on sand and grass) and hidden spots puff dust now and then; Pip's sniffing tip names the real keys; Backpack and Bunny Tracker keep Close in reach (sticky footer, tap outside to close).
+- Also from the M1/M2 reviews: the camera is frame-rate independent and never lets a player leave the screen, phones get more room for two players, P no longer opens-and-closes the pause menu, Pip's calm-moment wait starts when a break is due, toasts clear away when a menu opens, cancelled scenes are silent.
 - Opening story: a 4-page illustrated storybook (the island, Pip and the Great Hourglass, the gentle storm scattering the sands, backwards clocks and the ferry) → ferry arrival cutscene → Biscuit bounds up the dock, barks, and trots ahead to the clocktower (waiting when you fall behind) → Pip's scene at the cracked Great Hourglass with a choice → Biscuit becomes your companion.
 - Main quest "A Crack in Time": follow Biscuit, meet Pip, visit Clover, say hello to 3 neighbours, dig with Biscuit, tell Pip you're ready (the portal opens in M6).
 - Characters: animal-folk heads & tails for the shared paper-doll body (rabbit, owl, badger, frog, goat, raccoon, flamingo, bear, cat, dog, fox, mouse, hedgehog, parrot); all hats/accessories drawn (bunny ears poke through hats); Biscuit the corgi with 18 frames (walks in 3 directions, dig, sniff, bark-jump, sit, sleep, happy, dance) and his own outfit layers; Pip as a fluttering sprite; little bunnies with period outfits.

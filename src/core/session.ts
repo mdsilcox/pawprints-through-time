@@ -16,3 +16,15 @@ export function endSession(): void {
   epoch++;
 }
 export const isCancelled = (err: unknown): boolean => err instanceof Cancelled;
+
+/** `.catch(quietCancel)`: ignore a cancelled scene, report anything else. */
+export function quietCancel(err: unknown): void {
+  if (!isCancelled(err)) console.error(err);
+}
+
+/** Safety net: a cancelled line that nobody awaited is not an error. */
+export function installCancelGuard(target: Window = window): void {
+  target.addEventListener('unhandledrejection', (e) => {
+    if (isCancelled(e.reason)) e.preventDefault();
+  });
+}

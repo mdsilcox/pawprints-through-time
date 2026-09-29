@@ -2,7 +2,7 @@ import { app } from '../app';
 import { audio } from '../audio/audio';
 import { questLog } from '../story/quests';
 import { h } from './dom';
-import { button, ui } from './ui';
+import { button, closeOnBackdrop, ui } from './ui';
 import { registerPauseEntry } from './pause';
 
 /** The Adventure Log: current quests with their steps, and finished ones. */
@@ -41,7 +41,7 @@ export function openQuestLog(): void {
     finished.map((p) => questCard(p, true)),
     h('div', { class: 'row end' }, button('Back', close, { cls: 'secondary', autofocus: true, testid: 'questlog-back' })),
   );
-  ui.push({ id: 'questlog', el: h('div', { class: 'center-wrap backdrop' }, panel), onBack: close });
+  ui.push({ id: 'questlog', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), close), onBack: close });
   audio.sfx('page');
 }
 

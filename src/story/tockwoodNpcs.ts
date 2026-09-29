@@ -7,6 +7,7 @@ import { befriend, count, flag, give, giveTockens, hearts, oncePerDay, onTalk, o
 import { registerQuest, flagDone } from './quests';
 import { TW } from '../world/maps/tockwood';
 import { openWardrobe } from '../ui/wardrobe';
+import { openSellScreen, sellable } from '../ui/sellScreen';
 
 /**
  * Tockwood's neighbours: first meetings, daily chatter that changes with the day, the time
@@ -76,6 +77,13 @@ onTalk('quill', async () => {
       await talk('quill', 'Splendid! Spectacular! The very first treasure of the new Museum of Time! Here — a thank-you for our finest finders.');
       giveTockens(25);
       befriend('quill', 20);
+    }
+  }
+  if (sellable().length) {
+    const pick = await ask('quill', 'Have you brought any finds for my trading table? I pay in shiny Tockens — and the best pieces go in the museum!', ['Let’s trade!', 'Not today']);
+    if (pick === 0) {
+      await openSellScreen();
+      if (oncePerDay('trade:quill')) befriend('quill', 5);
     }
   }
 });
@@ -304,7 +312,13 @@ onUse('cauldron', async () => {
   await talk('clover', 'Grandma’s cauldron is still warming up! Bring me ingredients and come back soon.');
 });
 onUse('exhibit', async () => {
-  await talk('narrator', 'An empty display case, polished and waiting for something wonderful.');
+  const n = app.data?.museum.length ?? 0;
+  await talk(
+    'narrator',
+    n
+      ? `The display cases are filling up! ${n} treasure${n === 1 ? '' : 's'} on show, each with a little card: “Found by {players}”.`
+      : 'An empty display case, polished and waiting for something wonderful. Dr. Quill keeps the first of every treasure you sell here.',
+  );
 });
 onUse('plot', async () => {
   await talk('narrator', 'A little garden plot of soft, dark soil. Perfect for planting seeds.');
