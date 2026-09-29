@@ -1,18 +1,34 @@
 # Progress log
 
-## M4 — Wardrobe ✅ (critic: REVISE → blocker fixed; re-review requested)
+## M5 — Puzzle framework and magic soup ✅ (awaiting critic)
+- Puzzle framework with all six kinds from the spec, each with Easy / Medium / Tricky variants: riddles (pick from 3, pick from 5, or type — forgiving about case, articles, dashes and plurals), logic grids (tap ✗ then ✓; a ✓ crosses out its row and column; a full-but-wrong grid is pointed out gently), sliding blocks (drag a crate along its direction, or pick it up with Enter / a tap and use the arrows), patterns ("what comes next?" with icons, numbers, clock faces and turning arrows), code-breaking (gold/silver stars; the lock picks a fresh code instead of ever locking you out), and turn-limited sailing charts (sail until something stops you; currents turn the boat; wind nudges it).
+- Every puzzle is proven by solvers in the unit tests: grids have exactly one solution, sliding boards are solvable in exactly their stated number of moves, charts are solvable within the move limit (and never harder with calm seas), pattern answers really continue the pattern, 18 original riddles have unambiguous choices.
+- Adaptive difficulty: a gentle skill estimate (starts easy; a clean solve nudges it up, lots of hints or leaving nudges it down; never punishing). Settings → Puzzles can pin Easy / Medium / Hard.
+- Pip's hints: three per puzzle, escalating from a nudge to a near-answer that *does* something (crosses out wrong answers, ticks a grid cell, makes the next crate or sailing arrow glow, locks in one gear). Solves show a celebration with 3/2/1 stars for 0/1/2+ hints.
+- Tockwood's brain-builders: the Riddle Stone in the plaza (a new riddle every day, Tockens for each new one), Grandma Hopkins' scarf mix-up (logic grid), Juniper's crate jam (sliding blocks), the museum's mosaic floor (patterns), Rocco's gear lock (code-breaking) and Finnegan's toy-boat regatta (sailing). First solves give Tockens, seeds and soup-recipe clues; a "Brain-builders of Tockwood" side quest points at all of them.
+- Puzzle Journal (pause menu): every puzzle found so far with best stars; solved ones can be replayed at any difficulty.
+- Magic soup: ingredients from the cottage garden (plant seeds, water, ready in ~6 in-game hours or overnight), meadow clover patches, Juniper's stall (seeds, honey), Finnegan (kelp / sardines), Biscuit's digging (glowcaps), and the eras (coconut, sea salt, pepper, dates, lentils, tomatoes, basil, beans).
+- Grandma's cauldron at the Bubbling Burrow (with Clover as teacher): pick three ingredients, stir to the bubbly beat (a spoon circles the pot — press when it reaches the star; both players stir in 2P), then drink the pot together or bottle it. Recipes are decided by ingredient *tags*, so Clover's riddle clues ("something that grows in the dark, something from the sea, something that grows under the ground") are a real logic puzzle; a unit test proves no combination fits two recipes.
+- 8 magic soups + 4 silly soups: Glowbroth (you glow; the dark Glimmer Grotto in the woods lights up and its chest can be opened), Hopscotch Chowder (bouncy steps; hop up the lookout rock in the woods), Whisker Bisque (Biscuit's barks and the bunnies' chatter get words; Biscuit's sniffs point you to treasure), Sunbeam Squash (double speed), Sparkle Stew (hidden dig spots reveal themselves as you walk by), Tick-Tock Tomato (the clock slows; stirring gets slow and easy), Pirate's Gumbo (calm seas in sailing puzzles), Two-Spoon Tea (the two-player recipe: side by side you zoom along trailing hearts), and silly Hiccup Bubble / Squeaky Squash / Rainbow Burp / Wibble-Wobble soups.
+- Effects show on the characters (glow halos, bounces, sparkles, hearts, hiccup bubbles, wobbles) and as HUD bowls with a draining ring; they tick only while you're actually playing, and survive a reload.
+- Recipe Book (pause menu): a page per magic soup — the clue you heard, or after brewing, the ingredients you used and what it does; silly soups found; neighbours' favourites once you know them.
+- Soup gifts: carry a bottled soup and neighbours ask about it after chatting (once a day each); each has a favourite (big friendship boost). Bottled soups can also be drunk from the Backpack.
+- "Soup's On!" side quest (plant, brew, harvest, discover 3 recipes, give a soup).
+- Tests: unit (difficulty, riddles, grids, sliding, code-breaking, sailing, patterns, catalogue, soup recipes/uniqueness/garden); browser tests for every puzzle kind through its real screen, hints, adaptive difficulty, the journal, Grandma's puzzle in play, the garden, Juniper's stall, cooking with Clover, silly and two-spoon soups, each effect doing its job in the world, the grotto, Whisker Bisque, gifting, drinking from the backpack, effect timers in menus and across a reload.
+
+## M4 — Wardrobe ✅ (critic: PASS after one revise)
 - M4 review fixes:
   - A real Tocken loop: Dr. Quill's Trading Table buys spare shells, fossils and trinkets for their value; the first of every museum piece goes into the Museum of Time with a finder's fee (clock gears are kept until Rocco's favour is done). Tested end to end: dig → sell → buy something the starting Tockens couldn't.
   - Wardrobe: the right column is the only scroll region, the preview is never squashed, item name/description sit under the preview, all three Look rows fit on a 375 px phone, bigger turn buttons; keyboard/gamepad focus stays on what you just picked; old outfit sprite sheets are freed.
 - Wardrobe screen (pause menu tile, the cottage wardrobe, Bramble's magic mirror): tabs for Player 1, Player 2 and Biscuit; Hat / Top / Bottoms / Shoes / Extras (+ Biscuit's Hat / Neck); item thumbnails drawn on a mannequin; colour-variant swatches; a Look tab (6 skin tones, 8 hair colours, 6 hairstyles); a live, rotatable preview (front/side/back) with a squishy bounce; "Surprise me!" dice.
-- 49 player clothing items (30+ required) incl. era pieces (tricorn, deckhand bandana, sailor shirt, captain's coat, parrot, linen tunic & shendyt, nemes, broad collar, poodle skirt, cat-eye glasses, letter jacket, bowling shirt, saddle shoes, roller skates, Renaissance cap, doublet, breeches, painter's smock...) and 9 Biscuit items (bandana, tiny pirate hat, party bow, bunny-ear hat...).
+- 54 player clothing items (30+ required) incl. era pieces (tricorn, deckhand bandana, sailor shirt, captain's coat, parrot, linen tunic & shendyt, nemes, broad collar, poodle skirt, cat-eye glasses, letter jacket, bowling shirt, saddle shoes, roller skates, Renaissance cap, doublet, breeches, painter's smock...) and 9 Biscuit items (bandana, tiny pirate hat, party bow, bunny-ear hat...).
 - Starting wardrobe: 10 player pieces + Biscuit's bandana and party bow; both players always keep a top, bottoms and shoes.
 - Bramble's shop: talk to Bramble ("Browse your clothes" / "Dress up Biscuit") or use the mirror: try things on in the preview, buy with Tockens, a friendly "not enough Tockens" hint.
 - Changes show instantly on the world sprites (players and Biscuit), and portraits update; the same outfit data feeds the dance and bowling mini-games later.
 - Tests: catalogue integrity (30+ items, all kinds drawable, era pieces, shop prices), wardrobe rules (owned-only equip, colour clamping, essentials stay on, buying, looks, surprise); browser tests for dressing P1/P2/Biscuit, the shop (try on, buy, can't afford), mirror and cottage wardrobe, keyboard-only use.
 - Robustness: input "menu mode" is now read live from the UI (a key pressed as a menu opens/closes is always routed correctly); tests pin the device hour (the real late-night nudge can't interrupt them) and poll instead of fixed waits.
 
-## M3 — Tockwood comes alive ✅ (critic: REVISE → blockers fixed; re-review requested)
+## M3 — Tockwood comes alive ✅ (critic: PASS after one revise)
 - M3 review fixes:
   - Biscuit is there for the whole opening: after a reload during "Follow Biscuit" he waits (and barks) by the clocktower door, and he comes inside for Pip's scene.
   - The local map is readable on phones: labels, the goal star and player markers are crisp HTML on top of the terrain; on short screens the map sits beside the legend so Close is always visible; tap outside to close.
@@ -31,7 +47,7 @@
 - Item catalogue with ~55 procedurally drawn icons (shells, fossils, trinkets, ingredients from every era, artifacts).
 - M1 review fixes: per-pad menu navigation (no double steps with pads connected), HUD buttons never keep focus (Enter no longer toggles P2), Enter/Space never click focused buttons during play, P toggles pause, phone 2P camera margins keep players clear of the HUD and buttons, 2P buttons spread apart, oak crown no longer clipped, no trees in the sea, one action bubble per player, buildings/trees fade when someone walks behind them.
 
-## M2 — Core systems ✅ (critic: REVISE → all blockers fixed; re-review requested)
+## M2 — Core systems ✅ (critic: PASS after one revise)
 - M2 review fixes:
   - Taking Pip's break (or any exit) mid-conversation can no longer break the story: leaving play ends the "story session" — the dialogue box is fully reset, waiting lines/choices/timers/scripted walks of the old session are cancelled, and a cancelled scene can never unlock or close anything in the next one.
   - Pip waits for a calm moment: never during dialogue, cutscenes, storybooks, running story scripts or the first 3 s of play (at most 60 s of waiting); her card owns all input while it is up and ignores presses for its first second (no mashing through her message).
@@ -49,7 +65,7 @@
 - Audio engine: Web Audio synth instruments (bell, marimba, pluck, piano, flute, fiddle, accordion, organ, bass, pad, brass...) + drums, lookahead sequencer with a note-string DSL, original songs for the title, Tockwood day/night, interiors, clocktower and the Burrow; SFX incl. UI blips, footsteps per surface (grass/sand/wood/stone), corgi bark, sparkles, portal whoosh, bowling pins, dance hits.
 - Fixed along the way: skipping type-on could stall a line; a key that closed a menu leaked into gameplay (re-opening the sign); on phones the touch layer covered the HUD objective.
 
-## M1 — Movement and controls ✅ (critic: REVISE → re-review 1: both blockers fixed, new blocker "npm test red after 9 PM" fixed by pinning the device hour; walking/tether/blocking tests poll instead of fixed waits; re-review 2 requested)
+## M1 — Movement and controls ✅ (critic: PASS after two revises)
 - Tockwood Isle (60×46 cells): island, beach, dock, plaza with fountain, clocktower, cottage + garden plots, tailor, museum, bowling alley (closed), the old oak (Bubbling Burrow), meadow + warren mounds, north woods. Already in the house art style (not just graybox).
 - Terrain: dual-grid autotiling (16 variants per layer: foam, sand, grass, path, plaza) with extruded tilesets (no seams), dock planks, scattered decor (tufts, flowers, shells) via a Blitter; props depth-sorted by their base.
 - Paper-doll characters (one rig, 16 poses incl. walk cycles, dance and bowling poses) with clothing layers; P1 and P2 look different.
@@ -71,7 +87,8 @@
 - `node scripts/shots.mjs <milestone>` captures review screenshots.
 
 ## Next
-- M5: puzzle framework (riddles, logic grids, sliding blocks, patterns, code-breaking, navigation), adaptive difficulty, Pip's hints, puzzle journal; magic soup (garden, ingredients, cauldron, recipes, effects).
+- M6: the pirate era (world map in the clocktower, torn treasure map, sailing chart with Pirate's Gumbo, pirate code riddle, lost pirate-era bunnies, first Time Sand, Captain Marigold).
+- Polish queued from the M3/M4 reviews: party onto the rug for Pip's scene, map markers that don't hide labels or each other, warren-bunny portraits, museum cases that show donations, wardrobe item text on phones, outfit reactions.
 
 ## Known issues
 - (none yet)

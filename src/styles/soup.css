@@ -1,0 +1,458 @@
+/* ================================================================ Grandma's cauldron */
+.cd-panel {
+  width: min(96vw, 46rem);
+  display: flex;
+  flex-direction: column;
+}
+.cd-panel h2 {
+  margin: 0 0 0.2rem;
+}
+.cd-tip {
+  margin: 0.1rem 0 0.4rem;
+}
+.cd-pick {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  min-height: 0;
+}
+.cd-pot-wrap {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.cd-pot {
+  width: 8rem;
+  height: 5.6rem;
+  border-radius: 0 0 4rem 4rem / 0 0 3.4rem 3.4rem;
+  background: radial-gradient(ellipse at 50% 0%, #9fe0c0 0 42%, #5d5569 43%);
+  border: var(--border) solid var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+.cd-pot.mini {
+  width: 6.4rem;
+  height: 4.2rem;
+}
+.cd-pot-slots {
+  display: flex;
+  gap: 0.3rem;
+}
+.cd-slot {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  border: 3px dashed var(--ink);
+  background: #fffaf0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: rgba(74, 59, 53, 0.45);
+  padding: 0.15rem;
+  cursor: pointer;
+  outline: none;
+}
+.cd-slot:not(.empty) {
+  border-style: solid;
+  background: #fff3cf;
+}
+.cd-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.cd-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(4.6rem, 1fr));
+  gap: 0.4rem;
+  max-height: min(18rem, calc(100vh - 13rem));
+  overflow-y: auto;
+  padding: 0.15rem;
+  align-content: start;
+}
+.cd-ing {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 0.9rem;
+  padding: 0.25rem 0.2rem 0.15rem;
+  cursor: pointer;
+  outline: none;
+  font: inherit;
+  color: var(--ink);
+}
+.cd-ing img {
+  width: 2.6rem;
+  height: 2.6rem;
+  object-fit: contain;
+}
+.cd-ing-name {
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
+}
+.cd-ing:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.kbd-nav .cd-ing:focus,
+.kbd-nav .cd-slot:focus,
+.cd-ing:hover:not(:disabled) {
+  background: #fff3cf;
+  box-shadow: 0 0 0 0.2rem rgba(247, 198, 90, 0.75);
+}
+.cd-empty {
+  grid-column: 1 / -1;
+  opacity: 0.8;
+}
+
+/* stirring */
+.cd-stage {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 0.9rem 0 0.4rem;
+}
+.cd-ring {
+  --angle: 0deg;
+  position: relative;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  border: 0.45rem solid #b57a4e;
+  box-shadow:
+    0 0 0 3px var(--ink),
+    inset 0 0 0 3px var(--ink);
+  background: #3d3550;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cd-ring.beat {
+  animation: ring-beat 0.25s ease-out;
+}
+@keyframes ring-beat {
+  from {
+    transform: scale(1.04);
+  }
+}
+.cd-sweet {
+  position: absolute;
+  top: -1.4rem;
+  left: 50%;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin-left: -1.1rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff3a6, rgba(255, 243, 166, 0));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cd-sweet::after {
+  content: '\2726';
+  color: var(--gold);
+  font-size: 1.4rem;
+  -webkit-text-stroke: 1.5px var(--ink);
+}
+.cd-spoon {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--angle));
+  pointer-events: none;
+}
+.cd-spoon::before {
+  content: '';
+  position: absolute;
+  top: -0.2rem;
+  left: 50%;
+  width: 0.7rem;
+  height: 4.6rem;
+  margin-left: -0.35rem;
+  background: #e0b58a;
+  border: 3px solid var(--ink);
+  border-radius: 0.5rem 0.5rem 0.4rem 0.4rem;
+}
+.cd-spoon::after {
+  content: '';
+  position: absolute;
+  top: 3.9rem;
+  left: 50%;
+  width: 1.6rem;
+  height: 1.2rem;
+  margin-left: -0.8rem;
+  background: #e0b58a;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+}
+/* the second spoon rides beside the first, a little inwards */
+.cd-spoon.p2 {
+  transform: rotate(calc(var(--angle) + 12deg)) scale(0.82);
+}
+.cd-spoon.p2::before,
+.cd-spoon.p2::after {
+  background: #9fcff0;
+}
+.cd-ring .cd-pot {
+  width: 7.4rem;
+  height: 7.4rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #b8f28a, #6fae55 70%);
+}
+.cd-bubbles::before,
+.cd-bubbles::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  left: 30%;
+  top: 55%;
+  animation: bubble-up 1.3s ease-in infinite;
+}
+.cd-bubbles::after {
+  left: 60%;
+  top: 45%;
+  animation-delay: 0.6s;
+}
+@keyframes bubble-up {
+  to {
+    transform: translateY(-2.2rem) scale(1.4);
+    opacity: 0;
+  }
+}
+.cd-pop {
+  position: absolute;
+  top: 40%;
+  font-weight: 700;
+  font-size: 1.35rem;
+  opacity: 0;
+  -webkit-text-stroke: 1px var(--ink);
+  pointer-events: none;
+}
+.cd-pop.p1 {
+  left: 8%;
+}
+.cd-pop.p2 {
+  right: 8%;
+}
+.cd-pop.show {
+  animation: pop-float 0.8s ease-out forwards;
+}
+.cd-pop.perfect {
+  color: var(--gold);
+}
+.cd-pop.good {
+  color: #7cc47f;
+}
+.cd-pop.splash {
+  color: #6fb3e0;
+}
+@keyframes pop-float {
+  0% {
+    opacity: 1;
+    transform: translateY(0.4rem) scale(0.8);
+  }
+  30% {
+    transform: translateY(0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-1.4rem);
+  }
+}
+.cd-counts {
+  display: flex;
+  justify-content: center;
+  gap: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.1rem;
+}
+.cd-stir-btn.p2 {
+  background: #9fcff0;
+}
+
+/* result */
+.cd-result {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.4rem 0 0.6rem;
+}
+.cd-bowl {
+  width: 8rem;
+  height: 8rem;
+  flex: none;
+  animation: pop 0.5s cubic-bezier(0.3, 1.8, 0.6, 1);
+}
+.cd-result-info h3 {
+  font-size: 1.5rem;
+  margin: 0.1rem 0;
+}
+.cd-new {
+  display: inline-block;
+  font-weight: 700;
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 0 0.6rem;
+}
+.cd-stars {
+  color: var(--gold);
+  -webkit-text-stroke: 1px var(--ink);
+  font-size: 1.4rem;
+}
+.cd-used img {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+.cd-two {
+  font-weight: 600;
+  background: #fbe0ee;
+  border-radius: 0.7rem;
+  padding: 0.3rem 0.6rem;
+}
+@media (max-height: 460px) {
+  .cd-panel {
+    padding: 0.5rem 0.8rem;
+  }
+  .cd-panel h2 {
+    font-size: 1.1rem;
+  }
+  .cd-tip {
+    font-size: 0.8rem;
+  }
+  .cd-grid {
+    max-height: calc(100vh - 10.5rem);
+    grid-template-columns: repeat(auto-fill, minmax(3.9rem, 1fr));
+  }
+  .cd-ing img {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+  .cd-stage {
+    padding-top: 0.8rem;
+  }
+  .cd-ring {
+    width: 8.4rem;
+    height: 8.4rem;
+  }
+  .cd-ring .cd-pot {
+    width: 5.1rem;
+    height: 5.1rem;
+  }
+  .cd-spoon::before {
+    height: 3.2rem;
+  }
+  .cd-spoon::after {
+    top: 2.6rem;
+    width: 1.2rem;
+    height: 0.9rem;
+    margin-left: -0.6rem;
+  }
+  .cd-bowl {
+    width: 5.5rem;
+    height: 5.5rem;
+  }
+}
+
+/* ================================================================ recipe book */
+.recipes-panel {
+  width: min(96vw, 52rem);
+}
+.rb-pages {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.5rem;
+}
+.rb-page {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  background: #fffaf0;
+  border: 2px solid var(--ink);
+  border-radius: 1rem;
+  padding: 0.45rem 0.6rem;
+}
+.rb-page.unknown {
+  opacity: 0.6;
+  background: var(--paper-2);
+}
+.rb-page.clue {
+  background: #fdf3e0;
+}
+.rb-bowl {
+  width: 3.4rem;
+  height: 3.4rem;
+  flex: none;
+}
+.rb-name {
+  font-weight: 700;
+}
+.rb-clue {
+  font-size: 0.86rem;
+  font-style: italic;
+  line-height: 1.3;
+}
+.rb-from {
+  font-style: normal;
+}
+.rb-combo img {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+.rb-fav {
+  color: #c0466b;
+  font-weight: 600;
+}
+.rb-silly {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.rb-silly-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 0.05rem 0.6rem 0.05rem 0.2rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.rb-silly-chip img {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+/* logic grid on short phones: clues beside the grid */
+@media (max-height: 460px) {
+  .lg {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  .lg-clue-box {
+    max-width: 13rem;
+    padding: 0.3rem 0.5rem;
+  }
+  .lg-cell {
+    min-width: 1.9rem;
+    height: 1.9rem;
+    font-size: 1rem;
+  }
+  .lg-subj {
+    font-size: 0.8rem;
+  }
+  .lg-val {
+    font-size: 0.62rem;
+  }
+}

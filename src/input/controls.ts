@@ -28,7 +28,7 @@ export function installControls(): void {
   hud.onToggleP2 = () => setTwoPlayer(!input.twoPlayer);
 
   input.events.on('nav', (d) => ui.nav(d));
-  input.events.on('confirm', () => ui.confirm());
+  input.events.on('confirm', (p) => ui.confirm(p ? 1 : 0));
   input.events.on('back', () => ui.back());
   input.events.on('pause', () => {
     if (hud.world && !ui.blocking) openPause();

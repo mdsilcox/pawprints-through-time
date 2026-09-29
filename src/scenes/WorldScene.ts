@@ -20,8 +20,12 @@ import { audio, type Sfx } from '../audio/audio';
 import { character } from '../data/characters';
 import { biscuitPieces } from '../data/clothes';
 import { HOPKINS_BY_ID, GRANDMA } from '../data/bunnies';
-import { triggerEnter, triggerTalk, triggerUse, storyBusy, give, setFlag } from '../story/hooks';
+import { triggerEnter, triggerTalk, triggerUse, storyBusy, give, setFlag, cutscene } from '../story/hooks';
 import { quietCancel } from '../core/session';
+import { SoupFx } from '../world/soupFx';
+import { gameNow, plotInfo } from '../soup/garden';
+import { iconCanvas } from '../art/icons';
+import { hasEffect } from '../soup/effects';
 import '../world/maps/tockwood';
 import '../world/maps/interiors';
 
@@ -68,6 +72,10 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   pip: PipActor | null = null;
   bunnies: BunnyActor[] = [];
   private spots: SpotView[] = [];
+  soupFx!: SoupFx;
+  private plotViews = new Map<number, Phaser.GameObjects.Container>();
+  private plotTimer = 0;
+  private propImages = new Map<string, Phaser.GameObjects.Image>();
   private prompts: { box: Phaser.GameObjects.Container; text: Phaser.GameObjects.Text; bg: Phaser.GameObjects.Graphics; label: string }[] = [];
   /** tall things (buildings, trees) that fade when a player walks behind them */
   private occluders: { img: Phaser.GameObjects.Image; baseY: number }[] = [];
@@ -152,6 +160,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.spawnCompanions();
     this.buildDigSpots();
     this.buildLighting();
+    this.soupFx = new SoupFx(this);
+    this.refreshPlots();
 
     this.tetherLine = this.add.graphics().setDepth(1e6 - 10);
     this.buildPrompt();
@@ -167,6 +177,9 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       this.scale.off('resize', this.onResize, this);
       offSave();
       offOutfit();
+      this.soupFx?.destroy();
+      this.plotViews.clear();
+      this.propImages.clear();
       hud.setWorld(null);
     });
     hud.setWorld(this);
@@ -285,8 +298,11 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       if (o.kind === 'building' && o.id === 'clocktower' && app.data?.flags.hourglassRestored) texture = 'clocktower-fixed';
       if (texture && this.textures.exists(texture)) {
         const org = TEXTURE_ORIGIN[texture] ?? { ox: 0.5, oy: 1 };
-        const img = this.add.image(o.x * TILE, o.y * TILE, texture).setOrigin(org.ox, org.oy).setDepth(o.y * TILE);
+        const opened = o.texture === 'prop-chest' && app.data?.flags[`${o.id === 'grotto-chest' ? 'grotto:chest' : `chest:${o.id}`}`];
+        const img = this.add.image(o.x * TILE, o.y * TILE, opened ? 'prop-chest-open' : texture).setOrigin(org.ox, org.oy).setDepth(o.y * TILE);
+        this.propImages.set(o.id, img);
         if (o.p?.scale) img.setScale(o.p.scale);
+        if (o.p?.floor) img.setDepth(-7000);
         if (o.kind === 'building' || o.kind === 'tree' || o.kind === 'palm' || (o.kind === 'use' && img.displayHeight > TILE * 2.5) || (o.kind === 'furniture' && img.displayHeight > TILE * 2.2))
           this.occluders.push({ img, baseY: o.y * TILE });
         if (o.kind === 'tree' || o.kind === 'palm') {
@@ -339,6 +355,16 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
           this.spawnWarren(o);
           break;
         case 'exhibit':
+        case 'ledge':
+          this.interactables.push({
+            id: `ledge:${o.id}`,
+            x: o.x * TILE,
+            y: o.y * TILE + TILE * 0.4,
+            radius: TILE * 1.3,
+            label: 'Hop up!',
+            run: (player) => this.hopUp(o, player),
+          });
+          break;
         case 'plot':
           this.interactables.push({
             id: `${o.kind}:${o.id}`,
@@ -623,13 +649,10 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     audio.sfx('sniff');
     const nearHidden = this.spots.filter((s) => !s.revealed && Math.hypot((s.spot.cx + 0.5) * TILE - b.x, (s.spot.cy + 0.5) * TILE - b.y) < TILE * 6);
     await b.sniff();
+    const says = this.soupFx?.biscuitSays(nearHidden.length);
+    if (says) this.floatText(b.x, b.y - TILE * 1.1, says, 3200);
     if (nearHidden.length) {
-      for (const s of nearHidden) {
-        s.revealed = true;
-        s.img.setVisible(true).setScale(0.1);
-        s.mound?.setVisible(true);
-        this.tweens.add({ targets: s.img, scale: 1.3, duration: 350, ease: 'Back.easeOut' });
-      }
+      for (const s of nearHidden) this.revealSpot(s);
       b.faceToward((nearHidden[0].spot.cx + 0.5) * TILE, (nearHidden[0].spot.cy + 0.5) * TILE);
       b.emote('exclaim', 1200);
       b.bark();
@@ -639,6 +662,152 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       b.emote('question', 1100);
     }
     this.events.emit('sniff', b);
+  }
+
+  private revealSpot(s: SpotView): void {
+    if (s.revealed) return;
+    s.revealed = true;
+    s.img.setVisible(true).setScale(0.1);
+    s.mound?.setVisible(true);
+    this.tweens.add({ targets: s.img, scale: 1.3, duration: 350, ease: 'Back.easeOut' });
+  }
+
+  /** Reveal hidden dig spots within `r` of a point (Biscuit's sniff, Sparkle Stew). */
+  revealSpotsNear(x: number, y: number, r: number): number {
+    let n = 0;
+    for (const s of this.spots) {
+      if (s.revealed) continue;
+      if (Math.hypot((s.spot.cx + 0.5) * TILE - x, (s.spot.cy + 0.5) * TILE - y) < r) {
+        this.revealSpot(s);
+        n++;
+      }
+    }
+    return n;
+  }
+
+  /** A little speech bubble that floats up and fades (animal chatter, Biscuit's thoughts). */
+  floatText(x: number, y: number, text: string, ms = 2600): void {
+    const t = this.add
+      .text(x, y, text, { fontFamily: 'Fredoka, sans-serif', fontSize: '24px', fontStyle: '600', color: '#4a3b35', backgroundColor: '#fff8ec', padding: { x: 10, y: 6 }, wordWrap: { width: 360 }, align: 'center' })
+      .setOrigin(0.5, 1)
+      .setDepth(1e6 - 5);
+    this.tweens.add({ targets: t, y: y - 40, duration: ms, ease: 'Sine.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, delay: ms - 500, duration: 500, onComplete: () => t.destroy() });
+  }
+
+  /** Crops in the cottage garden: seeds, sprouts, leafy plants, then the veg itself. */
+  refreshPlots(): void {
+    const d = app.data;
+    if (!d) return;
+    const now = gameNow(d);
+    for (const o of this.objects) {
+      if (o.kind !== 'plot') continue;
+      const i = Number(o.p?.index ?? 0);
+      const p = d.garden[i];
+      if (!p) continue;
+      const info = plotInfo(p, now);
+      const key = `${info.state}:${info.stage}:${p.seed ?? ''}`;
+      let c = this.plotViews.get(i);
+      if (c && c.getData('key') === key) continue;
+      if (!c) {
+        c = this.add.container(o.x * TILE, o.y * TILE - TILE * 0.35).setDepth(o.y * TILE + 2);
+        this.plotViews.set(i, c);
+      }
+      c.removeAll(true);
+      c.setData('key', key);
+      if (info.state === 'empty') continue;
+      const g = this.add.graphics();
+      const xs = [-26, 0, 26];
+      if (info.stage === 0) {
+        g.fillStyle(0x6b4a30, 1);
+        for (const x of xs) g.fillCircle(x, 6, 5);
+      } else {
+        const tall = info.stage === 1 ? 14 : 30;
+        for (const x of xs) {
+          g.lineStyle(5, 0x3f8a44, 1).lineBetween(x, 8, x, 8 - tall);
+          g.fillStyle(0x7cc47f, 1).lineStyle(3, 0x4a3b35, 1);
+          const leaf = info.stage === 1 ? 7 : 12;
+          g.fillEllipse(x - leaf * 0.7, 8 - tall * 0.7, leaf * 1.6, leaf);
+          g.strokeEllipse(x - leaf * 0.7, 8 - tall * 0.7, leaf * 1.6, leaf);
+          g.fillEllipse(x + leaf * 0.7, 8 - tall * 0.9, leaf * 1.6, leaf);
+          g.strokeEllipse(x + leaf * 0.7, 8 - tall * 0.9, leaf * 1.6, leaf);
+        }
+      }
+      c.add(g);
+      if (info.state === 'thirsty') {
+        const drop = this.add.graphics();
+        drop.fillStyle(0x6cc4d8, 1).lineStyle(3, 0x4a3b35, 1);
+        drop.fillCircle(0, -34, 9).strokeCircle(0, -34, 9);
+        drop.fillTriangle(-8, -38, 8, -38, 0, -54);
+        c.add(drop);
+        this.tweens.add({ targets: drop, y: -8, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      }
+      if (info.state === 'ready' && p.seed) {
+        const tex = `icon-${p.seed}`;
+        if (!this.textures.exists(tex)) addCanvasTexture(this, tex, iconCanvas(p.seed, 64));
+        for (const x of [-18, 18]) c.add(this.add.image(x, -18, tex).setScale(0.9));
+        const sp = this.add.image(0, -44, 'fx-sparkle').setTint(0xffc83a).setScale(0.8);
+        c.add(sp);
+        this.tweens.add({ targets: sp, angle: 90, scale: 1.2, duration: 800, yoyo: true, repeat: -1 });
+      }
+    }
+  }
+
+  /** Swap a closed chest prop for an open one. */
+  openChestProp(id: string): void {
+    const img = this.propImages.get(id);
+    if (img && this.textures.exists('prop-chest-open')) img.setTexture('prop-chest-open');
+  }
+
+  /** Hopscotch Chowder: bound up onto a high ledge, grab what's there, bound back down. */
+  private async hopUp(o: MapObject, player: 0 | 1): Promise<void> {
+    const p = this.players[player];
+    if (!p || storyBusy()) return;
+    if (!hasEffect('hop')) {
+      await talk('narrator', ['It’s much too high to climb.', 'If only you could jump like a bunny... (Hmm — Clover’s Hopscotch Chowder?)']);
+      return;
+    }
+    await cutscene(() => this.doHop(o, p));
+  }
+
+  private async doHop(o: MapObject, p: PlayerEntity): Promise<void> {
+    const flagKey = String(o.p?.flag ?? `ledge:${o.id}`);
+    p.jumping = true;
+    const sx = p.x;
+    const sy = p.y;
+    const topY = o.y * TILE - TILE * Number(o.p?.height ?? 1.9);
+    const jump = (fromY: number, toY: number) =>
+      new Promise<void>((res) => {
+        audio.sfx('hop');
+        this.tweens.addCounter({
+          from: 0,
+          to: 1,
+          duration: 520,
+          onUpdate: (tw) => {
+            const t = tw.getValue() ?? 0;
+            p.x = sx + (o.x * TILE - sx) * (fromY === sy ? t : 1 - t);
+            p.hop = (fromY - toY) * (fromY === sy ? t : 1 - t) + Math.sin(t * Math.PI) * 70;
+          },
+          onComplete: () => res(),
+        });
+      });
+    await jump(sy, topY);
+    const d = app.data!;
+    if (!d.flags[flagKey]) {
+      d.flags[flagKey] = true;
+      const item = String(o.p?.item ?? 'golden-acorn');
+      give(item, 1, { from: 'On top of the rock you found' });
+      if (o.p?.tockens) {
+        d.tockens += Number(o.p.tockens);
+        toast(`+${o.p.tockens} Tockens`, { icon: '🪙' });
+      }
+    } else this.floatText(p.x, p.y - p.hop - TILE * 1.4, 'What a view!', 1800);
+    await new Promise((r) => this.time.delayedCall(900, r));
+    await jump(topY, sy);
+    p.x = sx;
+    p.y = sy;
+    p.hop = 0;
+    p.jumping = false;
   }
 
   // ------------------------------------------------------------------ lighting (day/night)
@@ -1019,6 +1188,12 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     }
     this.drawTether();
     this.applyCamera(false, dt);
+    this.soupFx.update(dt);
+    this.plotTimer += dt;
+    if (this.plotTimer > 1.5) {
+      this.plotTimer = 0;
+      this.refreshPlots();
+    }
     this.checkZones();
     this.checkExits();
     this.tickClock(deltaMs);
@@ -1043,7 +1218,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     if (!d || this.def.region !== 'tockwood') return;
     if (!ui.blocking) {
       const wasNight = this.isNight;
-      if (advance(d, deltaMs)) {
+      if (advance(d, deltaMs * (this.soupFx?.clockRate() ?? 1))) {
         toast(`A new day in Tockwood! ☀️ Day ${d.day}`, { icon: '🐓', ms: 3000 });
         this.buildDigSpots();
         app.events.emit('new-day', d.day);

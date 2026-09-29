@@ -1,5 +1,6 @@
 import { PAL, shade } from './palette';
 import { makeCanvas, rrPath, circlePath, ellipsePath, paint, softShade, OUTLINE, rng, sparkle, type Cv } from './draw';
+import { crateJam, gearLockbox, knittingBasket, mosaicFloor, riddleStone, toyBoat, cloverPatch, caveMouth, lookoutRock, chestClosed, chestOpen } from './puzzleProps';
 
 /**
  * Props and buildings. Each drawer returns a canvas plus its anchor (the point that sits on the
@@ -831,6 +832,17 @@ export const PROP_ART: Record<string, () => PropArt> = {
   'prop-stall-green': () => stall('garden'),
   'prop-fountain': () => fountain(),
   'prop-plot': () => gardenPlot(),
+  'prop-riddlestone': () => riddleStone(),
+  'prop-cratejam': () => crateJam(),
+  'prop-toyboat': () => toyBoat(),
+  'prop-lockbox': () => gearLockbox(),
+  'prop-basket': () => knittingBasket(),
+  'prop-mosaic': () => mosaicFloor(),
+  'prop-clover': () => cloverPatch(),
+  'prop-cave': () => caveMouth(),
+  'prop-ledge': () => lookoutRock(),
+  'prop-chest': () => chestClosed(),
+  'prop-chest-open': () => chestOpen(),
   'prop-fence-h': () => fenceH(),
   'prop-burrow-hole': () => burrowHole(),
   'bld-cottage': () => cottage(),

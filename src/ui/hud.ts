@@ -15,6 +15,7 @@ class Hud {
   private objective!: HTMLButtonElement;
   onObjective: () => void = () => undefined;
   private p2Btn!: HTMLButtonElement;
+  private effectsRow!: HTMLElement;
   private pauseBtn!: HTMLButtonElement;
   touch: TouchControls | null = null;
   world: WorldScene | null = null;
@@ -65,7 +66,8 @@ class Hud {
         this.onObjective();
       },
     });
-    this.el = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-left' }, this.place, this.objective), h('div', { class: 'hud-right' }, this.p2Btn, this.pauseBtn));
+    this.effectsRow = h('div', { class: 'hud-effects', attrs: { 'data-testid': 'hud-effects' } });
+    this.el = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-left' }, this.place, this.objective, this.effectsRow), h('div', { class: 'hud-right' }, this.p2Btn, this.pauseBtn));
     ui.hud.appendChild(this.el);
     ui.onChange(() => this.sync());
   }
@@ -100,6 +102,24 @@ class Hud {
       if (text) this.objective.classList.add('pop');
     }
     this.objective.classList.toggle('hidden', !text);
+  }
+
+  /** Running soup effects: a little bowl with a ring that drains as the time runs out. */
+  setEffects(list: { id: string; name: string; color: string; left: number; total: number }[]): void {
+    if (!this.effectsRow) return;
+    const key = list.map((e) => `${e.id}:${e.left}`).join('|');
+    if (this.effectsRow.dataset.key === key) return;
+    this.effectsRow.dataset.key = key;
+    this.effectsRow.replaceChildren(
+      ...list.map((e) =>
+        h(
+          'div',
+          { class: 'hud-effect', attrs: { 'data-effect': e.id, title: e.name }, style: `--c:${e.color}; --p:${Math.round((e.left / Math.max(1, e.total)) * 100)}` },
+          h('span', { class: 'hud-effect-bowl' }),
+          h('span', { class: 'hud-effect-time' }, e.left >= 60 ? `${Math.floor(e.left / 60)}:${String(e.left % 60).padStart(2, '0')}` : `${e.left}s`),
+        ),
+      ),
+    );
   }
 
   setActionLabel(player: 0 | 1, label: string | null): void {

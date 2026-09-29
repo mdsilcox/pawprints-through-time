@@ -5,6 +5,8 @@ import { ITEMS, type ItemKind } from '../data/items';
 import { h } from './dom';
 import { button, closeOnBackdrop, ui } from './ui';
 import { registerPauseEntry } from './pause';
+import { soupFromItem } from '../soup/recipes';
+import { drinkSoup } from '../soup/effects';
 
 /** The backpack: everything you've collected, sorted into tabs, with descriptions. */
 const TABS: { id: string; label: string; kinds: ItemKind[] }[] = [
@@ -51,6 +53,17 @@ export function openBackpack(): void {
     const it = ITEMS.find((x) => x.id === id)!;
     detail.innerHTML = '';
     detail.append(h('img', { class: 'bp-detail-icon', attrs: { src: iconUrl(id), alt: '' } }), h('div', null, h('h3', null, it.name), h('p', { class: 'small' }, it.desc)));
+    const soup = soupFromItem(id);
+    if (soup && (inv[id] ?? 0) > 0)
+      detail.append(
+        button('Drink it!', () => {
+          inv[id] = (inv[id] ?? 0) - 1;
+          if (inv[id] <= 0) delete inv[id];
+          app.autosave.request();
+          close();
+          drinkSoup(soup.id, 2);
+        }, { icon: '😋', testid: 'bp-drink' }),
+      );
   };
   for (const t of TABS)
     tabRow.appendChild(

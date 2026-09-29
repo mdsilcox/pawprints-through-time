@@ -47,6 +47,17 @@ One line each: decision — reason.
 - Tops, bottoms and shoes can be swapped but not removed; hats and extras can be "none".
 - Shop items are bought with Tockens; era outfits are earned in their eras (not for sale) — outfits double as souvenirs.
 - Any menu open = world paused for input; UI presses are debounced for ~0.3 s after a screen opens/closes (anti double-tap), except dialogue skip which is always instant.
+- Puzzles are pure logic modules with solvers (BFS for sliding blocks and sailing, brute force for logic grids) — every authored level is proven solvable/unique in unit tests, and Pip's near-answer hints come straight from the solvers.
+- Adaptive difficulty starts at Easy (skill 0.4 < 0.45) and moves in small steps: +0.1 for a clean solve, +0.03 with one hint, −0.04 with more, −0.05 for leaving — a young player is never thrown into Tricky, and nothing is ever taken away.
+- Out of moves / out of tries never means failure: the tide "turns" and the boat returns to the start, the lock "picks a new code" — kids can always keep trying.
+- A keyboard slide counts as one move per pick-up-and-put-down (like a drag), matching the solver's move count shown as "Pip can do it in N".
+- Soup recipes are defined by ingredient tags rather than exact ingredients, so the riddle clues are logic puzzles and era ingredients can substitute for home ones; a unit test checks that no 3-ingredient combination fits two recipes.
+- Tomatoes can be grown in the cottage garden (seeds from Rocco / Juniper), so Tick-Tock Tomato is brewable before the 1950s chapter; Pirate's Gumbo needs an island ingredient and becomes brewable in the pirate chapter (M6), where the sailing chart needs it.
+- The two-player special (Two-Spoon Tea) brewed alone makes a wobbly silly soup with Clover's hint "this pot wanted two spoons" — the recipe is discoverable in 1P without being brewable alone.
+- A finished pot is never lost: closing the cauldron after brewing bottles it automatically.
+- Soup effects are stored in the save and tick only while no menu is open — pausing to read the recipe book never wastes a soup.
+- Dark places (the Glimmer Grotto now, tombs later) use a dark layer with soft holes cut around the players and crystals, instead of adding light on top — lit characters keep their true colours.
+- Whisker Bisque translations appear on Biscuit's dialogue lines, on his sniffs (pointing to hidden treasure) and as floating chatter from nearby bunnies — the animals' words are useful, not just decoration.
 - Economy: Dr. Quill buys spare finds (shells, fossils, trinkets) at their listed value; the first of every museum-worthy piece is donated to the Museum of Time with a +5 finder's fee — digging every day funds Bramble's shop, and the museum fills up along the way.
 - Clock gears can't be sold until Rocco's favour is done — selling must never break a quest.
 - Map labels and markers are HTML over a terrain canvas (fixed readable font size), not text drawn into the canvas — a phone scales the canvas down to a third, so drawn text became unreadable.

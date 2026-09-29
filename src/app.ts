@@ -18,6 +18,10 @@ export interface AppEvents extends Record<string, unknown> {
   'outfit-changed': number;
   'new-day': number;
   'open-portal-map': unknown;
+  /** a soup effect started or ended */
+  effects: string[];
+  /** a soup was drunk (id) — the world shows the burst */
+  'soup-drunk': string;
 }
 
 /**

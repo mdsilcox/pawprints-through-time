@@ -524,3 +524,30 @@
 .sell-empty {
   opacity: 0.75;
 }
+
+/* ---------- soup effects on the HUD ---------- */
+.hud-effects {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+.hud-effect {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 248, 236, 0.92);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem 0.1rem 0.15rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.hud-effect-bowl {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(74, 59, 53, 0.15) 0);
+  border: 2px solid var(--ink);
+  box-shadow: inset 0 0 0 2px #fff8ec;
+}

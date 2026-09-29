@@ -112,6 +112,7 @@ test.describe('village life', () => {
     await hook(page, 'teleport', target.x - 3.5, target.y, 0);
     await page.waitForTimeout(1500);
     const calm = await flees();
+    expect(calm).toBe(0); // standing nearby doesn't scare anyone
     // now rush right at them
     await hook(page, 'hold', 0, 1, 0);
     await expect.poll(flees, { timeout: 6000 }).toBeGreaterThan(calm);

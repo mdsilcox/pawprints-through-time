@@ -26,6 +26,8 @@ interface RoomDef {
   spec: RoomSpec;
   objects: () => MapObject[];
   outSpawn: string;
+  /** caves are dark: only glowing players light them up */
+  lighting?: 'indoor' | 'dark';
 }
 
 function defineRoom(r: RoomDef) {
@@ -35,10 +37,10 @@ function defineRoom(r: RoomDef) {
     name: r.name,
     region: 'tockwood',
     indoor: true,
-    lighting: 'indoor',
+    lighting: r.lighting ?? 'indoor',
     timeOfDay: 'day',
     music: r.music,
-    bg: '#3d2f2a',
+    bg: r.lighting === 'dark' ? '#0b0a14' : '#3d2f2a',
     layers: [],
     backdrop: () => drawRoom(r.spec, TILE),
     spawns: { in: { x: door.x + door.w / 2, y: h - 1.7, facing: 'up' } },
@@ -211,5 +213,55 @@ defineRoom({
     ...[2.5, 4.5, 9.5, 11.5].map((x, i) => ({ id: `case-${i}`, kind: 'exhibit', x, y: 4.5, texture: 'fur-displaycase', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { slot: i } }) as MapObject),
     ...[2.5, 4.5, 9.5, 11.5].map((x, i) => ({ id: `ped-${i}`, kind: 'exhibit', x, y: 7.4, texture: 'fur-pedestal', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { slot: i + 4 } }) as MapObject),
     { id: 'quill', kind: 'npc', x: 7, y: 5.2, p: { id: 'quill', wander: 1.2 } },
+    { id: 'mosaic', kind: 'use', x: 3.4, y: 9.1, texture: 'prop-mosaic', p: { action: 'mosaic', label: 'Mosaic', range: 1.3, floor: true } },
+  ],
+});
+
+// ------------------------------------------------------------------ the Glimmer Grotto (dark — bring Glowbroth!)
+defineRoom({
+  id: 'grotto',
+  name: 'Glimmer Grotto',
+  music: 'interior',
+  outSpawn: 'grotto-out',
+  lighting: 'dark',
+  spec: {
+    w: 12,
+    h: 9,
+    wallRows: 2,
+    wall: '#5d5569',
+    wallTrim: '#3d3550',
+    pattern: 'stone',
+    floor: 'earth',
+    floorA: '#6b6378',
+    floorB: '#57506a',
+    door: { x: 5, w: 2 },
+    outside: '#1d1a2e',
+    extras: (ctx, T) => {
+      // glowing crystals and glowcaps along the walls
+      const bits: [number, number, string][] = [
+        [1.2, 2.6, '#b8f28a'],
+        [3.1, 2.4, '#a8d8ff'],
+        [9.4, 2.5, '#e8b5ff'],
+        [10.6, 2.8, '#b8f28a'],
+        [1.1, 6.8, '#a8d8ff'],
+        [10.8, 6.5, '#e8b5ff'],
+      ];
+      for (const [x, y, c] of bits) {
+        ctx.save();
+        ctx.shadowColor = c;
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(x * T, y * T - T * 0.5);
+        ctx.lineTo(x * T + T * 0.18, y * T);
+        ctx.lineTo(x * T - T * 0.18, y * T);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    },
+  },
+  objects: () => [
+    { id: 'grotto-chest', kind: 'use', x: 9.5, y: 4.4, texture: 'prop-chest', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'grotto-chest', label: 'Chest', range: 1.2 } },
   ],
 });

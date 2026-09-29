@@ -78,6 +78,9 @@ function objects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'museum', kind: 'building', x: TW.museum.x, y: TW.museum.y, texture: 'bld-museum', foot: { dx: -2, dy: -3, w: 5, h: 3 }, p: { door: 'museum-in', label: 'Tockwood Museum' } });
   o.push({ id: 'bowling', kind: 'building', x: TW.bowling.x, y: TW.bowling.y, texture: 'bld-bowling', foot: { dx: -3, dy: -3, w: 6, h: 3 }, p: { door: 'bowling-in', label: 'Tockwood Lanes' } });
   o.push({ id: 'oak', kind: 'building', x: TW.oak.x, y: TW.oak.y, texture: 'bld-oak', foot: { dx: -2, dy: -2, w: 4, h: 2 }, p: { door: 'burrow-in', label: 'The Bubbling Burrow' } });
+  // the woods: a dark little cave, and a rock too high to climb
+  o.push({ id: 'grotto', kind: 'building', x: 16.5, y: 7.6, texture: 'prop-cave', foot: { dx: -1, dy: -2, w: 3, h: 2 }, p: { door: 'grotto-in', label: 'Glimmer Grotto' } });
+  o.push({ id: 'lookout', kind: 'ledge', x: 42.5, y: 7.4, texture: 'prop-ledge', foot: { dx: -1, dy: -2, w: 2, h: 2 }, p: { item: 'golden-acorn', flag: 'ledge:lookout', tockens: 15, height: 1.9 } });
 
   // --- plaza furniture
   o.push({ id: 'fountain', kind: 'prop', x: TW.fountain.x, y: TW.fountain.y + 0.9, texture: 'prop-fountain', foot: { dx: -1, dy: -2, w: 3, h: 2 } });
@@ -101,6 +104,19 @@ function objects(grid: TerrainGrid): MapObject[] {
   add('stall', TW.rocco.x, TW.rocco.y, { texture: 'prop-stall', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
   add('stall-garden', TW.juniper.x, TW.juniper.y, { texture: 'prop-stall-green', foot: { dx: -1, dy: -1, w: 2, h: 1 } });
 
+  // --- brain-builders: every neighbour has a puzzle waiting
+  o.push({ id: 'riddle-stone', kind: 'use', x: 35.2, y: 26.6, texture: 'prop-riddlestone', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'riddle-stone', label: 'Riddle', range: 1.3 } });
+  o.push({ id: 'crate-jam', kind: 'use', x: TW.juniper.x + 2.6, y: TW.juniper.y + 0.4, texture: 'prop-cratejam', foot: { dx: -1, dy: -1, w: 2, h: 1 }, p: { action: 'crates', label: 'Crates', range: 1.4 } });
+  o.push({ id: 'lockbox', kind: 'use', x: TW.rocco.x + 2.2, y: TW.rocco.y + 0.4, texture: 'prop-lockbox', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'lockbox', label: 'Lockbox', range: 1.2 } });
+  o.push({ id: 'toy-boat', kind: 'use', x: 33.6, y: 38.4, texture: 'prop-toyboat', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'toy-boat', label: 'Toy boat', range: 1.2 } });
+  // clover patches in the meadow (pick leaves once a day)
+  for (const [i, x, y] of [
+    [0, 4.6, 26.2],
+    [1, 15.8, 22.4],
+    [2, 16.4, 27.6],
+  ] as const)
+    o.push({ id: `clover-${i}`, kind: 'use', x, y, texture: 'prop-clover', p: { action: 'clover', label: 'Pick', range: 1, patch: i } });
+
   // --- neighbours out and about
   o.push({ id: 'finnegan', kind: 'npc', x: 31.2, y: 41.8, p: { id: 'finnegan', wander: 0.5 } });
   o.push({ id: 'juniper', kind: 'npc', x: 22.5, y: 13.3, p: { id: 'juniper', wander: 1.2 } });
@@ -112,6 +128,7 @@ function objects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'warren', kind: 'warren', x: 7.5, y: 28.5, p: { w: 7, h: 5 } });
   o.push({ id: 'grandma-chair', kind: 'prop', x: 11.2, y: 30.35, texture: 'fur-rockingchair', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   o.push({ id: 'grandma', kind: 'grandma', x: 11.2, y: 30.5 });
+  o.push({ id: 'knitting', kind: 'use', x: 12.4, y: 30.6, texture: 'prop-basket', p: { action: 'knitting', label: 'Knitting', range: 1 } });
 
   // --- garden plots by the cottage
   for (let i = 0; i < 4; i++) o.push({ id: `plot-${i}`, kind: 'plot', x: 8.5 + (i % 2) * 1.2, y: 14.4 + Math.floor(i / 2) * 1.2, texture: 'prop-plot', p: { index: i } });
@@ -242,6 +259,7 @@ registerMap({
     'museum-out': { x: 42.5, y: 13.9, facing: 'down' },
     'bowling-out': { x: 47.5, y: 22.9, facing: 'down' },
     'burrow-out': { x: 18, y: 29.4, facing: 'down' },
+    'grotto-out': { x: 16.5, y: 8.4, facing: 'down' },
   },
   build: () => {
     const grid = build();

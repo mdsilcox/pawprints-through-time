@@ -46,7 +46,9 @@ export function checkAnswer(r: Pick<Riddle, 'answers'>, input: string): boolean 
 
 /** Choices for the multiple-choice versions: the answer plus `n - 1` decoys, in a stable shuffled order. */
 export function choicesFor(r: Riddle, n: number, seed = 0): string[] {
-  const pool = [r.answers[0], ...r.decoys.slice(0, Math.max(0, n - 1))];
+  // show the answer like the decoys (capitalised), so its spelling never gives it away
+  const answer = r.answers[0].charAt(0).toUpperCase() + r.answers[0].slice(1);
+  const pool = [answer, ...r.decoys.slice(0, Math.max(0, n - 1))];
   return seededShuffle(pool, hashString(r.id) + seed);
 }
 

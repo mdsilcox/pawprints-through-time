@@ -14,7 +14,8 @@ export interface Screen {
   onBack?: () => boolean | void;
   /** Directional input not consumed by focus navigation (e.g. for custom widgets). */
   onDir?: (dir: Dir) => boolean | void;
-  onConfirm?: () => boolean | void;
+  /** confirm pressed (by player 0 or 1) — return true to handle it yourself */
+  onConfirm?: (player: 0 | 1) => boolean | void;
   onClose?: () => void;
   /** Screens that should not block world input (e.g. toasts) set this. */
   passive?: boolean;
@@ -253,12 +254,12 @@ class UIManager {
     }
   }
 
-  confirm(): void {
+  confirm(player: 0 | 1 = 0): void {
     const screen = this.top;
     if (!screen) return;
     this.setKeyboardNav(true);
     // Custom handlers (e.g. dialogue skip) decide about the anti-double-press lock themselves.
-    if (screen.onConfirm?.() === true) return;
+    if (screen.onConfirm?.(player) === true) return;
     if (this.locked) return;
     const active = document.activeElement as HTMLElement | null;
     if (active && screen.el.contains(active)) active.click();

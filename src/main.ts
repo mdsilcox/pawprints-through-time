@@ -6,6 +6,8 @@ import './styles/main.css';
 import './styles/menus.css';
 import './styles/world.css';
 import './styles/wardrobe.css';
+import './styles/puzzles.css';
+import './styles/soup.css';
 
 import { app } from './app';
 import { installCancelGuard } from './core/session';
@@ -48,6 +50,28 @@ import { renderBunnyPortrait } from './art/bunny';
 import { biscuitPieces } from './data/clothes';
 import { GRANDMA } from './data/bunnies';
 import { toast } from './ui/ui';
+// M5: brain-builders and magic soup
+import './puzzles/content/tockwood';
+import './puzzles/ui/riddleView';
+import './puzzles/ui/gridView';
+import './puzzles/ui/slideView';
+import './puzzles/ui/sequenceView';
+import './puzzles/ui/codeView';
+import './puzzles/ui/sailView';
+import './story/brainBuilders';
+import './story/soupStory';
+import { openRecipeBook } from './ui/recipeBook';
+import { openPuzzleJournal } from './ui/puzzleJournal';
+import { openPuzzle } from './puzzles/ui/screen';
+import { codeDebug } from './puzzles/ui/codeView';
+import { openCauldron } from './ui/cauldron';
+import { activeEffects, clearEffects, drinkSoup } from './soup/effects';
+import { discover, learnClue } from './soup/kitchen';
+import { recordAttempt } from './puzzles/registry';
+import { TOCKWOOD_RIDDLES } from './puzzles/content/riddles';
+import { riddleOfTheDay } from './story/brainBuilders';
+import { gameNow, plotInfo } from './soup/garden';
+import type { Difficulty } from './core/state';
 
 installCancelGuard();
 
@@ -179,6 +203,47 @@ registerDebug({
   openBackpack: () => openBackpack(),
   openBunnies: () => openBunnyTracker(),
   openSell: () => void openSellScreen(),
+  // M5: puzzles & soup
+  openPuzzle: (id: string, difficulty?: Difficulty) => void openPuzzle(id, { difficulty }),
+  puzzleSecret: () => codeDebug.secret.slice(),
+  puzzles: () => (app.data ? { records: structuredClone(app.data.puzzles), skill: app.data.skill } : null),
+  openJournal: () => openPuzzleJournal(),
+  openRecipeBook: () => openRecipeBook(),
+  openCauldron: () => void openCauldron(),
+  drink: (soupId: string, stars = 2) => drinkSoup(soupId, stars),
+  effects: () => activeEffects().map((e) => ({ ...e })),
+  clearEffects: () => clearEffects(),
+  learnClue: (id: string) => learnClue(id),
+  soupBook: () => (app.data ? { recipes: app.data.recipes.slice(), clues: app.data.clues.slice() } : null),
+  garden: () => (app.data ? app.data.garden.map((p) => ({ ...p, ...plotInfo(p, gameNow(app.data!)) })) : null),
+  /** move the island clock forward (garden growth etc.) */
+  skipMinutes: (m: number) => {
+    const d = app.data;
+    if (!d) return;
+    d.minutes += m;
+    while (d.minutes >= 1440) {
+      d.minutes -= 1440;
+      d.day++;
+    }
+    world().refreshPlots();
+  },
+  speed: (i: 0 | 1 = 0) => world().players[i]?.speedMult ?? 1,
+  discoverSoup: (id: string, combo = '') => discover(id, combo),
+  riddleToday: () => {
+    const d = app.data;
+    const id = d ? d.flags[`riddle:day:${d.day}`] : undefined;
+    const r = TOCKWOOD_RIDDLES.find((x) => x.id === id) ?? riddleOfTheDay();
+    return { id: r.id, answer: r.answers[0] };
+  },
+  solvePuzzle: (id: string, hints = 0) => (app.data ? recordAttempt(app.data, id, { solved: true, hintsUsed: hints, difficulty: 'easy' }) : false),
+  /** set a garden plot directly: crop id, watered this many in-game minutes ago (-1 = not watered) */
+  gardenSet: (i: number, crop: string | null, wateredAgo = -1) => {
+    const d = app.data;
+    if (!d) return;
+    const now = gameNow(d);
+    d.garden[i] = { seed: crop, plantedAt: now, wateredAt: crop && wateredAgo >= 0 ? Math.max(1, now - wateredAgo) : 0 };
+    world().refreshPlots();
+  },
   openWardrobe: (who: 0 | 1 | 'biscuit' = 0, shop = false) => openWardrobe({ who, shop }),
   equip: (who: 0 | 1 | 'biscuit', id: string, color = 0) => {
     const ok = app.data ? wEquip(app.data, who, id, color) : false;

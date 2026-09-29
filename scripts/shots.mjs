@@ -211,6 +211,177 @@ const SCENARIOS = [
   { name: 'museum-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'museum', 'in'); await wait(1800); } },
   { name: 'tailor-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'tailor', 'in'); await wait(1800); } },
   { name: 'map', players: [1], run: async (page) => { await play(page, 1, [30.5, 26]); await g(page, 'openMap'); await wait(700); } },
+  // ---------------------------------------------------------------- M5: brain-builders & magic soup
+  { name: 'pz-riddle', players: [1], run: async (page) => { await play(page, 1, [35.2, 27.5]); await g(page, 'openPuzzle', 'riddle-stone', 'medium'); await wait(900); } },
+  { name: 'pz-riddle-typed', players: [1], run: async (page) => { await play(page, 1, [35.2, 27.5]); await g(page, 'openPuzzle', 'riddle-stone', 'hard'); await wait(900); } },
+  {
+    name: 'pz-grid',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [12, 31.5]);
+      await g(page, 'openPuzzle', 'grandma-scarves', 'medium');
+      await wait(500);
+      for (const id of ['grid-0-1-0', 'grid-0-1-0', 'grid-1-0-0']) await page.click(`[data-testid="${id}"]`);
+      await wait(700);
+    },
+  },
+  { name: 'pz-slide', players: [1], run: async (page) => { await play(page, 1, [25, 13.2]); await g(page, 'openPuzzle', 'juniper-crates', 'medium'); await wait(900); } },
+  { name: 'pz-sequence', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'museum', 'in'); await wait(1500); await g(page, 'openPuzzle', 'quill-patterns', 'hard'); await wait(900); } },
+  {
+    name: 'pz-code',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [37.7, 18.4]);
+      await g(page, 'openPuzzle', 'rocco-lock', 'medium');
+      await wait(700);
+      for (const n of [0, 1, 2, 3]) await page.click(`[data-testid="code-pick-${n}"]`);
+      await page.click('[data-testid="code-check"]');
+      await wait(300);
+      for (const n of [1, 0, 4, 2]) await page.click(`[data-testid="code-pick-${n}"]`);
+      await page.click('[data-testid="code-check"]');
+      await wait(700);
+    },
+  },
+  { name: 'pz-sail', players: [1], run: async (page) => { await play(page, 1, [33.6, 39.4]); await g(page, 'openPuzzle', 'finnegan-boat', 'hard'); await wait(900); } },
+  {
+    name: 'pz-solved',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [35.2, 27.5]);
+      await g(page, 'openPuzzle', 'riddle-stone', 'easy');
+      await wait(600);
+      const right = await page.evaluate(() => [...document.querySelectorAll('[data-testid^="riddle-choice-"]')].findIndex((b) => /clocktower/i.test(b.textContent ?? '')));
+      await page.click(`[data-testid="riddle-choice-${right}"]`);
+      await wait(1600);
+    },
+  },
+  {
+    name: 'cauldron',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const [id, n] of [['glowcap', 2], ['kelp', 3], ['carrot', 4], ['honey', 2], ['clover-leaf', 3], ['sardine', 2], ['pumpkin', 1], ['radish', 2]]) await g(page, 'give', id, n);
+      await g(page, 'goTo', 'burrow', 'in');
+      await wait(1500);
+      await g(page, 'openCauldron');
+      await wait(500);
+      for (const id of ['glowcap', 'kelp', 'carrot']) await page.click(`[data-testid="cd-ing-${id}"]`);
+      await wait(500);
+    },
+  },
+  {
+    name: 'cauldron-stir',
+    players: [2],
+    run: async (page, players) => {
+      await play(page, players);
+      for (const [id, n] of [['honey', 1], ['clover-leaf', 1], ['kelp', 1]]) await g(page, 'give', id, n);
+      await g(page, 'goTo', 'burrow', 'in');
+      await wait(1500);
+      await g(page, 'openCauldron');
+      await wait(400);
+      for (const id of ['honey', 'clover-leaf', 'kelp']) await page.click(`[data-testid="cd-ing-${id}"]`);
+      await page.click('[data-testid="cd-stir"]');
+      await wait(1500);
+      await page.keyboard.press('KeyE');
+      await wait(700);
+    },
+  },
+  {
+    name: 'cauldron-result',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const [id, n] of [['glowcap', 1], ['kelp', 1], ['carrot', 1]]) await g(page, 'give', id, n);
+      await g(page, 'goTo', 'burrow', 'in');
+      await wait(1500);
+      await g(page, 'openCauldron');
+      await wait(400);
+      for (const id of ['glowcap', 'kelp', 'carrot']) await page.click(`[data-testid="cd-ing-${id}"]`);
+      await page.click('[data-testid="cd-stir"]');
+      for (let i = 0; i < 4; i++) {
+        await wait(700);
+        await page.keyboard.press('KeyE');
+      }
+      await wait(1400);
+    },
+  },
+  {
+    name: 'recipe-book',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      for (const id of ['glowbroth', 'hopscotch-chowder', 'whisker-bisque', 'pirates-gumbo']) await g(page, 'learnClue', id);
+      await g(page, 'discoverSoup', 'glowbroth', 'carrot+glowcap+kelp');
+      await g(page, 'discoverSoup', 'hiccup-soup', 'dates+milk+onion');
+      await wait(3500);
+      await g(page, 'openRecipeBook');
+      await wait(700);
+    },
+  },
+  {
+    name: 'journal',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'solvePuzzle', 'juniper-crates', 0);
+      await g(page, 'solvePuzzle', 'rocco-lock', 1);
+      await g(page, 'setFlag', 'puzzle:seen:finnegan-boat', true);
+      await wait(3500);
+      await g(page, 'openJournal');
+      await wait(700);
+    },
+  },
+  {
+    name: 'garden',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1, [9.1, 16.2]);
+      await g(page, 'gardenSet', 0, 'carrot', -1);
+      await g(page, 'gardenSet', 1, 'pumpkin', 60);
+      await g(page, 'gardenSet', 2, 'tomato', 250);
+      await g(page, 'gardenSet', 3, 'radish', 400);
+      await wait(1200);
+    },
+  },
+  {
+    name: 'grotto-dark',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'goTo', 'grotto', 'in');
+      await wait(2500);
+      for (let i = 0; i < 2; i++) {
+        await page.keyboard.press('KeyE');
+        await wait(400);
+      }
+      await wait(700);
+    },
+  },
+  {
+    name: 'grotto-glow',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await g(page, 'drink', 'glowbroth', 3);
+      await g(page, 'goTo', 'grotto', 'in');
+      await wait(2500);
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('KeyE');
+        await wait(400);
+      }
+      await wait(600);
+    },
+  },
+  {
+    name: 'effects',
+    players: [2],
+    run: async (page, players) => {
+      await play(page, players, [30.5, 23]);
+      for (const s of ['sunbeam-squash', 'sparkle-stew', 'together-tea']) await g(page, 'drink', s, 2);
+      await wait(1800);
+    },
+  },
+  { name: 'lookout', players: [1], run: async (page) => { await play(page, 1, [42.5, 8.6]); await g(page, 'drink', 'hopscotch-chowder', 2); await wait(1200); } },
   {
     name: 'sell',
     players: [1],

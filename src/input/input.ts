@@ -140,7 +140,7 @@ export class InputManager {
       if (CONFIRM_KEYS.has(e.code) || DIR_KEYS[e.code]) e.preventDefault();
       const d = DIR_KEYS[e.code];
       if (d) this.events.emit('nav', d);
-      else if (CONFIRM_KEYS.has(e.code) && !e.repeat) this.events.emit('confirm', P2_KEYS.a === e.code ? 1 : 0);
+      else if (CONFIRM_KEYS.has(e.code) && !e.repeat) this.events.emit('confirm', P2_KEYS.a === e.code || e.code === 'Enter' || e.code === 'NumpadEnter' ? 1 : 0);
       else if ((BACK_KEYS.has(e.code) || e.code === 'KeyP') && !e.repeat) this.events.emit('back', 0);
     } else if (PAUSE_KEYS.has(e.code) && !e.repeat) {
       this.events.emit('pause', 0);

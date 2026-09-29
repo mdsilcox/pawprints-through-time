@@ -387,11 +387,14 @@ class AudioEngine {
   }
 
   /** Dialogue voice blip with a per-character pitch (midi). */
+  /** semitones added to every dialogue voice (Squeaky Squash Soup) */
+  voiceShift = 0;
+
   voice(midi: number, kind: 'soft' | 'squeak' | 'deep' | 'chime' = 'soft'): void {
     const ctx = this.ctx;
     if (!ctx || ctx.state !== 'running') return;
     const t = ctx.currentTime + 0.003;
-    const f = midiToFreq(midi + (Math.random() * 2 - 1));
+    const f = midiToFreq(midi + this.voiceShift + (Math.random() * 2 - 1));
     const o = ctx.createOscillator();
     o.type = kind === 'deep' ? 'triangle' : kind === 'chime' ? 'sine' : 'square';
     o.frequency.setValueAtTime(f, t);

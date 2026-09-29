@@ -23,6 +23,8 @@ export class PlayerEntity {
   textureKey = '';
   /** extra visual offset (e.g. jumps) */
   hop = 0;
+  /** mid-jump (a scripted hop): soup bounces leave `hop` alone */
+  jumping = false;
   onStep: (() => void) | null = null;
   private lastStepFrame = -1;
 

@@ -8,6 +8,8 @@ import { registerQuest, flagDone } from './quests';
 import { TW } from '../world/maps/tockwood';
 import { openWardrobe } from '../ui/wardrobe';
 import { openSellScreen, sellable } from '../ui/sellScreen';
+import { cookWithClover, juniperStall, offerSoupGift } from './soupStory';
+import { grandmaPuzzle, juniperPuzzle, puzzleSolved } from './brainBuilders';
 
 /**
  * Tockwood's neighbours: first meetings, daily chatter that changes with the day, the time
@@ -44,6 +46,7 @@ async function chat(id: string, first: string[], daily: string[], opts: { nightL
   if (special && line === special) setFlag(`heartline:${id}:${h}`);
   await talk(who, line);
   if (oncePerDay(`chat:${id}`)) befriend(id, 6);
+  await offerSoupGift(id);
   return false;
 }
 
@@ -142,9 +145,15 @@ onTalk('finnegan', async () => {
     { nightLine: 'Night fishing’s the best. The stars jump right into the water to say hello.' },
   );
   if (!first && oncePerDay('gift:finnegan')) {
-    await talk('finnegan', 'Here, take some kelp for your soup pot. I’d eat it myself, but I’m more of a fly frog.');
-    give('kelp', 2, { from: 'Finnegan gave you' });
+    if ((app.data?.day ?? 1) % 2 === 0) {
+      await talk('finnegan', 'Caught a few too many sardines this morning — they’re yours! Good in a soup, I hear.');
+      give('sardine', 2, { from: 'Finnegan gave you' });
+    } else {
+      await talk('finnegan', 'Here, take some kelp for your soup pot. I’d eat it myself, but I’m more of a fly frog.');
+      give('kelp', 2, { from: 'Finnegan gave you' });
+    }
   }
+  if (!first && !puzzleSolved('finnegan-boat')) await talk('finnegan', 'Say — have you seen my toy racing boat in the tub by the beach? She’s itching for a skipper!');
 });
 
 // ------------------------------------------------------------------ Juniper (goat, garden stall)
@@ -173,6 +182,14 @@ onTalk('juniper', async () => {
     await talk('juniper', 'Ooh, and have a little honey from my bees! Sweet as sunshine.');
     give('honey', 1, { from: 'Juniper gave you' });
   }
+  const crates = !puzzleSolved('juniper-crates');
+  const pick = await ask('juniper', crates ? 'Need anything? (And — um — my wheelbarrow’s stuck behind the crates again...)' : 'Need anything for your garden?', [
+    'Seeds & honey, please!',
+    ...(crates ? ['We’ll free your wheelbarrow!'] : []),
+    'Just saying hi',
+  ]);
+  if (pick === 0) await juniperStall();
+  else if (crates && pick === 1) await juniperPuzzle();
 });
 
 // ------------------------------------------------------------------ Rocco (raccoon, clock stall) + his favour
@@ -204,6 +221,7 @@ onTalk('rocco', async () => {
       'I built a clock that tells jokes. It’s always a little late with the punchline.',
     ],
   );
+  if (!first && !puzzleSolved('rocco-lock') && oncePerDay('hint:rocco-lock')) await talk('rocco', 'Oh, and if you’re good at codes... I locked my toolbox and forgot the gear code. It’s right there by my stall. Sigh.');
   if (first || flag('rocco:gears')) return;
   if (count('clock-gear') >= 3) {
     const pick = await ask('rocco', 'Are those... CLOCK GEARS? Three of them?!', ['They’re for you!', 'Not yet']);
@@ -247,6 +265,11 @@ onTalk('clover', async () => {
     befriend('clover', 15);
     return;
   }
+  const cook = await ask('clover', 'What shall we do today?', ['Let’s cook soup!', 'Just chatting']);
+  if (cook === 0) {
+    await cookWithClover();
+    return;
+  }
   const bunniesHome = app.data?.bunnies.length ?? 0;
   const daily = [
     'Soup’s on! Well, almost. Soup’s... warming up.',
@@ -257,6 +280,7 @@ onTalk('clover', async () => {
   ];
   await talk('clover', pickDaily('clover', daily));
   if (oncePerDay('chat:clover')) befriend('clover', 6);
+  await offerSoupGift('clover');
 });
 
 onTalk('grandma', async () => {
@@ -270,6 +294,10 @@ onTalk('grandma', async () => {
     setFlag('met:grandma');
     return;
   }
+  if (!puzzleSolved('grandma-scarves')) {
+    await grandmaPuzzle();
+    return;
+  }
   const line =
     n === 0
       ? 'The warren is so quiet without the little ones. I keep a carrot warm for each of them.'
@@ -278,6 +306,7 @@ onTalk('grandma', async () => {
         : 'Every last one of them, home safe. You wonderful, wonderful friends.';
   await talk('grandma', line);
   if (oncePerDay('chat:grandma')) befriend('grandma', 6);
+  await offerSoupGift('grandma');
 });
 
 // ------------------------------------------------------------------ cottage: sleep in your bed
@@ -308,9 +337,6 @@ onUse('mirror', async () => {
 onUse('wardrobe', async () => {
   openWardrobe();
 });
-onUse('cauldron', async () => {
-  await talk('clover', 'Grandma’s cauldron is still warming up! Bring me ingredients and come back soon.');
-});
 onUse('exhibit', async () => {
   const n = app.data?.museum.length ?? 0;
   await talk(
@@ -319,7 +345,4 @@ onUse('exhibit', async () => {
       ? `The display cases are filling up! ${n} treasure${n === 1 ? '' : 's'} on show, each with a little card: “Found by {players}”.`
       : 'An empty display case, polished and waiting for something wonderful. Dr. Quill keeps the first of every treasure you sell here.',
   );
-});
-onUse('plot', async () => {
-  await talk('narrator', 'A little garden plot of soft, dark soil. Perfect for planting seeds.');
 });
