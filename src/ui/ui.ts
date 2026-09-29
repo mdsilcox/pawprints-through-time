@@ -74,6 +74,9 @@ class UIManager {
     this.stack.push(screen);
     screen.el.classList.add('screen');
     screen.el.dataset.screen = screen.id;
+    // Swallow taps for a moment so a quick double-tap can't "click through" into the new screen.
+    screen.el.classList.add('opening');
+    setTimeout(() => screen.el.classList.remove('opening'), 280);
     layer.appendChild(screen.el);
     this.syncDim();
     requestAnimationFrame(() => this.focusFirst(screen));

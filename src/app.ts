@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { Emitter } from './core/emitter';
-import { loadSettings, storeSettings, type Settings } from './core/settings';
+import { loadSettings, sanitizeSettings, storeSettings, type Settings } from './core/settings';
 import { AutoSaver, SaveManager } from './core/save';
 import { defaultSave, type SaveData } from './core/state';
 import { initialScaleConfig, installResizeHandling } from './core/display';
@@ -44,11 +44,21 @@ export class GameApp {
       disableContextMenu: true,
     });
     installResizeHandling(this.phaser);
+    // Autosave at least once a minute while playing, and immediately when the app is backgrounded.
+    setInterval(() => {
+      if (this.playing && this.data) this.autosave.tick();
+    }, 5000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.playing && this.data) void this.autosave.flush();
+    });
+    window.addEventListener('pagehide', () => {
+      if (this.playing && this.data) void this.autosave.flush();
+    });
   }
 
   // ---------------------------------------------------------------- settings
   setSettings(patch: Partial<Settings>): void {
-    this.settings = { ...this.settings, ...patch };
+    this.settings = sanitizeSettings({ ...this.settings, ...patch });
     storeSettings(this.settings);
     this.events.emit('settings', this.settings);
   }

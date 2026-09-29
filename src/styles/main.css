@@ -90,6 +90,13 @@ body {
   display: flex;
   animation: screen-in 0.22s ease-out;
 }
+.screen.opening,
+.screen.opening * {
+  pointer-events: none !important;
+}
+.center-wrap.backdrop {
+  background: rgba(45, 42, 90, 0.35);
+}
 @keyframes screen-in {
   from {
     opacity: 0;
@@ -207,6 +214,10 @@ p {
 }
 .btn.pink {
   background: var(--pink);
+}
+.btn.danger {
+  color: #8a2f33;
+  font-size: 0.95rem;
 }
 .btn[disabled] {
   opacity: 0.45;

@@ -16,20 +16,32 @@ test('installable PWA that keeps working offline', async ({ page, context }) => 
     expect(res.ok()).toBe(true);
   }
 
-  // Service worker installs and takes control.
-  await page.waitForFunction(async () => {
-    const reg = await navigator.serviceWorker.getRegistration();
-    return !!reg?.active;
-  }, null, { timeout: 60_000 });
-  await page.reload();
-  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 });
+  // Wait until the service worker has fully installed and activated (precache complete).
+  // (`serviceWorker.ready` only resolves once there is an *active* worker.)
+  const state = await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    return reg.active?.state;
+  });
+  expect(['activating', 'activated']).toContain(state);
+  await page.waitForFunction(async () => (await navigator.serviceWorker.ready).active?.state === 'activated', null, { timeout: 30_000 });
+
+  // The worker claims open pages; if this page loaded before that, a reload hands it over.
+  await expect
+    .poll(
+      async () => {
+        const controlled = await page.evaluate(() => !!navigator.serviceWorker.controller);
+        if (!controlled) await page.reload();
+        return controlled;
+      },
+      { timeout: 30_000, intervals: [500, 1000, 2000] },
+    )
+    .toBe(true);
 
   // Go offline and reload: the game still boots to its title screen from the cache.
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator('[data-screen="title"]')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('.logo-top')).toHaveText('Pawprints');
-  const canvas = page.locator('#game canvas');
-  await expect(canvas).toBeVisible();
+  await expect(page.locator('#game canvas')).toBeVisible();
   await context.setOffline(false);
 });

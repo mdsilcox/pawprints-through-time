@@ -72,12 +72,12 @@ export function confirmDialog(message: string, yes = 'Yes', no = 'No'): Promise<
     };
     const el = h(
       'div',
-      { class: 'center-wrap' },
+      { class: 'center-wrap backdrop' },
       h(
         'div',
         { class: 'panel confirm-panel' },
         h('p', { class: 'confirm-text' }, message),
-        h('div', { class: 'row center' }, button(yes, () => finish(true), { testid: 'confirm-yes' }), button(no, () => finish(false), { cls: 'secondary', autofocus: true, testid: 'confirm-no' })),
+        h('div', { class: 'row center' }, button(no, () => finish(false), { autofocus: true, testid: 'confirm-no' }), button(yes, () => finish(true), { cls: 'secondary danger', testid: 'confirm-yes' })),
       ),
     );
     ui.push({ id: 'confirm', el, onBack: () => finish(false) });
