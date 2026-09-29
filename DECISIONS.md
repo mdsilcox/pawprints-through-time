@@ -131,3 +131,4 @@ One line each: decision — reason.
 - Dancing runs on the music as heard: the song clock subtracts the audio output latency (capped at 80 ms), so arrows, the beat and the judging agree with the speakers; count-in claps stay on the audio clock so they come out in time.
 - Props, buildings and furniture textures are created on first use (`ensurePropTexture`) instead of all at boot — the biggest ones are about a megapixel, and phones have tight canvas memory.
 - Backups: while a milestone waits for its full test run, the work in progress is pushed to a separate `wip` branch (never `main`), so nothing is lost; `main` only moves on a green run.
+- M9 (Egypt and Florence) went in as one commit rather than one per era (the spec asks for one after each): the eight-sands scheme — a story sand and a cousins' sand per era — and the shared chapter plumbing were built for both at once, and the two chapters were verified together by one full test run before committing.
