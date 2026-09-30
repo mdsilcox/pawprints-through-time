@@ -17,10 +17,10 @@ import { HOPKINS_BY_ID } from '../data/bunnies';
 import { FLOR } from '../world/maps/florence';
 import type { WorldScene } from '../scenes/WorldScene';
 
-for (const [id, name] of Object.entries({ lucia: 'Maestra Lucia', fiorella: 'Fiorella', orsola: 'Duchess Orsola', beppe: 'Beppe' })) registerNpcName(id, name);
+for (const [id, name] of Object.entries({ lucia: 'Maestra Lucia', fiorella: 'Fiorella', orsola: 'Lady Orsola', beppe: 'Beppe' })) registerNpcName(id, name);
 
 /**
- * Chapter 4: Renaissance Florence (around 1500). Tonight Duchess Orsola holds a court dance,
+ * Chapter 4: Renaissance Florence (around 1500). Tonight Lady Orsola holds a court dance,
  * and its two marvels have gone wrong in the glittering storm: Maestra Lucia's mechanical lion
  * has stopped (the Time Sand is jammed in its works) and Fiorella's fresco lost its border.
  * Mend the fresco's pattern, crack the lion's gear lock, put its parts back, then dance.
@@ -47,21 +47,20 @@ onEnterMap('florence', async () => {
   show();
 });
 
-// ------------------------------------------------------------------ Duchess Orsola
+// ------------------------------------------------------------------ Lady Orsola
 onTalk('orsola', async () => {
   const d = app.data!;
   if (!flag('met:orsola')) {
     await conversation(async () => {
       await talk('orsola', [
-        'Oh! Visitors, and on such a night! I am Orsola, Duchess of this palazzo. Tonight I hold a court dance for all of Florence.',
+        'Oh! Visitors, and on such a night! I am Lady Orsola, and this is my family’s palazzo. Tonight I hold a court dance for all of Florence.',
         'Maestra Lucia built a marvel for it — a mechanical lion that WALKS. But since that glittering storm, it won’t move a whisker.',
         'And Fiorella’s fresco for my ballroom? The storm smudged its lovely border! Whatever shall we do?',
       ]);
-      await talk('pip', 'A glittering storm... that’s our Time Sand! We’ll help, Duchess!');
+      await talk('pip', 'A glittering storm... that’s our Time Sand! We’ll help, Lady Orsola!');
       await talk('orsola', ['You are very kind. Lucia’s workshop is to the west, with the gear sign. Fiorella’s studio is to the east.', 'Here — a few golden florins for your trouble. Florence’s own coin!']);
     });
-    give('florin', 3, { from: 'Duchess Orsola gave you' });
-    learnNote('florence-florin');
+    give('florin', 3, { from: 'Lady Orsola gave you' });
     setFlag('met:orsola');
     befriend('orsola', 10);
     return;
@@ -131,7 +130,7 @@ onTalk('lucia', async ({ world }) => {
   if (!flag('met:lucia')) {
     await talk('lucia', [
       'Ah! Assistants! Good — I need clever hands. I am Maestra Lucia, inventor.',
-      'I fill notebooks with machines: flying machines, water wheels... and THIS — a mechanical lion, to walk for the Duchess tonight.',
+      'I fill notebooks with machines: flying machines, water wheels... and THIS — a mechanical lion, to walk for Lady Orsola tonight.',
       'But in the storm, something glowing flew in and jammed it! And the lion’s gear lock spun right round. Can you open it?',
     ]);
     learnNote('florence-inventors');
@@ -164,7 +163,7 @@ onUse('lion', async ({ world }) => {
   }
   const r = await openPuzzle('lucia-lion');
   if (!r.solved) return;
-  const show = payout(['lion:awake'], [{ sand: 'florence' }, { clothes: 'gold-chain' }, { tockens: 40 }, { friend: 'lucia', pts: 20 }], { title: '🦁 The lion walks!', world });
+  const show = payout(['lion:awake'], [{ sand: 'florence' }, { clothes: 'gold-chain' }, { item: 'flying-model' }, { tockens: 40 }, { friend: 'lucia', pts: 20 }], { title: '🦁 The lion walks!', world });
   await cutscene(async () => {
     world.setPropTexture('lion', 'fur-mechlion-awake');
     audio.sfx('fanfare');
@@ -172,8 +171,8 @@ onUse('lion', async ({ world }) => {
     await talk('narrator', 'The lion blinks, stretches its brass legs and lets out a mighty clockwork ROAR!');
     await world.raiseTimeSand(7, 5.4);
     await talk('narrator', 'With a whirr and a click, a swirl of glowing sand pops out of the lion’s chest... and floats into your hands!');
-    await talk('lucia', 'Bravissimi! Wear these guild chains — you are members of the inventors’ guild now.');
-    await talk('pip', ['A Time Sand! Hooray!', 'Now nothing can stop the Duchess’s court dance!']);
+    await talk('lucia', ['Bravissimi! Wear these guild chains — you are members of the inventors’ guild now.', 'And take my little flying-machine model. One day people WILL fly. Put it in your museum!']);
+    await talk('pip', ['A Time Sand! Hooray!', 'Now nothing can stop Lady Orsola’s court dance!']);
   });
   show();
 });
@@ -183,6 +182,7 @@ onTalk('beppe', async () => {
   const d = app.data!;
   if (!flag('met:beppe')) {
     await talk('beppe', ['Basil! Beans! Lettuce! The freshest in all of Florence! I’m Beppe.', 'Florentines love white beans so much, people call us “bean-eaters”. And proud of it!']);
+    learnNote('florence-food');
     setFlag('met:beppe');
     befriend('beppe', 10);
     return;
@@ -232,14 +232,14 @@ onUse('court-floor', async ({ world }) => {
       style: 'court',
       audience: ['orsola', 'lucia', 'fiorella', 'beppe'],
       bunnies: d.bunnies.slice(0, 4),
-      title: '💃 The Duchess’s Court Dance',
-      blurb: 'Glide, bow, raise your hands and turn — and the mechanical lion dances too!',
+      title: '💃 Lady Orsola’s Court Dance',
+      blurb: 'Glide, bow, raise your hands and turn — the whole court is watching!',
       settle: first
         ? () => {
             paid.show = payout(
               ['court:danced'],
               [{ item: 'globe' }, { clothes: 'doublet' }, { clothes: 'breeches' }, { clothes: 'florentine-cap' }, { clothes: 'velvet-slippers' }, { friend: 'orsola', pts: 20 }],
-              { title: '👑 From the Duchess’s court', world },
+              { title: '👑 From Lady Orsola’s court', world },
             );
           }
         : undefined,
@@ -311,11 +311,11 @@ registerQuest({
   main: true,
   available: (d) => !!d.flags['flor:arrived'],
   steps: [
-    { id: 'meet', text: 'Meet the Duchess by her palazzo', done: (d) => !!d.flags['met:orsola'], where: () => ({ map: 'florence', x: FLOR.palazzo.x - 3.6, y: FLOR.palazzo.y + 1.4 }) },
+    { id: 'meet', text: 'Meet Lady Orsola by her palazzo', done: (d) => !!d.flags['met:orsola'], where: () => ({ map: 'florence', x: FLOR.palazzo.x - 3.6, y: FLOR.palazzo.y + 1.4 }) },
     { id: 'fresco', text: 'Mend the border of Fiorella’s fresco', done: (d) => !!d.flags['fresco:mended'], where: (d) => (d.location.map === 'studio' ? { map: 'studio', x: 6.5, y: 3.4 } : { map: 'florence', x: FLOR.studio.x, y: FLOR.studio.y + 0.8 }) },
     { id: 'lock', text: 'Open the mechanical lion’s gear lock', done: (d) => !!d.flags['lion:open'], where: (d) => (d.location.map === 'workshop' ? { map: 'workshop', x: 7, y: 6.6 } : { map: 'florence', x: FLOR.workshop.x, y: FLOR.workshop.y + 0.8 }) },
     { id: 'lion', text: 'Put the lion’s parts back where they belong', done: (d) => !!d.flags['lion:awake'], where: () => ({ map: 'workshop', x: 7, y: 6.6 }) },
-    { id: 'court', text: 'Dance at the Duchess’s court dance', done: (d) => !!d.flags['court:danced'], where: () => ({ map: 'florence', x: FLOR.floor.x, y: FLOR.floor.y }) },
+    { id: 'court', text: 'Dance at Lady Orsola’s court dance', done: (d) => !!d.flags['court:danced'], where: () => ({ map: 'florence', x: FLOR.floor.x, y: FLOR.floor.y }) },
     { id: 'home', text: 'Bring the Time Sand home to the Great Hourglass', done: (d) => !!d.flags['sand:florence:placed'], where: () => ({ map: 'clocktower', x: 6.5, y: 5.4 }) },
   ],
   reward: '+50 Tockens',

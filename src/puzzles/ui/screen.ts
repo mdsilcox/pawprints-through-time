@@ -88,7 +88,7 @@ export function openPuzzle(id: string, opts: OpenOpts = {}): Promise<PuzzleResul
       view?.destroy?.();
       ui.pop('puzzle');
       // (a look at a chart you can't sail yet isn't a try: it never nudges the difficulty down)
-      const firstSolve = opts.preview && !solved ? false : recordAttempt(d, id, { solved, hintsUsed, difficulty }) && !opts.replay;
+      const firstSolve = opts.preview && !solved ? false : recordAttempt(d, id, { solved, hintsUsed, difficulty, noSkill: def.kind === 'riddle' }) && !opts.replay;
       app.autosave.request();
       resolve({ solved, hintsUsed, difficulty, firstSolve, riddleId: riddle?.id });
     };

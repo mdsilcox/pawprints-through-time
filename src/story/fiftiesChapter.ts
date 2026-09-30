@@ -9,7 +9,11 @@ import { CLOTHES_BY_ID } from '../data/clothes';
 import { hasEffect } from '../soup/effects';
 import { bowl } from '../bowling/openBowling';
 import { dance } from '../dance/openDance';
+import { DANCE_STYLES } from '../dance/logic';
+import { knownDances } from './dancing';
 import { openStall } from '../ui/stallShop';
+import { openPuzzle } from '../puzzles/ui/screen';
+import '../puzzles/content/fifties';
 import { befriend, count, cutscene, flag, give, oncePerDay, onEnterMap, onTalk, onUse, payout, registerNpcName, setFlag, take, wait } from './hooks';
 import { registerQuest } from './quests';
 import { rescueBunny } from './pirateChapter';
@@ -22,7 +26,7 @@ for (const [id, name] of Object.entries({ rollo: 'Rollo', duke: 'Duke', mabel: '
  * Chapter 2: 1950s America (Maple Street, around 1957). The Time Sand has landed in the
  * Starlight Junior Cup — the bowling trophy of tonight's tournament. Borrow bowling shoes, beat
  * Duke (the three-time champion) in a ten-frame final, then celebrate at the diner's sock hop.
- * Along the way: three Hopkins cousins, a skating waitress and the best jukebox in town.
+ * Along the way: three Hopkins cousins, a roller rink and the best jukebox in town.
  */
 const activePlayers = (): (0 | 1)[] => (input.twoPlayer ? [0, 1] : [0]);
 const wearingEra = (p: 0 | 1, slot: 'shoes' | 'any' = 'any') =>
@@ -171,6 +175,12 @@ onUse('lanes-bowl', async ({ world }) => {
     blurb: 'The final! Beat Duke’s score to win the cup.',
     tip: POCKET_TIP,
     guide: losses > 0,
+    // every loss (a "Play again" too) makes the next game a little easier, with the guide on
+    onLoss: () => {
+      const n = Number(app.data!.flags['cup:losses'] ?? 0) + 1;
+      setFlag('cup:losses', n);
+      return { skill: dukeSkill(n), guide: true };
+    },
     settle: () => {
       paid.show = payout(
         ['cup:won'],
@@ -190,7 +200,6 @@ onUse('lanes-bowl', async ({ world }) => {
   });
   if (!o?.finished) return;
   if (!o.won) {
-    setFlag('cup:losses', losses + 1);
     await talk('duke', ['Good game! Rematch? Lane two’s all yours whenever you want.']);
     await talk('rollo', losses === 0 ? 'Psst — see the glowing arrow on the lane next time? Stand there and roll into the pocket!' : 'You’re getting closer every game, pals. Keep rolling into that pocket!');
     return;
@@ -212,7 +221,7 @@ onUse('lanes-bowl', async ({ world }) => {
 const POCKET_TIP = 'Stand a little to the right of the middle and roll into the “pocket”, just beside the front pin.';
 /** Duke's skill for the Cup: a notch wobblier after each loss (he's a good sport about it). */
 export function dukeSkill(losses: number): number {
-  return Math.max(0, 0.25 - 0.07 * losses);
+  return Math.max(0, 0.25 - 0.1 * losses);
 }
 
 // ------------------------------------------------------------------ the Rock-a-Roll Diner
@@ -220,20 +229,25 @@ onTalk('mabel', async ({ world }) => {
   const d = app.data!;
   if (!flag('met:mabel')) {
     await talk('mabel', [
-      'Welcome to the Rock-a-Roll Diner, hon! Burgers, milkshakes, and the best jukebox in town.',
+      'Welcome to the Rock-a-Roll Diner, hon! Burgers, milkshakes, the best jukebox in town — and our very own roller rink!',
       'Scoot around on those wheels, why don’t you — I skate my orders to every booth!',
     ]);
     learnNote('fifties-diner');
     setFlag('met:mabel');
   }
+  // after the Cup, the sock hop waits for Mabel's mixed-up orders
+  if (flag('cup:won') && !flag('orders:sorted') && !flag('sockhop:danced')) {
+    await mabelsOrders(world);
+    return;
+  }
   if (!flag('dot:found')) {
     if (!flag('mabel:milk')) {
       if (count('milk') > 0) {
         take('milk', 1);
-        const show = payout(['mabel:milk', 'dot:told'], [{ clothes: 'sock-hop-cap' }], { title: '🥤 Mabel gave you' });
+        const show = payout(['mabel:milk', 'dot:told'], [{ clothes: 'sock-hop-cap' }, { item: 'soda-glass' }], { title: '🥤 Mabel gave you' });
         await talk('mabel', [
           'Milk! You’re a lifesaver, hon. Now I can make milkshakes again!',
-          'And a soda jerk cap for that sweet pup of yours — every milkshake needs a helper!',
+          'And a soda jerk cap for that sweet pup of yours — every milkshake needs a helper! Oh, and a soda-fountain glass for your museum.',
           'Say... a teeny bunny in a headscarf has been helping in my kitchen. So shy! She hides in the pantry whenever the bell rings.',
         ]);
         show();
@@ -259,6 +273,26 @@ onTalk('mabel', async ({ world }) => {
   if (oncePerDay('chat:mabel')) befriend('mabel', 6);
   void world;
 });
+
+/** 1950s America's brain-builder: the storm blew Mabel's order tickets away — who ordered what? */
+async function mabelsOrders(world: WorldScene): Promise<void> {
+  if (!flag('orders:asked')) {
+    setFlag('orders:asked');
+    await talk('mabel', [
+      'Oh, hon, what a night! The whole town’s coming to the sock hop to cheer our new champions...',
+      'But that glittery storm blew every one of my order tickets right off the spike! Who ordered the hot dog? Who wanted the strawberry shake?',
+      'Could you sort them out for me? I jotted a few notes on my pad.',
+    ]);
+  } else await talk('mabel', 'Ready to sort out those orders, hon? Here’s my notepad.');
+  const r = await openPuzzle('mabel-orders');
+  if (!r.solved) {
+    await talk('mabel', 'No rush, hon — the notes will keep. Come back when you’re ready!');
+    return;
+  }
+  const show = payout(['orders:sorted'], [{ tockens: 20 }, { friend: 'mabel', pts: 15 }], { title: '🍔 Mabel’s thank-you', world });
+  await talk('mabel', ['Order up — every single one! You two would make the best waiters on Maple Street.', 'Now go find Rosita. It’s time to DANCE!']);
+  show();
+}
 
 onUse('milk-truck', async () => {
   if (!oncePerDay('milk-truck')) {
@@ -308,16 +342,19 @@ onUse('pantry', async ({ world }) => {
 onTalk('rosita', async ({ world }) => {
   const d = app.data!;
   if (world.def.region === 'tockwood') {
-    const pick = await ask('rosita', 'Hello, dancers! Shall we dance on the plaza floor?', ['Let’s dance!', 'Just saying hi']);
-    if (pick === 0) {
-      const styles = ['sockhop', 'jig', ...(d.flags['crew:respect'] ? ['hornpipe'] : [])];
-      await dance({ style: styles[d.day % styles.length], audience: ['rosita', 'rollo'], bunnies: d.bunnies.slice(0, 6) });
-    }
+    // the family picks: her sock hop first, then every dance they know
+    const styles = ['sockhop', ...knownDances().filter((id) => id !== 'sockhop')];
+    const pick = await ask('rosita', 'Hello, dancers! Which dance shall we do on the plaza floor?', [...styles.map((id) => DANCE_STYLES[id].name), 'Just saying hi']);
+    if (pick >= 0 && pick < styles.length) await dance({ style: styles[pick], audience: ['rosita', 'rollo'], bunnies: d.bunnies.slice(0, 6) });
     return;
   }
   if (!flag('cup:won')) {
     await talk('rosita', ['Hi there! I’m Rosita — I teach dancing at the sock hops.', 'Tonight there’s a big one here, right after the Starlight Cup. Win that cup and come celebrate!']);
     setFlag('met:rosita');
+    return;
+  }
+  if (!flag('sockhop:danced') && !flag('orders:sorted')) {
+    await talk('rosita', ['The champions are here! The whole town is coming to the sock hop!', 'Only... poor Mabel is in a real spin. Could you give her a hand first?']);
     return;
   }
   if (!flag('sockhop:danced')) {
@@ -404,6 +441,7 @@ registerQuest({
     { id: 'lanes', text: 'Follow the sparkle to the Starlight Lanes', done: (d) => !!d.flags['met:rollo'], where: () => ({ map: 'fifties', x: 33, y: 11.4 }) },
     { id: 'shoes', text: 'Borrow bowling shoes — house rules!', done: (d) => !!d.flags['lanes:shoes'] || !!d.flags['cup:won'], where: () => ({ map: 'lanes', x: 13.6, y: 5 }) },
     { id: 'cup', text: 'Win the Starlight Junior Cup against Duke', done: (d) => !!d.flags['cup:won'], where: () => ({ map: 'lanes', x: 8, y: 7.4 }) },
+    { id: 'orders', text: 'Help Mabel sort out her mixed-up orders', done: (d) => !!d.flags['orders:sorted'] || !!d.flags['sockhop:danced'], where: () => ({ map: 'diner', x: 7.6, y: 5.3 }) },
     { id: 'sockhop', text: 'Celebrate at the sock hop in the Rock-a-Roll Diner', done: (d) => !!d.flags['sockhop:danced'], where: () => ({ map: 'diner', x: 9.6, y: 6.2 }) },
     { id: 'home', text: 'Bring the Time Sand home to the Great Hourglass', done: (d) => !!d.flags['sand:fifties:placed'], where: () => ({ map: 'clocktower', x: 6.5, y: 5.4 }) },
   ],

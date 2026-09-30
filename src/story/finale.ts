@@ -4,13 +4,16 @@ import { talk } from '../ui/dialogue';
 import { button, toast, ui } from '../ui/ui';
 import { h } from '../ui/dom';
 import { storybook } from '../ui/storybook';
-import { grant } from '../core/wardrobe';
+import { equip, grant } from '../core/wardrobe';
+import { input } from '../input/input';
+import { sessionEpoch } from '../core/session';
 import { dance } from '../dance/openDance';
 import { renderEndingPanel, ENDING_TEXT } from '../art/endingPanels';
 import { cutscene, flag, onEnterMap, onTalkWhen, onUse, payout, setFlag, wait } from './hooks';
 import { registerQuest } from './quests';
 import type { SaveData } from '../core/state';
 import type { WorldScene } from '../scenes/WorldScene';
+import { TILE } from '../world/collision';
 
 /**
  * The finale. When all eight Time Sands are home, the Great Hourglass is whole again — and
@@ -53,14 +56,50 @@ export async function restoreHourglass(world: WorldScene): Promise<void> {
 onEnterMap('tockwood', async ({ world }) => {
   if (!flag('finale:party') || flag('finale:done') || flag('finale:welcomed')) return;
   setFlag('finale:welcomed');
+  // (the whole crowd in the picture while everyone says hello — on a phone too)
+  world.frameAlso(...PARTY_FRAME);
+  try {
+    await welcome(world);
+  } finally {
+    world.frameAlso(null);
+  }
+  await finaleDance(world);
+});
+
+/**
+ * The family walks into the middle of the party (in front of the dance floor), so the camera can
+ * show them and the crowd together — on a phone too. From far away (a reload elsewhere in
+ * Tockwood) they're simply there.
+ */
+async function joinTheParty(world: WorldScene): Promise<void> {
+  const spots = [
+    { x: 27.3, y: 23.6 },
+    { x: 28.4, y: 23.8 },
+  ];
+  const far = world.players.some((p) => Math.hypot(p.x / TILE - 28, p.y / TILE - 22) > 10);
+  if (!far) {
+    await world.stageParty(spots, { x: 26.2, y: 23.9 });
+    return;
+  }
+  world.players.forEach((p, i) => {
+    const s = spots[Math.min(i, spots.length - 1)];
+    p.x = s.x * TILE + (i >= spots.length ? TILE * 0.8 : 0);
+    p.y = s.y * TILE;
+  });
+}
+
+/** Where the party stands on the plaza: two corners of the crowd, for the camera. */
+const PARTY_FRAME: [number, number, [number, number][]] = [21.8, 18.4, [[32.2, 26]]];
+
+async function welcome(world: WorldScene): Promise<void> {
   await cutscene(async () => {
-    await wait(500);
+    await wait(400);
+    await joinTheParty(world);
     await talk('narrator', 'The plaza is FULL. Captains and cooks, builders and scribes, bowlers and painters — friends from every corner of history, all in one place!');
     await talk('marigold', 'Three cheers for the time travellers! Hip hip — HOORAY!');
     await talk('grandma', ['And every one of my grandbunnies came home safe. Thank you, dears.', 'Now — what does a party need? A BUNNY HOP! Everyone to the dance floor!']);
   });
-  await finaleDance(world);
-});
+}
 
 /** The bunny hop (the finale's dance) — then the soup and the ending. Also re-offered at the dance floor. */
 export async function finaleDance(world: WorldScene): Promise<void> {
@@ -69,12 +108,16 @@ export async function finaleDance(world: WorldScene): Promise<void> {
   const paid = { show: () => undefined as void };
   const o = await dance({
     style: 'bunnyhop',
-    audience: PARTY_GUESTS.slice(0, 6),
+    audience: PARTY_GUESTS,
     bunnies: d.bunnies,
     title: '🐰 The Bunny Hop!',
     blurb: 'Everyone’s here — the whole of history and every Hopkins cousin. Hop left, hop right, kick, and the BIG bunny jump!',
     settle: () => {
-      paid.show = payout(['finale:danced'], [{ clothes: 'party-hat' }, { clothes: 'party-bow' }], { title: '🎉 For the party' });
+      paid.show = payout(
+        ['finale:danced'],
+        [{ clothes: 'party-hat' }, { clothes: 'party-bow' }, { icon: '🌀', line: 'Every era is still open on the Map of Time — go and visit your friends any time!' }],
+        { title: '🎉 Happily ever after' },
+      );
     },
   }, { retry: false });
   if (!o?.finished) {
@@ -87,14 +130,25 @@ export async function finaleDance(world: WorldScene): Promise<void> {
 /** Clover's celebration soup, then the ending (the giant pot offers it again if a break cut the party short). */
 async function soupAndEnding(world: WorldScene, show?: () => void): Promise<void> {
   world.celebrate(6000);
+  // (everyone around the giant pot, in the picture)
+  world.frameAlso(...PARTY_FRAME);
+  try {
+    await soup();
+  } finally {
+    world.frameAlso(null);
+  }
+  await ending(show);
+}
+
+async function soup(): Promise<void> {
   await cutscene(async () => {
     await talk('clover', ['What dancing! And now... the CELEBRATION SOUP! A little something from every time you visited:', 'Coconut from the Caribbean, dates from Egypt, sweet corn from Maple Street, basil from Florence — and a carrot from my garden, of course.']);
     await talk('narrator', 'Everyone takes a turn stirring the giant pot. Round and round, round and round... Biscuit supervises very closely.');
     audio.sfx('bubble');
     await talk('clover', 'A bowl for everyone! And a party hat to go with it!');
+    wearPartyHats();
     await talk('pip', 'This is the best day in the whole history of history.');
   });
-  await ending(show);
 }
 
 /**
@@ -105,7 +159,7 @@ export async function ending(after?: () => void): Promise<void> {
   audio.music('title');
   await storybook(
     ENDING_TEXT.map((text, i) => ({ draw: () => renderEndingPanel(i), text })),
-    { id: 'ending' },
+    { id: 'ending', lastLabel: 'The End ✦' },
   );
   if (!app.playing) return;
   await credits();
@@ -113,8 +167,27 @@ export async function ending(after?: () => void): Promise<void> {
   setFlag('finale:done');
   void app.autosave.flush();
   audio.music('tockwood-day');
-  after?.();
-  toast('Every era is still open on the Map of Time — and your friends visit Tockwood often!', { icon: '🌀', ms: 5200 });
+  // (the quest's own "complete!" banner first; then one card to end on)
+  const session = sessionEpoch();
+  setTimeout(() => {
+    if (session !== sessionEpoch()) return;
+    if (after) after();
+    else payout([], [{ icon: '🌀', line: 'Every era is still open on the Map of Time — go and visit your friends any time!' }], { title: '🎉 Happily ever after' })();
+  }, 4200);
+}
+
+/** Party hats on — for both players, and Biscuit's party bow. */
+function wearPartyHats(): void {
+  const d = app.data;
+  if (!d) return;
+  equip(d, 0, 'party-hat', 0);
+  app.events.emit('outfit-changed', 0);
+  if (input.twoPlayer) {
+    equip(d, 1, 'party-hat', 1);
+    app.events.emit('outfit-changed', 1);
+  }
+  equip(d, 'biscuit', 'party-bow', 0);
+  app.events.emit('outfit-changed', 2);
 }
 
 function credits(): Promise<void> {

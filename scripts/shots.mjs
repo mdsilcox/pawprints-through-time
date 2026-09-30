@@ -56,6 +56,36 @@ async function play(page, players = 1, at, opts = {}) {
   await wait(900);
 }
 
+/**
+ * Staged shots in states a real game reaches: the opening done, and every listed era's chapter
+ * finished (its flags, both its Time Sands home, its three cousins rescued) — so the HUD shows
+ * the objective a family would really see at that point.
+ */
+const CHAPTER_FLAGS = {
+  opening: ['met:clover', 'met:quill', 'met:bramble', 'met:rocco', 'met:juniper', 'met:finnegan', 'dug:first', 'portal:ready', 'pip:companion'],
+  pirate: ['cove:arrived', 'crew:aboard', 'met:marigold', 'map:whole', 'crew:respect', 'isle:reached', 'isle:door', 'marigold:friend'],
+  fifties: ['maple:arrived', 'met:rollo', 'lanes:shoes', 'cup:won', 'sockhop:danced', 'bowling:open', 'rosita:arrived'],
+  egypt: ['giza:arrived', 'met:neb', 'sphinx:passed', 'plans:found', 'plans:given', 'capstone:placed', 'festival:danced', 'ankhi:arrived'],
+  florence: ['flor:arrived', 'met:orsola', 'fresco:mended', 'lion:open', 'lion:awake', 'court:danced', 'lucia:arrived'],
+};
+const ERA_COUSINS = { pirate: ['skipper', 'shelly', 'bosun'], fifties: ['poppy', 'zippy', 'dot'], egypt: ['nibbles', 'sandy', 'lotus'], florence: ['pesto', 'sketch', 'twirl'] };
+const PARTY_GUESTS = ['marigold', 'cookie', 'pepper', 'rollo', 'duke', 'mabel', 'rosita', 'neb', 'ankhi', 'sesi', 'lucia', 'fiorella', 'orsola', 'beppe'];
+async function storyDone(page, eras) {
+  for (const f of CHAPTER_FLAGS.opening) await g(page, 'setFlag', f, true);
+  for (const era of eras) {
+    for (const f of CHAPTER_FLAGS[era]) await g(page, 'setFlag', f, true);
+    for (const s of [era, `${era}-cousins`]) {
+      await g(page, 'addSand', s);
+      await g(page, 'setFlag', `sand:${s}:placed`, true);
+    }
+    for (const b of ERA_COUSINS[era]) {
+      await g(page, 'rescueBunny', b);
+      await g(page, 'setFlag', `rescued:${b}`, true);
+    }
+  }
+  if (eras.includes('pirate')) await g(page, 'discoverSoup', 'pirates-gumbo');
+}
+
 /** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
 const SCENARIOS = [
   { name: 'gallery', run: async (page) => { await boot(page); await g(page, 'gallery'); await wait(300); } },
@@ -209,6 +239,28 @@ const SCENARIOS = [
   { name: 'burrow-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'burrow', 'in'); await wait(1800); } },
   { name: 'cottage-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'cottage', 'in'); await wait(1800); } },
   { name: 'museum-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'museum', 'in'); await wait(1800); } },
+  {
+    name: 'museum-cases',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      const finds = ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'spyglass', 'doubloon', 'shell-conch', 'fossil-fern'];
+      for (const id of finds) await g(page, 'give', id, 1);
+      await g(page, 'goTo', 'museum', 'in');
+      await wait(1500);
+      await g(page, 'openSell');
+      await wait(500);
+      for (const id of finds) {
+        await page.click(`[data-testid="sell-one-${id}"]`);
+        await wait(250);
+      }
+      await page.click('[data-testid="sell-done"]');
+      await wait(1200);
+      await g(page, 'teleport', 7, 6.4, 0);
+      await wait(900);
+    },
+  },
   { name: 'tailor-in', players: [1], run: async (page) => { await play(page, 1); await g(page, 'goTo', 'tailor', 'in'); await wait(1800); } },
   { name: 'map', players: [1], run: async (page) => { await play(page, 1, [30.5, 26]); await g(page, 'openMap'); await wait(700); } },
   // ---------------------------------------------------------------- M5: brain-builders & magic soup
@@ -996,11 +1048,8 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
-      for (const f of ['pip:companion', 'hourglassRestored']) await g(page, 'setFlag', f, true);
-      for (const s of ['pirate', 'pirate-cousins', 'fifties', 'fifties-cousins', 'egypt', 'egypt-cousins', 'florence', 'florence-cousins']) {
-        await g(page, 'addSand', s);
-        await g(page, 'setFlag', `sand:${s}:placed`, true);
-      }
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      await g(page, 'setFlag', 'hourglassRestored', true);
       await g(page, 'goTo', 'clocktower', 'in');
       await wait(2000);
       await g(page, 'teleport', 6.5, 6.6, 0);
@@ -1012,8 +1061,8 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
-      for (const f of ['finale:party', 'finale:welcomed', 'hourglassRestored', 'bowling:open', 'rosita:arrived', 'marigold:friend', 'lucia:arrived']) await g(page, 'setFlag', f, true);
-      for (const id of ['skipper', 'shelly', 'bosun', 'poppy', 'dot', 'zippy', 'nibbles', 'sandy', 'lotus', 'pesto', 'sketch', 'twirl']) await g(page, 'rescueBunny', id);
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      for (const f of ['finale:party', 'finale:welcomed', 'hourglassRestored']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'tockwood', 'plaza');
       await wait(2200);
       await g(page, 'teleport', 26.8, 22.6, 0);
@@ -1026,8 +1075,9 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
-      for (const id of ['skipper', 'shelly', 'bosun', 'poppy', 'dot', 'zippy']) await g(page, 'rescueBunny', id);
-      await g(page, 'openDance', 'bunnyhop', null, ['marigold', 'neb', 'lucia']);
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      // the whole party: every friend from every era, and all twelve cousins
+      await g(page, 'openDance', 'bunnyhop', null, PARTY_GUESTS, Object.values(ERA_COUSINS).flat());
       await wait(600);
       await page.click('[data-testid="dance-start"]');
       await g(page, 'danceAuto', true);
@@ -1066,17 +1116,19 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
-      for (const id of ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'bowling-pin', 'spyglass']) {
-        await g(page, 'give', id, 1);
-      }
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      const finds = ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'spyglass', 'doubloon', 'shell-conch', 'fossil-fern'];
+      for (const id of finds) await g(page, 'give', id, 1);
       await g(page, 'goTo', 'museum', 'in');
       await wait(1500);
       await g(page, 'openSell');
       await wait(500);
-      for (const id of ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'bowling-pin', 'spyglass']) {
+      for (const id of finds) {
         const btn = page.locator(`[data-testid="sell-one-${id}"]`);
-        if (await btn.count()) await btn.first().click();
-        await wait(150);
+        // (every one of these has a button: if one doesn't, the shot would lie — so fail loudly)
+        if (!(await btn.count())) throw new Error(`museum-catalogue: no trading-table button for ${id}`);
+        await btn.first().click();
+        await wait(250);
       }
       await page.keyboard.press('Escape');
       await wait(500);
@@ -1092,6 +1144,7 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
+      await storyDone(page, ['pirate', 'fifties']);
       for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'egypt', 'portal');
       await wait(1800);
@@ -1105,6 +1158,7 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties']);
       for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'egypt', 'portal');
       await wait(1800);
@@ -1117,6 +1171,7 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties']);
       for (const f of ['pip:companion', 'giza:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'egypt', 'portal');
       await wait(1800);
@@ -1192,6 +1247,7 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
+      await storyDone(page, ['pirate', 'fifties', 'egypt']);
       for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'florence', 'portal');
       await wait(1800);
@@ -1205,6 +1261,7 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties', 'egypt']);
       for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'florence', 'portal');
       await wait(1800);
@@ -1217,6 +1274,7 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties', 'egypt']);
       for (const f of ['pip:companion', 'flor:arrived', 'met:lucia']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'workshop', 'in');
       await wait(2200);
@@ -1227,6 +1285,7 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
+      await storyDone(page, ['pirate', 'fifties', 'egypt']);
       for (const f of ['pip:companion', 'flor:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'studio', 'in');
       await wait(2200);
@@ -1247,6 +1306,15 @@ const SCENARIOS = [
     run: async (page) => {
       await play(page, 1);
       await g(page, 'openPuzzle', 'lucia-lion', 'medium');
+      await wait(900);
+    },
+  },
+  {
+    name: 'orders-grid',
+    players: [1],
+    run: async (page) => {
+      await play(page, 1);
+      await g(page, 'openPuzzle', 'mabel-orders', 'hard');
       await wait(900);
     },
   },

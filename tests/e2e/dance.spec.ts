@@ -42,10 +42,13 @@ async function openFloor(page: Page) {
   await expect(page.getByTestId('dance-setup')).toBeVisible();
 }
 
+/** The rest of the song on the autopilot, fast-forwarded (what's being tested has already happened). */
 async function finishWithAutopilot(page: Page) {
   await hook(page, 'danceAuto', true);
+  await hook(page, 'danceSpeed', 4);
   await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 90_000 });
   await hook(page, 'danceAuto', false);
+  await hook(page, 'danceSpeed', 1);
 }
 
 test.describe('dancing', () => {
@@ -86,6 +89,37 @@ test.describe('dancing', () => {
     expect(errors).toEqual([]);
   });
 
+  test('a press is judged at the moment the key went down, not when the next frame gets round to it', async ({ page }) => {
+    test.setTimeout(150_000);
+    const errors = watchErrors(page);
+    await startGame(page, [26.4, 22.4]);
+    await hook(page, 'openDance', 'jig');
+    await press(page, '[data-testid="dance-level-medium"]');
+    await press(page, '[data-testid="dance-start"]');
+    await expect.poll(async () => (await state(page))?.running, { timeout: 10_000 }).toBe(true);
+    // each key goes down right on its note — then the page is kept busy for 80 ms, so the game only
+    // sees the key a frame later. Judged by that frame, every hit would be ~70 ms late (a Great at
+    // best on Medium); judged by the key's own moment, they're Perfect.
+    await page.evaluate(async (keys) => {
+      const g = (window as any).__game;
+      const frame = () => new Promise((r) => requestAnimationFrame(r));
+      for (const note of g.danceState().notes.slice(0, 10)) {
+        while (g.danceState().pos < note.t - 0.004) await frame();
+        const code = (keys as Record<string, string>)[note.lane];
+        window.dispatchEvent(new KeyboardEvent('keydown', { code, key: code, bubbles: true }));
+        const t0 = performance.now();
+        while (performance.now() - t0 < 80) {
+          /* busy: the next frame comes late */
+        }
+        await frame();
+        window.dispatchEvent(new KeyboardEvent('keyup', { code, key: code, bubbles: true }));
+      }
+    }, P1);
+    const st = (await state(page))!;
+    expect(st.players[0].counts.perfect).toBeGreaterThanOrEqual(8);
+    expect(errors).toEqual([]);
+  });
+
   test('phone: one dancer uses both thumbs — ← ↓ under the left thumb, ↑ → under the right', async ({ page }, info) => {
     test.skip(info.project.name !== 'phone', 'the split lanes are for touchscreens');
     const errors = watchErrors(page);
@@ -117,6 +151,32 @@ test.describe('dancing', () => {
     // and a real finger on the right thumb's side counts too
     await page.touchscreen.tap(W - margin - laneW * 0.5, H * 0.62);
     await expect.poll(async () => (await state(page))!.players[0].moves, { timeout: 5000 }).toBe(5);
+    expect(errors).toEqual([]);
+  });
+
+  test('stopping the floor in the moment after the last arrow still brings the results — nothing is left paused', async ({ page }) => {
+    test.setTimeout(150_000);
+    const errors = watchErrors(page);
+    await startGame(page, [26.4, 22.4]);
+    await hook(page, 'openDance', 'jig');
+    await press(page, '[data-testid="dance-start"]');
+    await hook(page, 'danceAuto', true);
+    await hook(page, 'danceSpeed', 4); // (the song itself isn't what's being tested)
+    // the last arrow is done: a moment of cheering before the results card...
+    await expect.poll(async () => (await state(page))?.running, { timeout: 120_000, intervals: [50] }).toBe(false);
+    // ...and right then the floor is stopped (the pause menu's "Stop dancing")
+    await hook(page, 'stopScene', 'dance');
+    await hook(page, 'danceAuto', false);
+    await hook(page, 'danceSpeed', 1);
+    await expect(page.getByTestId('dance-results')).toBeVisible();
+    await press(page, '[data-testid="dance-done"]');
+    await expect.poll(() => hook<string[]>(page, 'scenes')).not.toContain('dance');
+    await expect(page.locator('.hud-left')).toBeVisible();
+    const before = (await hook<{ x: number; y: number }[]>(page, 'players'))[0];
+    await page.keyboard.down('KeyA');
+    await page.waitForTimeout(600);
+    await page.keyboard.up('KeyA');
+    expect((await hook<{ x: number; y: number }[]>(page, 'players'))[0].x).toBeLessThan(before.x - 0.3);
     expect(errors).toEqual([]);
   });
 

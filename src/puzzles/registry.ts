@@ -25,7 +25,7 @@ export function puzzleRecord(d: SaveData, id: string): PuzzleRecord | undefined 
 }
 
 /** Store the outcome of one attempt and nudge the adaptive skill. Returns true on a first-ever solve. */
-export function recordAttempt(d: SaveData, id: string, o: { solved: boolean; hintsUsed: number; difficulty: Difficulty }): boolean {
+export function recordAttempt(d: SaveData, id: string, o: { solved: boolean; hintsUsed: number; difficulty: Difficulty; noSkill?: boolean }): boolean {
   const rec: PuzzleRecord = d.puzzles[id] ?? { solved: false, timesSolved: 0, bestHints: 99, lastDifficulty: o.difficulty };
   const first = o.solved && !rec.solved;
   if (o.solved) {
@@ -35,7 +35,7 @@ export function recordAttempt(d: SaveData, id: string, o: { solved: boolean; hin
   }
   rec.lastDifficulty = o.difficulty;
   d.puzzles[id] = rec;
-  d.skill = updateSkill(d.skill, o);
+  if (!o.noSkill) d.skill = updateSkill(d.skill, o);
   return first;
 }
 

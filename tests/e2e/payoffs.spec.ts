@@ -99,9 +99,11 @@ test.describe('story payoffs survive a break', () => {
     await talkTo(page, 'cookie'); // "Let's dance!"
     await expect(page.getByTestId('dance-setup')).toBeVisible();
     await hook(page, 'danceAuto', true);
+    await hook(page, 'danceSpeed', 4);
     await press(page, '[data-testid="dance-start"]');
     await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 120_000 });
     await hook(page, 'danceAuto', false);
+    await hook(page, 'danceSpeed', 1);
     await expect(page.getByTestId('dance-results')).toHaveAttribute('data-won', 'true');
     await expect(page.getByTestId('dance-again')).toHaveCount(0);
     await breakThenContinue(page);
@@ -126,9 +128,11 @@ test.describe('story payoffs survive a break', () => {
     await press(page, '[data-testid="choice-0"]'); // "Dance-off!"
     await expect(page.getByTestId('dance-setup')).toBeVisible();
     await hook(page, 'danceAuto', true);
+    await hook(page, 'danceSpeed', 4);
     await press(page, '[data-testid="dance-start"]');
     await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 120_000 });
     await hook(page, 'danceAuto', false);
+    await hook(page, 'danceSpeed', 1);
     await press(page, '[data-testid="dance-done"]');
     await playThrough(page, 60_000);
     expect(await flag(page, 'crew:respect')).toBe(true);
@@ -140,15 +144,17 @@ test.describe('story payoffs survive a break', () => {
     test.setTimeout(300_000);
     const errors = watchErrors(page);
     await startGame(page);
-    for (const f of ['pip:companion', 'maple:arrived', 'met:rollo', 'lanes:shoes', 'cup:won', 'met:mabel']) await hook(page, 'setFlag', f, true);
+    for (const f of ['pip:companion', 'maple:arrived', 'met:rollo', 'lanes:shoes', 'cup:won', 'met:mabel', 'orders:sorted']) await hook(page, 'setFlag', f, true);
     await hook(page, 'goTo', 'diner', 'in');
     await toMap(page, 'diner');
     await talkTo(page, 'rosita'); // "Everybody, shoes off — socks on!"
     await expect(page.getByTestId('dance-setup')).toBeVisible();
     await hook(page, 'danceAuto', true);
+    await hook(page, 'danceSpeed', 4);
     await press(page, '[data-testid="dance-start"]');
     await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 120_000 });
     await hook(page, 'danceAuto', false);
+    await hook(page, 'danceSpeed', 1);
     // (a story's one-off dance: no "Dance again" on its card)
     await expect(page.getByTestId('dance-again')).toHaveCount(0);
     await breakThenContinue(page);

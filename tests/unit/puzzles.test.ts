@@ -13,6 +13,7 @@ import '../../src/puzzles/content/tockwood';
 import { PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
 import { EGYPT_RIDDLES } from '../../src/puzzles/content/egypt';
 import '../../src/puzzles/content/florence';
+import '../../src/puzzles/content/fifties';
 import { defaultSave, type Difficulty } from '../../src/core/state';
 import type { LogicGrid } from '../../src/puzzles/logic/logicGrid';
 import type { SailVariant, SlideVariant, CodeVariant } from '../../src/puzzles/types';

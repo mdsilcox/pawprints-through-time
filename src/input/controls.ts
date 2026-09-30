@@ -30,8 +30,8 @@ export function installControls(): void {
   input.events.on('nav', (d) => ui.nav(d));
   input.events.on('confirm', (p) => ui.confirm(p ? 1 : 0));
   input.events.on('back', () => ui.back());
-  input.events.on('pause', () => {
-    if (hud.world && !ui.blocking) openPause();
+  input.events.on('pause', (p) => {
+    if (hud.world && !ui.blocking) openPause(p === 1 ? 1 : 0);
   });
   input.events.on('join-request', () => {
     if (!input.twoPlayer && hud.world) {

@@ -1,4 +1,5 @@
 import '@fontsource/fredoka/400.css';
+import { regionOfMap } from './world/mapdef';
 import '@fontsource/fredoka/500.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
@@ -76,6 +77,7 @@ import './puzzles/ui/jigsawView';
 import './story/pirateChapter';
 import './puzzles/content/egypt';
 import './story/egyptChapter';
+import './puzzles/content/fifties';
 import './puzzles/content/florence';
 import './story/florenceChapter';
 import { ending as finaleEnding } from './story/finale';
@@ -167,7 +169,9 @@ registerDebug({
     const l = maxSeparation(world().frameOpts());
     return { w: l.w / TILE, h: l.h / TILE };
   },
-  openPause: () => openPause(),
+  openPause: (by: 0 | 1 = 0) => openPause(by),
+  /** stop a mini-game scene the way the pause menu's "Stop dancing" / "Leave the game" does */
+  stopScene: (key: string) => app.phaser.scene.stop(key),
   openSettings: () => openSettings(),
   ui: () => ui.ids,
   input: (i: 0 | 1) => ({ ...input.p[i] }),
@@ -181,7 +185,7 @@ registerDebug({
   dialogueLines: () => dialogue.shown.slice(),
   // quests
   objective: () => {
-    const o = app.data ? currentObjective(app.data) : null;
+    const o = app.data ? currentObjective(app.data, regionOfMap(app.data.location.map)) : null;
     return o ? { quest: o.quest.id, step: o.step.id, text: o.step.text } : null;
   },
   quests: () => {
@@ -216,11 +220,15 @@ registerDebug({
   // world & story (M3)
   goTo: (map: string, spawn = 'in') => world().goTo(map, spawn),
   mapId: () => world().def.id,
+  /** a map change or room reload is under way (goTo is ignored until it's done) */
+  transitioning: () => world().transitioning,
   setTime: (hours: number) => {
     if (app.data) app.data.minutes = hours * 60;
   },
   time: () => (app.data ? { day: app.data.day, minutes: app.data.minutes, night: world().isNight } : null),
   digSpots: () => world().digSpots(),
+  /** the pictures in the museum's display cases */
+  exhibits: () => world().exhibits.slice(),
   sniff: () => world().sniff(),
   npcs: () => [...world().npcs.values()].map((n) => ({ id: n.def.id, x: n.x / TILE, y: n.y / TILE })),
   biscuit: () => {
@@ -252,9 +260,11 @@ registerDebug({
   openNotes: () => openNotes(),
   openWorldMap: () => void openWorldMap(),
   // M7: dancing
-  openDance: (style = 'jig', rival: string | null = null, audience: string[] = []) => void dance({ style, rival, audience }),
+  openDance: (style = 'jig', rival: string | null = null, audience: string[] = [], bunnies: string[] = []) => void dance({ style, rival, audience, bunnies }),
   danceState: () => danceDebug.state(),
   danceAuto: (on = true) => danceDebug.setAuto(on),
+  /** fast-forward the next dance (tests on the autopilot; like bowlSpeed) */
+  danceSpeed: (k = 1) => danceDebug.setSpeed(k),
   // M8: bowling
   openBowl: (rival: string | null = null, skill = 0.3, tricks = false, guide = false, alley: 'starlight' | 'tockwood' = 'starlight') => void bowl({ rival: rival ? { id: rival, skill } : null, tricks, guide, alley }),
   /** hand out rewards the way a story payoff does, and show its card at once (screenshots) */
@@ -270,12 +280,17 @@ registerDebug({
     const tm = app.phaser.textures;
     const keys = tm.getTextureKeys();
     let px = 0;
+    const big: string[] = [];
     for (const k of keys) {
       const src = tm.get(k).source[0];
-      px += (src?.width ?? 0) * (src?.height ?? 0);
+      const n = (src?.width ?? 0) * (src?.height ?? 0);
+      px += n;
+      if (n >= 200_000) big.push(k);
     }
-    return { count: keys.length, megapixels: Math.round(px / 1e5) / 10 };
+    return { count: keys.length, megapixels: Math.round(px / 1e5) / 10, big };
   },
+  /** the texture keys that start with `prefix` (memory checks) */
+  textureKeys: (prefix = '') => app.phaser.textures.getTextureKeys().filter((k) => k.startsWith(prefix)),
   // M10: the ending storybook and the credits
   playEnding: () => void finaleEnding(),
   // M8 checkpoint: home decorating

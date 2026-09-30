@@ -60,7 +60,7 @@ export const DANCE_STYLES: Record<string, DanceStyleDef> = {
   },
   court: {
     id: 'court',
-    name: 'The Duchess’s Court Dance',
+    name: 'Lady Orsola’s Court Dance',
     era: 'florence',
     song: 'court',
     loops: 2,

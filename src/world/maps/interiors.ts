@@ -214,10 +214,13 @@ defineRoom({
   objects: () => [
     ...[2.5, 4.5, 9.5, 11.5].map((x, i) => ({ id: `case-${i}`, kind: 'exhibit', x, y: 4.5, texture: 'fur-displaycase', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { slot: i } }) as MapObject),
     ...[2.5, 4.5, 9.5, 11.5].map((x, i) => ({ id: `ped-${i}`, kind: 'exhibit', x, y: 7.4, texture: 'fur-pedestal', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { slot: i + 4 } }) as MapObject),
-    { id: 'quill', kind: 'npc', x: 7, y: 5.2, p: { id: 'quill', wander: 1.2 } },
+    // (Dr. Quill potters about the middle of the hall, leaving room to read the notice board)
+    { id: 'quill', kind: 'npc', x: 7, y: 6.3, p: { id: 'quill', wander: 0.9 } },
     // (visiting from ancient Egypt once the third sand is home)
     { id: 'ankhi-visit', kind: 'npc', x: 10.2, y: 6.4, p: { id: 'ankhi', wander: 0.6 }, when: 'ankhi:arrived' },
     { id: 'mosaic', kind: 'use', x: 3.4, y: 9.1, texture: 'prop-mosaic', p: { action: 'mosaic', label: 'Mosaic', range: 1.3, floor: true } },
+    // Pip's History Notes, pinned up for everyone to read (they fill the museum with the finds)
+    { id: 'notes-board', kind: 'use', x: 7, y: 3.35, texture: 'fur-noteboard', foot: { dx: -1, dy: -1, w: 2, h: 1 }, p: { action: 'museum-notes', label: 'History Notes', range: 1.3 } },
   ],
 });
 

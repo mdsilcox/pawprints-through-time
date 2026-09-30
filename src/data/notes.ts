@@ -36,10 +36,10 @@ export const NOTES: HistoryNote[] = [
     text: 'Leonardo da Vinci grew up near Florence. He filled notebooks with ideas for flying machines — and once built a mechanical lion that could walk!',
   },
   {
-    id: 'florence-florin',
+    id: 'florence-food',
     era: 'florence',
-    title: 'The golden florin',
-    text: 'Florence made its own gold coin, the florin. It was trusted by traders all over Europe.',
+    title: 'The bean-eaters',
+    text: 'Florentines loved white beans so much that other Italians nicknamed them “bean-eaters”. Markets sold fresh herbs like basil, and bread and olive oil came with every meal.',
   },
   // ---------------------------------------------------------------- Ancient Egypt (Giza, ~2500 BCE)
   {

@@ -140,7 +140,8 @@ function pyramid(done: boolean): () => PropArt {
       const halfW = 500;
       const apex = 60;
       const topY = done ? apex : 300; // unfinished: flat top where the builders work
-      const halfAt = (y: number) => (halfW * (base - y)) / (base - apex);
+      // (how wide the pyramid is at height y: nothing at the apex, all of it at the base)
+      const halfAt = (y: number) => (halfW * (y - apex)) / (base - apex);
       // the body
       const g = c.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
       g.addColorStop(0, done ? '#fbf3dd' : LIME);

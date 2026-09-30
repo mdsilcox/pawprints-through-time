@@ -51,7 +51,7 @@ export function drawDanceStage(kind: StageKind, w: number, h: number): HTMLCanva
   const u = Math.min(w / 1280, h / 720);
   const horizon = h * 0.5;
   if (kind === 'court') {
-    // the Duchess's courtyard in Florence: an evening sky, the great dome, arches, banners and a marble floor
+    // Lady Orsola's courtyard in Florence: an evening sky, the great dome, arches, banners and a marble floor
     const sky = ctx.createLinearGradient(0, 0, 0, h * 0.45);
     sky.addColorStop(0, '#3f4f8f');
     sky.addColorStop(1, '#e9a37a');
@@ -99,7 +99,7 @@ export function drawDanceStage(kind: StageKind, w: number, h: number): HTMLCanva
       ctx.closePath();
       ctx.fill();
     }
-    // banners in the Duchess's colours
+    // banners in the family's colours
     for (let i = 0; i < n; i++) {
       const bx = (i + 0.5) * aw;
       if (i % 2) continue;

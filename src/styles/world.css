@@ -76,6 +76,12 @@
   transform: translate(-50%, 0) scale(1);
   opacity: 1;
 }
+/* (a short phone: below the place and objective pills, not over the objective) */
+@media (max-height: 500px) {
+  .reward-card {
+    top: 27%;
+  }
+}
 .reward-card .rc-title {
   font-weight: 800;
   text-align: center;

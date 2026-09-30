@@ -5,7 +5,7 @@ import { defineRoom, fur } from './interiors';
 
 /**
  * 1950s America: Maple Street (a little American town around 1957), the Starlight Lanes
- * bowling alley and the Rock-a-Roll Diner with its skating waitress and jukebox.
+ * bowling alley and the Rock-a-Roll Diner with its roller rink and jukebox.
  */
 export const MAPLE = {
   portal: { x: 8, y: 24 },
@@ -138,6 +138,10 @@ defineRoom({
     { id: 'duke', kind: 'npc', x: 4, y: 8.3, p: { id: 'duke', wander: 0.6 } },
     fur('lanes-plant', 'plant', 14.8, 8.8),
     fur('lanes-table', 'table', 3, 8.4),
+    // the back wall: the neon sign over the pins, a glowing scoreboard and a neon star
+    fur('lanes-sign', 'lanesign-starlight', 8, 2.5),
+    fur('lanes-scoreboard', 'scoreboard', 2.5, 2.2),
+    fur('lanes-star', 'neonstar', 13.6, 2.55),
   ],
 });
 
@@ -170,6 +174,8 @@ defineRoom({
     { id: 'pantry', kind: 'use', x: 1.3, y: 4.4, texture: 'fur-pantry', foot: { dx: 0, dy: -1, w: 1, h: 1 }, p: { action: 'pantry', label: 'Pantry', range: 1.3 } },
     { id: 'mabel', kind: 'npc', x: 7.6, y: 5.3, p: { id: 'mabel', wander: 1.2 } },
     { id: 'rosita', kind: 'npc', x: 9.6, y: 6.2, p: { id: 'rosita', wander: 0.5 } },
+    // the diner's own roller rink (Zippy's favourite place in all of 1957)
+    { id: 'rink', kind: 'prop', x: 4.8, y: 9.1, texture: 'fur-rink', p: { floor: true } },
     { id: 'zippy', kind: 'lostbunny', x: 5, y: 7.4, when: '!rescued:zippy', p: { id: 'zippy', skate: 1.7 } },
     { id: 'dot', kind: 'lostbunny', x: 1.4, y: 5.5, when: 'dot:found,!rescued:dot', p: { id: 'dot' } },
     { id: 'poppy', kind: 'lostbunny', x: 8.6, y: 7.4, when: 'sockhop:danced,!rescued:poppy', p: { id: 'poppy' } },
@@ -202,5 +208,10 @@ defineRoom({
     { id: 'tl-play', kind: 'use', x: 6.5, y: 7.2, p: { action: 'tlanes-bowl', label: 'Bowl!', range: 1.4 } },
     { id: 'rollo-home', kind: 'npc', x: 11, y: 6.4, p: { id: 'rollo', wander: 0.6 } },
     fur('tl-plant', 'plant', 12.8, 7.8),
+    // the back wall: the sign over the pins, a scoreboard, the alley clock and pennants
+    fur('tl-sign', 'lanesign-tockwood', 6.5, 1.65),
+    fur('tl-scoreboard', 'scoreboard', 2.3, 2.4),
+    fur('tl-clock', 'alleyclock', 11.4, 2.45),
+    fur('tl-pennants', 'pennants', 11.4, 1.05),
   ],
 });

@@ -41,6 +41,9 @@ export function openWorldMap(): Promise<EraStop | null> {
       ui.pop('worldmap');
       resolve(v);
     };
+    // the era that's calling (open, its sand not found yet) gets the focus — not the first one you've already done
+    const calling = ERAS.find((e) => e.open() && e.built && !e.done());
+    let callingBtn: HTMLElement | null = null;
     const stops = ERAS.map((e, i) => {
       const open = e.open() && e.built;
       const status = e.done() ? '✨ Time Sand found!' : open ? 'The sand is calling!' : e.open() ? 'Coming soon...' : 'The sands haven’t called you here yet.';
@@ -49,7 +52,11 @@ export function openWorldMap(): Promise<EraStop | null> {
         { class: `wm-stop ${open ? 'open' : 'locked'} ${e.done() ? 'done' : ''}`, style: `--i:${i}` },
         h('div', { class: 'wm-icon', attrs: { 'aria-hidden': 'true' } }, open || e.done() ? e.icon : '❔'),
         h('div', { class: 'wm-text' }, h('div', { class: 'wm-name' }, open || e.done() ? e.name : '???'), h('div', { class: 'small' }, open || e.done() ? e.when : 'A faraway time'), h('div', { class: 'small wm-status' }, status)),
-        open ? button(e.done() ? 'Visit again' : 'Travel!', () => close(e), { icon: '🌀', testid: `wm-go-${e.id}`, cls: e.done() ? 'secondary' : '' }) : null,
+        open ? (() => {
+          const b = button(e.done() ? 'Visit again' : 'Travel!', () => close(e), { icon: '🌀', testid: `wm-go-${e.id}`, cls: e.done() ? 'secondary' : '', autofocus: e === calling });
+          if (e === calling) callingBtn = b;
+          return b;
+        })() : null,
       );
     });
     const panel = h(
@@ -62,6 +69,7 @@ export function openWorldMap(): Promise<EraStop | null> {
       h('div', { class: 'row end sticky-foot' }, button('Stay home', () => close(null), { cls: 'secondary', testid: 'wm-close' })),
     );
     ui.push({ id: 'worldmap', el: closeOnBackdrop(h('div', { class: 'center-wrap backdrop' }, panel), () => close(null)), onBack: () => close(null) });
+    requestAnimationFrame(() => (callingBtn as HTMLElement | null)?.scrollIntoView({ block: 'center' }));
     audio.sfx('page');
   });
 }

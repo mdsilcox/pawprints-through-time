@@ -11,6 +11,7 @@ export class TitleScene extends Phaser.Scene {
   private sea!: Phaser.GameObjects.Image;
   private hill!: Phaser.GameObjects.Image;
   private tower!: Phaser.GameObjects.Image;
+  private biscuit!: Phaser.GameObjects.Image;
   private clouds: Phaser.GameObjects.Image[] = [];
   private sand!: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -27,6 +28,17 @@ export class TitleScene extends Phaser.Scene {
     }
     this.hill = this.add.image(0, 0, 'title-hill').setOrigin(0.5, 1);
     this.tower = this.add.image(0, 0, app.flag('hourglassRestored') ? 'clocktower-fixed' : 'clocktower').setOrigin(0.5, 1);
+    // Biscuit sits at the foot of the clocktower, wagging (and now and then a happy bark)
+    this.biscuit = this.add.image(0, 0, 'biscuit', 'sit').setOrigin(0.5, 0.92);
+    let beat = 0;
+    this.time.addEvent({
+      delay: 380,
+      loop: true,
+      callback: () => {
+        beat++;
+        this.biscuit.setFrame(beat % 12 === 0 ? 'bark' : beat % 2 ? 'happy' : 'sit');
+      },
+    });
     this.sand = this.add.particles(0, 0, 'fx-sand', {
       lifespan: { min: 5000, max: 9000 },
       speedX: { min: 8, max: 40 },
@@ -131,6 +143,9 @@ export class TitleScene extends Phaser.Scene {
     const towerX = W * 0.74;
     this.hill.setPosition(towerX, H + 20 * ts).setScale(ts * 1.25);
     this.tower.setPosition(towerX, H - 150 * ts).setScale(ts);
+    this.biscuit.setPosition(towerX - 175 * ts, H - 52 * ts).setScale(ts * 1.25);
+    this.tweens.killTweensOf(this.biscuit);
+    this.tweens.add({ targets: this.biscuit, angle: { from: -3, to: 3 }, duration: 380, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.clouds.forEach((cl, i) => {
       cl.setScale(s * (0.8 + (i % 2) * 0.4));
       cl.setPosition(((i * 0.29 + 0.1) % 1) * W, H * (0.1 + (i % 3) * 0.1));

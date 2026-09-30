@@ -42,6 +42,26 @@ test.describe('wardrobe & tailor', () => {
     expect(errors).toEqual([]);
   });
 
+  test('when Player 2 pauses (their gamepad’s Start), the wardrobe opens on Player 2', async ({ page }) => {
+    const errors = watchErrors(page);
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'joinP2');
+    await hook(page, 'openPause', 1);
+    await press(page, '[data-testid="pause-wardrobe"]');
+    await expect(page.getByTestId('wd-who-1')).toHaveClass(/(^|\s)on(\s|$)/);
+    await press(page, '[data-testid="wardrobe-done"]');
+    // back on the pause menu: close it (after the brief anti-double-press pause that follows any screen closing)
+    await expect(page.locator('[data-screen="pause"]')).toBeVisible();
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-screen="pause"]')).toHaveCount(0);
+    // Player 1 pausing still gets Player 1's wardrobe
+    await hook(page, 'openPause', 0);
+    await press(page, '[data-testid="pause-wardrobe"]');
+    await expect(page.getByTestId('wd-who-0')).toHaveClass(/(^|\s)on(\s|$)/);
+    expect(errors).toEqual([]);
+  });
+
   test('player 2 and Biscuit have their own outfits and looks', async ({ page }) => {
     await startGame(page, [30.5, 24]);
     await hook(page, 'joinP2');
@@ -190,6 +210,8 @@ test.describe('wardrobe & tailor', () => {
     ];
     const pick = options.find(([, , p]) => p <= afterSelling);
     expect(pick, `earned ${afterSelling} Tockens`).toBeTruthy();
+    // (the museum rebuilds its display cases after a trade — let that settle before leaving)
+    await expect.poll(() => hook<boolean>(page, 'transitioning')).toBe(false);
     await hook(page, 'goTo', 'tailor', 'in');
     await expect.poll(() => hook<string>(page, 'mapId')).toBe('tailor');
     for (let i = 0; i < 3 && !(await page.locator('.wardrobe-panel.shop').count()); i++) await talkTo(page, 'bramble');

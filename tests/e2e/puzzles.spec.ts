@@ -328,13 +328,21 @@ test.describe('brain-builders', () => {
     expect((await record(page, 'finnegan-boat')).bestHints).toBe(3);
   });
 
-  test('adaptive difficulty: a clean solve makes the next puzzle a little harder; Settings can pin it', async ({ page }) => {
+  test('adaptive difficulty: a clean solve makes the next puzzle a little harder (riddles don’t count); Settings can pin it', async ({ page }) => {
     await startGame(page, [30.5, 24]);
+    // a riddle: picking again after a wrong guess costs nothing, so riddles never move the difficulty
     await openPz(page, 'riddle-stone');
     await expect(page.getByTestId('pz-difficulty')).toHaveText('Easy');
     const labels = await page.locator('[data-testid^="riddle-choice-"]').allTextContents();
     await press(page, `[data-testid="riddle-choice-${labels.findIndex((l) => /clocktower/i.test(l))}"]`);
     await celebrate(page);
+    expect((await hook<any>(page, 'puzzles')).skill).toBeCloseTo(0.4, 5);
+    // a clean logic grid does
+    await openPz(page, 'grandma-scarves');
+    await expect(page.getByTestId('pz-difficulty')).toHaveText('Easy');
+    for (const id of ['grid-0-0-0', 'grid-0-1-1', 'grid-0-2-2']) for (let i = 0; i < 2; i++) await page.getByTestId(id).click();
+    await celebrate(page);
+    await playThrough(page); // (Grandma's thank-you, the first time)
     expect((await hook<any>(page, 'puzzles')).skill).toBeCloseTo(0.5, 5);
     await openPz(page, 'quill-patterns');
     await expect(page.getByTestId('pz-difficulty')).toHaveText('Medium');

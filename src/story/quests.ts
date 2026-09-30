@@ -82,12 +82,21 @@ export function questLog(d: SaveData): { active: QuestProgress[]; finished: Ques
 }
 
 /** The objective shown on the HUD: the first unfinished main quest's current step. */
-export function currentObjective(d: SaveData): { quest: QuestDef; step: QuestStep } | null {
-  for (const q of QUESTS) {
-    if (!q.main || !q.available(d)) continue;
-    const p = progress(q, d);
-    if (!p.done && p.current) return { quest: q, step: p.current };
-  }
+/** The story's own order: the opening, the eras as the Map of Time opens them, then the finale. */
+const CHAPTER_ORDER: QuestDef['chapter'][] = ['tockwood', 'pirate', 'egypt', 'fifties', 'florence', 'finale'];
+
+/**
+ * The HUD objective (and the ★ on the map): the main quest of the era you're standing in, if it's
+ * still going — else the earliest unfinished main quest in story order, so the finale's "bring all
+ * eight home" only takes over once every chapter is done. Side quests fill in when no main quest runs.
+ */
+export function currentObjective(d: SaveData, region?: string): { quest: QuestDef; step: QuestStep } | null {
+  const running = QUESTS.filter((q) => q.main && q.available(d))
+    .map((q) => ({ q, p: progress(q, d) }))
+    .filter(({ p }) => !p.done && !!p.current)
+    .sort((a, b) => CHAPTER_ORDER.indexOf(a.q.chapter) - CHAPTER_ORDER.indexOf(b.q.chapter));
+  const pick = running.find(({ q }) => q.chapter === region) ?? running[0];
+  if (pick) return { quest: pick.q, step: pick.p.current! };
   for (const q of QUESTS) {
     if (q.main || !q.available(d)) continue;
     const p = progress(q, d);

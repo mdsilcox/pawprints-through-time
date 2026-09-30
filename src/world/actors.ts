@@ -448,6 +448,8 @@ export class BunnyActor extends Actor {
   textureKey: string;
   /** moved by the world (a roller-skating cousin), not by its own hopping */
   skating = false;
+  /** warren bunnies nap now and then — but nobody naps at a party */
+  naps = true;
   biscuitPos: () => { x: number; y: number; moving: boolean } | null = () => null;
 
   constructor(
@@ -558,7 +560,7 @@ export class BunnyActor extends Actor {
       return;
     }
     const r = Math.random();
-    if (this.mode === 'warren' && r < 0.15) {
+    if (this.mode === 'warren' && this.naps && r < 0.15) {
       this.sleeping = true;
       this.frame('sleep');
       this.emote('zzz', 2500);

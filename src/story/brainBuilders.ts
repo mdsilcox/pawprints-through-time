@@ -6,7 +6,7 @@ import { openPuzzle, type OpenOpts } from '../puzzles/ui/screen';
 import { TOCKWOOD_RIDDLES } from '../puzzles/content/riddles';
 import type { Riddle } from '../puzzles/logic/riddle';
 import type { PuzzleResult } from '../puzzles/types';
-import { befriend, flag, give, giveTockens, onUse, setFlag } from './hooks';
+import { flag, giveTockens, onUse, payout, setFlag } from './hooks';
 import { registerQuest } from './quests';
 import { learnClue } from '../soup/kitchen';
 
@@ -96,14 +96,12 @@ export async function grandmaPuzzle(): Promise<void> {
     yes: 'Let’s puzzle it out!',
     replayPitch: 'Would you like to sort my scarves again? I do love watching you think!',
     onFirstSolve: async () => {
+      const show = payout([], [{ clue: 'whisker-bisque', from: 'grandma' }, { clue: 'together-tea', from: 'grandma' }, { tockens: 15 }, { friend: 'grandma', pts: 20 }], { title: '🧶 Grandma’s thank-you' });
       await talk('grandma', [
         'Every scarf in the right place! What clever little minds you have.',
         'Now, a thank-you. When I was young, my grandmother taught me two soup secrets...',
       ]);
-      learnClue('whisker-bisque', 'grandma');
-      learnClue('together-tea', 'grandma');
-      giveTockens(15);
-      befriend('grandma', 20);
+      show();
     },
   });
 }
@@ -123,12 +121,10 @@ export async function juniperPuzzle(): Promise<void> {
     pitch: 'Oh no no no — my wheelbarrow is stuck behind the veggie crates, and they only slide one way each! Can you get it out?',
     replayPitch: 'The crates got all jumbled again! Want to un-jam them?',
     onFirstSolve: async () => {
+      const show = payout([], [{ item: 'seed-radish', n: 2 }, { item: 'seed-pumpkin', n: 2 }, { clue: 'sunbeam-squash', from: 'juniper' }, { friend: 'juniper', pts: 20 }], { title: '🐐 Juniper’s thank-you' });
       audio.sfx('cheer');
       await talk('juniper', ['WHEELBARROW, you’re FREE! Thank you thank you!', 'Here — seeds for your garden, and a soup secret my bees told me.']);
-      give('seed-radish', 2, { from: 'Juniper gave you' });
-      give('seed-pumpkin', 2, { from: 'Juniper gave you' });
-      learnClue('sunbeam-squash', 'juniper');
-      befriend('juniper', 20);
+      show();
     },
   });
 }
@@ -148,9 +144,9 @@ onUse('mosaic', async () => {
     pitch: 'Ah, the old mosaic! A few tiles went missing long ago. If you can work out the pattern, I can have new ones made. Shall we look?',
     replayPitch: 'Back to the mosaic? Patterns are wonderful exercise for the brain!',
     onFirstSolve: async () => {
+      const show = payout([], [{ tockens: 15 }, { friend: 'quill', pts: 20 }], { title: '🦔 Dr. Quill’s finder’s fee' });
       await talk('quill', ['Prickles and pocketwatches, that’s it! The tile-makers loved a good pattern.', 'Here’s a finder’s fee for a pair of sharp-eyed historians.']);
-      giveTockens(15);
-      befriend('quill', 20);
+      show();
     },
   });
 });
@@ -168,10 +164,9 @@ onUse('lockbox', async () => {
     yes: 'We’ll crack it!',
     replayPitch: 'I changed the code again! Want to crack it?',
     onFirstSolve: async () => {
+      const show = payout([], [{ item: 'seed-tomato', n: 3 }, { clue: 'ticktock-tomato', from: 'rocco' }, { friend: 'rocco', pts: 20 }], { title: '🔧 Rocco’s thank-you' });
       await talk('rocco', ['CLICK! My tools! My lovely tools! You two are code-cracking champions!', 'Take these tomato seeds. And a secret: tomatoes make the best time-slowing soup...']);
-      give('seed-tomato', 3, { from: 'Rocco gave you' });
-      learnClue('ticktock-tomato', 'rocco');
-      befriend('rocco', 20);
+      show();
     },
   });
 });
@@ -189,11 +184,9 @@ onUse('toy-boat', async () => {
     yes: 'Aye aye!',
     replayPitch: 'Another race to the buoy? The tide’s just right!',
     onFirstSolve: async () => {
+      const show = payout([], [{ item: 'sardine', n: 2 }, { clue: 'sparkle-stew', from: 'finnegan' }, { clue: 'pirates-gumbo', from: 'finnegan' }, { friend: 'finnegan', pts: 20 }], { title: '🐸 Finnegan’s thank-you' });
       await talk('finnegan', ['What a skipper! You’d make any pirate jealous.', 'Here — a couple of sardines, and two old sailor soup secrets.']);
-      give('sardine', 2, { from: 'Finnegan gave you' });
-      learnClue('sparkle-stew', 'finnegan');
-      learnClue('pirates-gumbo', 'finnegan');
-      befriend('finnegan', 20);
+      show();
     },
   });
 });

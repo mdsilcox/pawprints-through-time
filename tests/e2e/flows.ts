@@ -4,6 +4,7 @@ import { solve as solveSail } from '../../src/puzzles/logic/navigation';
 import { MARIGOLD_CHART, PIRATE_RIDDLES } from '../../src/puzzles/content/pirates';
 import { EGYPT_RIDDLES, RAMP_STONES } from '../../src/puzzles/content/egypt';
 import { FIORELLA_FRESCO, LUCIA_LION } from '../../src/puzzles/content/florence';
+import { MABEL_ORDERS } from '../../src/puzzles/content/fifties';
 import { parseLevel, solve as solveSlide } from '../../src/puzzles/logic/sliding';
 import type { Riddle } from '../../src/puzzles/logic/riddle';
 
@@ -101,24 +102,39 @@ export async function solveJigsaw(page: Page): Promise<void> {
   }
 }
 
-/** Dance on the autopilot until the results card, then close it. */
+/**
+ * Dance on the autopilot until the results card, then close it. (Fast-forwarded 4×, like the Cup's
+ * bowling: these are story playthroughs — the dance itself is tested at real speed in dance.spec.)
+ */
 export async function danceItOut(page: Page, two: boolean): Promise<void> {
   await expect(page.getByTestId('dance-setup')).toBeVisible();
   await hook(page, 'danceAuto', true);
+  await hook(page, 'danceSpeed', 4);
   await press(page, '[data-testid="dance-start"]');
   await expect(page.getByTestId('dance-results')).toBeVisible({ timeout: 120_000 });
   await hook(page, 'danceAuto', false);
+  await hook(page, 'danceSpeed', 1);
   if (two) await expect(page.getByTestId('dance-result-p2')).toBeVisible();
   await press(page, '[data-testid="dance-done"]');
   await playThrough(page, 60_000);
+}
+
+/**
+ * Step up to the clocktower portal and open the Map of Time with a single press, then wait:
+ * a second press while a slow map is still opening would pick the calling era by itself.
+ */
+export async function openPortal(page: Page): Promise<void> {
+  await tp(page, 10.5, 7.6);
+  await expect.poll(() => hook(page, 'prompt'), { timeout: 8000 }).toBe('Portal');
+  await page.keyboard.press('KeyE');
+  await expect(page.getByTestId('world-map')).toBeVisible({ timeout: 20_000 });
 }
 
 /** Travel from the clocktower portal through the Map of Time. */
 export async function travel(page: Page, era: string, map: string, arrivedFlag: string): Promise<void> {
   await hook(page, 'goTo', 'clocktower', 'in');
   await toMap(page, 'clocktower');
-  await useAt(page, 10.5, 7.6, 'Portal');
-  await expect(page.getByTestId('world-map')).toBeVisible();
+  await openPortal(page);
   await press(page, `[data-testid="wm-go-${era}"]`);
   await playThrough(page);
   await toMap(page, map);
@@ -356,10 +372,17 @@ export async function fiftiesChapter(page: Page, two: boolean): Promise<void> {
   expect(await hook<string[]>(page, 'sands')).toContain('fifties');
   expect(await inv(page, 'bowling-pin')).toBe(1);
 
-  // the sock hop at the diner
+  // the diner: the sock hop waits for Mabel's mixed-up orders (the 1950s brain-builder)
   await hook(page, 'goTo', 'fifties', 'lanes-out');
   await toMap(page, 'fifties');
   await enter(page, 10, 11.6, 'diner');
+  await talkTo(page, 'mabel');
+  await playThrough(page);
+  await expect(page.getByTestId('puzzle')).toBeVisible();
+  await page.waitForTimeout(400);
+  await solveGrid(page, (MABEL_ORDERS.variants[await variantOf(page)] as { answer: number[][] }).answer);
+  await playThrough(page);
+  expect(await flag(page, 'orders:sorted')).toBe(true);
   await talkTo(page, 'rosita'); // "Everybody, shoes off — socks on!"
   await danceItOut(page, two);
   expect(await flag(page, 'sockhop:danced')).toBe(true);
@@ -527,7 +550,7 @@ async function solveGrid(page: Page, answer: number[][]): Promise<void> {
 }
 
 export async function florenceChapter(page: Page, two: boolean): Promise<void> {
-  // the Duchess and her court dance that can't begin
+  // Lady Orsola and her court dance that can't begin
   await talkTo(page, 'orsola');
   await playThrough(page);
   expect(await flag(page, 'met:orsola')).toBe(true);
@@ -598,7 +621,7 @@ export async function florenceChapter(page: Page, two: boolean): Promise<void> {
   expect((await hook<any>(page, 'state')).bunnies).toContain('twirl');
   expect(await hook<string[]>(page, 'sands')).toContain('florence-cousins');
 
-  // the Duchess's court dance
+  // Lady Orsola's court dance
   await useAt(page, 29.5, 22.0, 'Dance!');
   await advanceDialogue(page); // "Musicians — play!"
   await danceItOut(page, two);

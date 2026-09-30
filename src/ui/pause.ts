@@ -31,8 +31,13 @@ export function registerPauseEntry(e: PauseEntry): void {
 
 registerPauseEntry({ id: 'settings', icon: '⚙️', label: 'Settings', order: 90, open: () => openSettings() });
 
-export function openPause(): void {
+/** Who opened the pause menu (Player 2's gamepad Start opens it for Player 2): their wardrobe opens first. */
+let opener: 0 | 1 = 0;
+export const pauseOpener = (): 0 | 1 => (input.twoPlayer ? opener : 0);
+
+export function openPause(by: 0 | 1 = 0): void {
   if (ui.has('pause')) return;
+  opener = by;
   audio.sfx('open');
   app.setFlag('opened:pause');
   const close = () => {

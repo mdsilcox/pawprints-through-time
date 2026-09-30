@@ -6,11 +6,12 @@ import { h, clear } from './dom';
 import { button, closeOnBackdrop, toast, ui } from './ui';
 
 /**
- * Dr. Quill's trading table: sell spare finds (shells, fossils, trinkets) for Tockens.
- * The first of every museum piece goes into the Museum of Time instead, with a finder's fee —
- * so digging every day → Tockens → Bramble's clothes is a loop that never runs dry.
+ * Dr. Quill's trading table: sell spare finds (shells, fossils, trinkets — and treasures brought
+ * home from the eras) for Tockens. The first of every museum piece goes into the Museum of Time
+ * instead, with a finder's fee — so digging every day → Tockens → Bramble's clothes is a loop that
+ * never runs dry, and every era's treasures end up on show.
  */
-const SELLABLE_KINDS = new Set(['shell', 'fossil', 'trinket']);
+const SELLABLE_KINDS = new Set(['shell', 'fossil', 'trinket', 'artifact']);
 
 export function sellable(d = app.data): ItemDef[] {
   if (!d) return [];

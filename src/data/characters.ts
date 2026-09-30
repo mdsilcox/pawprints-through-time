@@ -137,8 +137,8 @@ export const CHARACTERS: Record<string, CharacterDef> = {
   },
   orsola: {
     id: 'orsola',
-    name: 'Duchess Orsola',
-    title: 'Duchess of the Palazzo',
+    name: 'Lady Orsola',
+    title: 'Lady of the Palazzo',
     art: 'doll',
     spec: doll('bear', '#a8785a', { hat: P('flowercrown', '#f7c65a', '#f4a3b4'), top: P('doublet', '#6f3fa0', '#f7c65a'), bottom: P('skirt', '#6f3fa0', '#f7c65a'), shoes: P('slippers', '#f7c65a', '#6f3fa0'), acc: P('pearls', '#ffffff', '#f7c65a') }, { fur2: '#d9b594' }),
     voice: { midi: 60, kind: 'soft' },

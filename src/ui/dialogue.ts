@@ -217,6 +217,8 @@ class DialogueBox {
     this.setSpeaker(who);
     clear(this.choices);
     await this.type(who, text);
+    // (a long list — e.g. every dance you know — flows into a grid, so it never runs off a phone's screen)
+    this.choices.classList.toggle('many', options.length >= 5);
     return new Promise<number>((resolve, reject) => {
       this.cancel = reject;
       options.forEach((opt, i) => {

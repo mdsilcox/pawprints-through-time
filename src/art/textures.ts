@@ -139,12 +139,43 @@ export function ensurePropTexture(scene: Phaser.Scene, key: string): boolean {
   const art = make();
   addCanvasTexture(scene, key, art.cv.c);
   TEXTURE_ORIGIN[key] = { ox: art.ox, oy: art.oy };
+  drawnProps.add(key);
   return true;
+}
+
+/** Prop pictures drawn on demand (the ones that can be let go again). */
+const drawnProps = new Set<string>();
+
+/**
+ * Let go of the big prop pictures (buildings, a pyramid, a dome...) that the map you're on doesn't
+ * use, so visiting every era doesn't pile them all up in a phone's memory. Small ones stay (they're
+ * cheap, and redrawing them would only cost time); anything let go is drawn again when a map needs it.
+ */
+export function releasePropTextures(scene: Phaser.Scene, inUse: Set<string>, minPixels = 200_000): void {
+  for (const key of [...drawnProps]) {
+    if (inUse.has(key)) continue;
+    if (!scene.textures.exists(key)) {
+      drawnProps.delete(key);
+      continue;
+    }
+    const src = scene.textures.get(key).source[0];
+    if ((src?.width ?? 0) * (src?.height ?? 0) < minPixels) continue;
+    scene.textures.remove(key);
+    drawnProps.delete(key);
+  }
 }
 
 function registerProps(_scene: Phaser.Scene) {
   TEXTURE_ORIGIN.clocktower = { ox: 0.5, oy: 1 };
   TEXTURE_ORIGIN['clocktower-fixed'] = { ox: 0.5, oy: 1 };
+}
+
+/**
+ * The world's sprite sheets for people from other places (`npc-*`) go when you leave them; a
+ * sheet is drawn again the moment its owner turns up (a visit, a party, the next trip).
+ */
+export function releaseCharacterSheets(scene: Phaser.Scene, inUse: Set<string>): void {
+  for (const key of scene.textures.getTextureKeys()) if (key.startsWith('npc-') && !inUse.has(key)) scene.textures.remove(key);
 }
 
 /** Build (or rebuild) a character sprite sheet texture with one named frame per pose. */

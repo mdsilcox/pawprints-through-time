@@ -53,6 +53,22 @@ describe('quests', () => {
     expect(o?.quest.id).not.toBe('t-main');
   });
 
+  it('the objective follows the era you are in, then the story order — the finale waits for every chapter', () => {
+    // (registered finale-first on purpose: registration order must not decide the objective)
+    registerQuest({ id: 'o-finale', title: 'F', icon: '⏳', chapter: 'finale', main: true, available: (d) => !!d.flags.o, steps: [{ id: 's', text: 'all eight home', done: () => false }] });
+    registerQuest({ id: 'o-fifties', title: 'C', icon: '🎳', chapter: 'fifties', main: true, available: (d) => !!d.flags.o, steps: [{ id: 's', text: 'the cup', done: (d) => !!d.flags.o5 }] });
+    registerQuest({ id: 'o-egypt', title: 'E', icon: '🔺', chapter: 'egypt', main: true, available: (d) => !!d.flags.o, steps: [{ id: 's', text: 'the capstone', done: (d) => !!d.flags.o2 }] });
+    const d = defaultSave();
+    d.flags.o = true;
+    expect(currentObjective(d)?.quest.id).toBe('o-egypt');
+    expect(currentObjective(d, 'fifties')?.quest.id).toBe('o-fifties');
+    expect(currentObjective(d, 'tockwood')?.quest.id).toBe('o-egypt');
+    d.flags.o2 = true;
+    expect(currentObjective(d, 'egypt')?.quest.id).toBe('o-fifties');
+    d.flags.o5 = true;
+    expect(currentObjective(d)?.quest.id).toBe('o-finale');
+  });
+
   it('reports newly finished steps and quests exactly once, and runs rewards once', () => {
     const d = defaultSave();
     d.flags.started = true;

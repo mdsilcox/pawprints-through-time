@@ -8,7 +8,7 @@ import { itemThumb, drawPreview, drawBiscuitPreview } from '../art/thumbs';
 import { iconUrl } from '../art/icons';
 import { h, clear } from './dom';
 import { button, toast, ui } from './ui';
-import { registerPauseEntry } from './pause';
+import { registerPauseEntry, pauseOpener } from './pause';
 
 /**
  * The wardrobe: dress both players and Biscuit. Changes show instantly in the world
@@ -364,4 +364,4 @@ function eraLabel(era: string): string {
   return { pirate: '🏴 Pirate era', egypt: '🔺 Ancient Egypt', fifties: '🎳 1950s', florence: '🎨 Renaissance' }[era] ?? '';
 }
 
-registerPauseEntry({ id: 'wardrobe', icon: '👗', label: 'Wardrobe', order: 15, open: () => openWardrobe() });
+registerPauseEntry({ id: 'wardrobe', icon: '👗', label: 'Wardrobe', order: 15, open: () => openWardrobe({ who: pauseOpener() }) });

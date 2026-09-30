@@ -642,7 +642,7 @@ function drawTop(ctx: CanvasRenderingContext2D, spec: CharSpec, rig: Rig) {
           ctx.fillStyle = accent;
           ctx.font = 'bold 14px Fredoka, sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('T', t.x + 10, t.y + 19);
+          ctx.fillText('A', t.x + 10, t.y + 19); // A for the Alley Cats
         }
         break;
       }

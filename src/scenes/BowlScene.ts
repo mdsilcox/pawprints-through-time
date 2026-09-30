@@ -125,6 +125,8 @@ export class BowlScene extends Phaser.Scene {
   // drawing
   private bg: Phaser.GameObjects.Image | null = null;
   private lane!: Phaser.GameObjects.Graphics;
+  /** drawn on the lane itself (under the pins, the ball and the bowler): the pocket guide */
+  private onLane!: Phaser.GameObjects.Graphics;
   private overlay!: Phaser.GameObjects.Graphics;
   private pinImgs = new Map<number, Phaser.GameObjects.Image>();
   private ballImg!: Phaser.GameObjects.Image;
@@ -152,6 +154,7 @@ export class BowlScene extends Phaser.Scene {
     this.pinImgs = new Map();
     this.waiting = [];
     this.finished = false;
+    this.pending = null;
     this.turn = 0;
     this.frameNo = 1;
     this.rack = freshRack();
@@ -212,7 +215,7 @@ export class BowlScene extends Phaser.Scene {
     if (!this.finished) {
       this.finished = true;
       this.done(this.outcome(false));
-    }
+    } else this.deliver();
     this.scale.off('resize', this.buildViews, this);
     const canvas = this.game.canvas;
     if (this.onDown) canvas.removeEventListener('pointerdown', this.onDown);
@@ -254,6 +257,7 @@ export class BowlScene extends Phaser.Scene {
     this.alleyKey = key;
     this.pinImgs = new Map();
     this.lane = this.add.graphics().setDepth(-900);
+    this.onLane = this.add.graphics().setDepth(-850);
     this.overlay = this.add.graphics().setDepth(900);
     this.ballImg = this.add.image(0, 0, 'bowl-ball').setDepth(0).setVisible(false);
     const d = this.dpr;
@@ -370,7 +374,8 @@ export class BowlScene extends Phaser.Scene {
     const nb = nextBall(b.rolls);
     this.frameNo = nb.frame;
     if (nb.ball === 1 || pinsStanding(b.rolls) === 10) this.rack = freshRack();
-    this.standX = b.npc ? 0 : this.standX;
+    // with the guide on, every fresh rack starts with the bowler standing on the glowing spot
+    this.standX = b.npc ? 0 : this.setup.guide && nb.ball === 1 ? POCKET_X : this.standX;
     this.angle = 0;
     this.sim = null;
     this.setPhase(b.npc || autoplay ? 'intro' : 'position');
@@ -511,7 +516,16 @@ export class BowlScene extends Phaser.Scene {
     this.renderCard();
     const o = this.outcome(true);
     audio.sfx(o.won ? 'fanfare' : 'chime');
-    this.time.delayedCall(700, () => this.done(o));
+    // (kept as pending: leaving the lane in the moment before the results still hands over the result)
+    this.pending = o;
+    this.time.delayedCall(700, () => this.deliver());
+  }
+
+  private pending: BowlOutcome | null = null;
+  private deliver(): void {
+    const o = this.pending;
+    this.pending = null;
+    if (o) this.done(o);
   }
 
   private outcome(finished: boolean): BowlOutcome {
@@ -620,6 +634,8 @@ export class BowlScene extends Phaser.Scene {
       this.drawScene();
       return;
     }
+    // (the scorecard steps back under any menu — the pause menu, Pip's reminder, a results card)
+    this.card?.classList.toggle('behind', ui.menuOpen);
     if (ui.menuOpen) return; // the pause menu or Pip's reminder: everything waits
     const dt = (Math.min(deltaMs, 100) / 1000) * timeScale;
     this.phaseT += dt;
@@ -733,6 +749,8 @@ export class BowlScene extends Phaser.Scene {
     // aim guide & power meter
     const g = this.overlay;
     g.clear();
+    const lg = this.onLane;
+    lg.clear();
     const human = !!b && !b.npc && !this.finished;
     // the pocket guide (after a loss in a story game): the spot to stand on, straight into the pocket
     if (human && this.setup.guide && !this.trick && this.rack.length === 10 && (this.phase === 'position' || this.phase === 'aim')) {
@@ -742,14 +760,15 @@ export class BowlScene extends Phaser.Scene {
       for (let y = 40; y < HEAD_PIN_Y - 60; y += 52) {
         const a = this.proj(POCKET_X, y);
         const c = this.proj(POCKET_X, y + 24);
-        if (a && c) g.lineStyle(Math.max(3, 9 * d * a.s * 0.1), col, glow * 0.8).lineBetween(a.x, a.y, c.x, c.y);
+        if (a && c) lg.lineStyle(Math.max(3, 9 * d * a.s * 0.1), col, glow * 0.8).lineBetween(a.x, a.y, c.x, c.y);
       }
       const tip = this.proj(POCKET_X, HEAD_PIN_Y - 26);
       const l = this.proj(POCKET_X - 5, HEAD_PIN_Y - 48);
       const r = this.proj(POCKET_X + 5, HEAD_PIN_Y - 48);
-      if (tip && l && r) g.fillStyle(col, glow).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
-      const spot = this.proj(POCKET_X, 4);
-      if (spot) g.fillStyle(col, 0.3 + glow * 0.4).fillEllipse(spot.x, spot.y, 16 * spot.s, 6 * spot.s);
+      if (tip && l && r) lg.fillStyle(col, glow).fillTriangle(tip.x, tip.y, l.x, l.y, r.x, r.y);
+      // the spot to stand on: a glowing mark on the boards, just past the foul line
+      const spot = this.proj(POCKET_X, 30);
+      if (spot) lg.fillStyle(col, 0.35 + glow * 0.4).fillEllipse(spot.x, spot.y, 11 * spot.s, 4 * spot.s);
     }
     const aiming = this.phase === 'aim' || this.phase === 'power' || (this.swipeAngle !== null && human);
     if (aiming) {

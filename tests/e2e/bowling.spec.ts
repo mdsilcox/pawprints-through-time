@@ -142,6 +142,23 @@ test.describe('bowling', () => {
     expect(errors).toEqual([]);
   });
 
+  test('leaving the lane in the moment after the last ball still brings the results — nothing is left paused', async ({ page }) => {
+    test.setTimeout(240_000);
+    const errors = watchErrors(page);
+    await startGame(page, [30.5, 24]);
+    await hook(page, 'bowlSpeed', 6);
+    await hook(page, 'bowlAuto', true);
+    await startBowling(page);
+    await expect.poll(async () => (await st(page))?.finished, { timeout: 200_000, intervals: [50] }).toBe(true);
+    await hook(page, 'stopScene', 'bowl');
+    await hook(page, 'bowlAuto', false);
+    await expect(page.getByTestId('bowl-results')).toBeVisible();
+    await press(page, '[data-testid="bowl-done"]');
+    await expect.poll(() => hook<string[]>(page, 'scenes')).not.toContain('bowl');
+    await expect(page.locator('.hud-left')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test('trick shots unlock after a whole game: clear “Hello, Head Pin”, then the next one opens (three tries each)', async ({ page }) => {
     const errors = watchErrors(page);
     await startGame(page, [30.5, 24]);

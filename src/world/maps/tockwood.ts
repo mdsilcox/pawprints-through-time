@@ -140,6 +140,10 @@ function objects(grid: TerrainGrid): MapObject[] {
   ];
   for (const [id, x, y] of guests) o.push({ id: `party-${id}`, kind: 'npc', x, y, p: { id, wander: 0.4 }, when: 'finale:party,!finale:done' });
   o.push({ id: 'giant-pot', kind: 'use', x: 28, y: 18.6, texture: 'fur-cauldron', foot: { dx: -1, dy: -1, w: 2, h: 1 }, when: 'finale:party,!finale:done', p: { action: 'giant-pot', label: 'Soup!', range: 1.4, scale: 1.15 } });
+  // Clover minds her giant pot, Grandma Hopkins pulls up a chair, and every rescued cousin hops about the plaza
+  o.push({ id: 'party-clover', kind: 'npc', x: 26.5, y: 19.3, p: { id: 'clover', wander: 0.3 }, when: 'finale:party,!finale:done' });
+  o.push({ id: 'party-grandma', kind: 'grandma', x: 30.2, y: 18.1, when: 'finale:party,!finale:done' });
+  o.push({ id: 'party-warren', kind: 'warren', x: 25, y: 20.3, p: { w: 5.5, h: 1.8, party: true }, when: 'finale:party,!finale:done' });
   // (beside his stall, not in front of the counter — so the Shop is always in reach)
   o.push({ id: 'rocco', kind: 'npc', x: 33.2, y: 18.9, p: { id: 'rocco', wander: 0.6 } });
   o.push({ id: 'rosita', kind: 'npc', x: 28.5, y: 22.8, p: { id: 'rosita', wander: 2 }, when: 'rosita:arrived' });
@@ -147,9 +151,9 @@ function objects(grid: TerrainGrid): MapObject[] {
   o.push({ id: 'rollo', kind: 'npc', x: 50.8, y: 23.4, p: { id: 'rollo', wander: 0.5 }, when: 'bowling:open' });
   // --- meadow: wild bunnies, the Hopkins warren and Grandma Hopkins
   o.push({ id: 'wild-bunnies', kind: 'wildbunnies', x: 5.5, y: 22.5, p: { w: 11, h: 5, count: 5 } });
-  o.push({ id: 'warren', kind: 'warren', x: 7.5, y: 28.5, p: { w: 7, h: 5 } });
+  o.push({ id: 'warren', kind: 'warren', x: 7.5, y: 28.5, p: { w: 7, h: 5 }, when: '!finale:party|finale:done' });
   o.push({ id: 'grandma-chair', kind: 'prop', x: 11.2, y: 30.35, texture: 'fur-rockingchair', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
-  o.push({ id: 'grandma', kind: 'grandma', x: 11.2, y: 30.5 });
+  o.push({ id: 'grandma', kind: 'grandma', x: 11.2, y: 30.5, when: '!finale:party|finale:done' });
   o.push({ id: 'knitting', kind: 'use', x: 12.4, y: 30.6, texture: 'prop-basket', p: { action: 'knitting', label: 'Knitting', range: 1 } });
 
   // --- garden plots by the cottage

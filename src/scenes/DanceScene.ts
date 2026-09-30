@@ -90,6 +90,8 @@ interface PlayerLanes {
   receptors: Phaser.GameObjects.Image[];
   glow: Phaser.GameObjects.Image[];
   pop: Phaser.GameObjects.Text;
+  /** one player on a touchscreen: lanes split into two thumb pairs at the sides */
+  split: boolean;
   scoreText: Phaser.GameObjects.Text;
   dancer: Dancer;
   hits: number;
@@ -106,12 +108,19 @@ const LEAD: Record<DanceLevel, number> = { easy: 1.7, medium: 1.45, hard: 1.2 };
 const COUNT_IN_BEATS = 4;
 
 let autoplay = false;
+/** test fast-forward (like bowling's): >1 runs the song's clock faster, without music */
+let testSpeed = 1;
 let current: DanceScene | null = null;
 
-/** Debug/test hooks: the running dance's state, and a perfect autopilot. */
+/** Debug/test hooks: the running dance's state, a perfect autopilot, and a fast-forward. */
 export const danceDebug = {
   setAuto(on: boolean): void {
     autoplay = on;
+  },
+  /** for long playthroughs on the autopilot: the next dance to start uses it, and a running one speeds up from here */
+  setSpeed(k: number): void {
+    testSpeed = Math.max(1, k);
+    current?.retime(testSpeed);
   },
   state(): { running: boolean; pos: number; notes: DanceNote[]; players: { player: number; points: number; combo: number; counts: Record<Judgement, number>; frame: string; moves: number; tex: string }[]; rival: number | null } | null {
     return current ? current.debugState() : null;
@@ -162,6 +171,8 @@ export class DanceScene extends Phaser.Scene {
   private onPointer: ((e: PointerEvent) => void) | null = null;
   /** the song clock: the audio clock when sound is running, else a performance clock started with it */
   private clock = { audio: false, start: 0, pausedAt: null as number | null };
+  /** 1 in play; a test fast-forward runs the (silent) song clock this many times faster */
+  private speed = 1;
 
   constructor() {
     super({ key: DanceScene.KEY });
@@ -185,6 +196,7 @@ export class DanceScene extends Phaser.Scene {
     this.biscuit = null;
     this.bg = null;
     this.finished = false;
+    this.pending = null;
     this.paused = false;
     this.lastBeat = -99;
     this.clapLeft = -1;
@@ -206,12 +218,18 @@ export class DanceScene extends Phaser.Scene {
       if (y < this.topY) return;
       // each dancer's thumb zone: the whole screen for one player, your own half for two
       const W = this.scale.width;
-      const pl = this.lanes.length === 2 ? this.lanes[x < W / 2 ? 0 : 1] : this.lanes[0];
+      const two = this.lanes.length === 2;
+      const pl = two ? this.lanes[x < W / 2 ? 0 : 1] : this.lanes[0];
       if (!pl) return;
       let best = 0;
-      pl.laneX.forEach((lx, i) => {
-        if (Math.abs(lx - x) < Math.abs(pl.laneX[best] - x)) best = i;
-      });
+      if (two) {
+        // two players: each one's half of the screen is four equal zones, ← ↓ ↑ → from left to right
+        const x0 = x < W / 2 ? 0 : W / 2;
+        best = Math.max(0, Math.min(3, Math.floor(((x - x0) / (W / 2)) * 4)));
+      } else
+        pl.laneX.forEach((lx, i) => {
+          if (Math.abs(lx - x) < Math.abs(pl.laneX[best] - x)) best = i;
+        });
       e.preventDefault();
       this.press(pl, LANES[best], e.timeStamp);
     };
@@ -221,14 +239,17 @@ export class DanceScene extends Phaser.Scene {
     this.offOutfit = app.events.on('outfit-changed', () => this.refreshLooks());
     // the count-in, then the music (the song's clock drives everything)
     const countIn = COUNT_IN_BEATS * this.beatLen + 0.35;
-    this.seq = audio.playSong(this.song, { loops: this.style.loops, fadeIn: 0, at: audio.time + countIn });
-    this.clock = { audio: !!this.seq && audio.running, start: performance.now() / 1000 + countIn, pausedAt: null };
+    this.speed = testSpeed;
+    // (a test fast-forward runs silently, on the performance clock)
+    this.seq = this.speed === 1 ? audio.playSong(this.song, { loops: this.style.loops, fadeIn: 0, at: audio.time + countIn }) : null;
+    this.clock = { audio: !!this.seq && audio.running, start: performance.now() / 1000 + countIn / this.speed, pausedAt: null };
     app.busy = true;
   }
 
   private teardown(): void {
     // stopped mid-dance (Pip's break, back to the title): the story hears "not finished"
     if (!this.finished) this.abort();
+    else this.deliver();
     this.scale.off('resize', this.layout, this);
     if (this.onPointer) this.game.canvas.removeEventListener('pointerdown', this.onPointer);
     this.onPointer = null;
@@ -238,6 +259,12 @@ export class DanceScene extends Phaser.Scene {
     this.offOutfit = null;
     app.busy = false;
     if (current === this) current = null;
+    // let the watchers' pictures go once the floor is empty (a whole party's worth adds up on a phone)
+    const textures = this.textures;
+    setTimeout(() => {
+      if (current) return;
+      for (const key of textures.getTextureKeys()) if (key.startsWith('dance-npc-')) textures.remove(key);
+    }, 0);
   }
 
   /** The dancers (and Biscuit) in what they're wearing right now, mid-move. */
@@ -342,20 +369,32 @@ export class DanceScene extends Phaser.Scene {
     const personScale = Math.min((H * 0.44) / FH, (W * (two ? 0.13 : 0.16)) / 96);
     const cx = two || split ? W / 2 : margin + panelW + (W - margin - panelW) / 2;
     const playerXs = two ? [W / 2 - W * 0.085, W / 2 + W * 0.085] : [cx - W * 0.03];
-    (this.setup.audience ?? []).forEach((id, i, arr) => {
+    // the audience at the back, between the lanes: one row, or two for a big crowd (the whole party)
+    const crowd = this.setup.audience ?? [];
+    const bandL = two ? margin + panelW : split ? margin + laneW * 2 + W * 0.02 : margin + panelW + W * 0.03;
+    const bandR = two ? W - margin - panelW : split ? W - margin - laneW * 2 - W * 0.02 : W - W * 0.03;
+    const perRow = crowd.length > 7 ? Math.ceil(crowd.length / 2) : crowd.length;
+    crowd.forEach((id, i) => {
       const def = character(id);
       if (!def.spec) return;
       const key = ensureCharacterTexture(this, `dance-npc-${id}`, def.spec);
-      const x = cx + (i - (arr.length - 1) / 2) * W * 0.12 + (two ? 0 : W * 0.02);
-      this.dancers.push(this.makeDancer(key, 'down-idle', x, floorY - H * 0.24, personScale * 0.62, 'person', -20));
+      const row = Math.floor(i / perRow);
+      const n = Math.min(perRow, crowd.length - row * perRow);
+      const gap = Math.min(W * 0.12, (bandR - bandL) / Math.max(1, n));
+      const x = (bandL + bandR) / 2 + (i - row * perRow - (n - 1) / 2) * gap;
+      this.dancers.push(this.makeDancer(key, 'down-idle', x, floorY - H * (0.24 + row * 0.08), personScale * (row ? 0.54 : 0.62), 'person', -20 - row));
     });
-    (this.setup.bunnies ?? []).slice(0, 6).forEach((id, i) => {
+    // rescued cousins hop along either side: six in front, and a second row behind for the rest
+    (this.setup.bunnies ?? []).slice(0, 12).forEach((id, i) => {
       const hb = HOPKINS_BY_ID.get(id);
       if (!hb) return;
       const key = ensureBunnyTexture(this, `bunny-${id}`, hb.look);
       const side = i % 2 === 0 ? -1 : 1;
-      const x = cx + side * (W * 0.2 + Math.floor(i / 2) * W * 0.06);
-      this.dancers.push(this.makeDancer(key, 'danceA', x, floorY - H * 0.08 - Math.floor(i / 2) * H * 0.03, personScale * 0.75, 'bunny', 5));
+      const back = i >= 6;
+      const k = Math.floor((i % 6) / 2);
+      const x = cx + side * (back ? W * 0.14 + k * W * 0.055 : W * 0.2 + k * W * 0.06);
+      const y = floorY - H * (back ? 0.15 : 0.08) - k * H * 0.03;
+      this.dancers.push(this.makeDancer(key, 'danceA', x, y, personScale * (back ? 0.62 : 0.75), 'bunny', back ? 3 : 5));
     });
     if (this.setup.rival) {
       const def = character(this.setup.rival);
@@ -386,6 +425,7 @@ export class DanceScene extends Phaser.Scene {
         laneX,
         receptors: [],
         glow: [],
+        split,
         pop: this.add
           .text(split ? W / 2 : x + panelW / 2, this.hitY - laneW * 1.05, '', { fontFamily: 'Fredoka, sans-serif', fontSize: `${Math.round(22 * d * k)}px`, fontStyle: '700', color: '#4a3b35', stroke: '#fff8ec', strokeThickness: Math.round(6 * d) })
           .setOrigin(0.5)
@@ -449,10 +489,21 @@ export class DanceScene extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------ time
+  /** (tests) Change the fast-forward mid-song, keeping the song's place; it carries on silently. */
+  retime(k: number): void {
+    if (this.finished || k === this.speed) return;
+    const pos = this.rawPos();
+    this.seq?.stop(0.1);
+    this.seq = null;
+    this.clock.audio = false;
+    this.speed = k;
+    this.clock.start = (this.clock.pausedAt ?? performance.now() / 1000) - pos / k;
+  }
+
   /** Seconds into the song on the audio clock — what is being sent to the speakers right now. */
   private rawPos(): number {
     if (this.clock.audio && this.seq) return this.seq.position();
-    return (this.clock.pausedAt ?? performance.now() / 1000) - this.clock.start;
+    return ((this.clock.pausedAt ?? performance.now() / 1000) - this.clock.start) * this.speed;
   }
 
   /**
@@ -657,6 +708,8 @@ export class DanceScene extends Phaser.Scene {
     const text = relaxed ? (j === 'miss' ? '' : j === 'good' ? 'Nice!' : 'Yay!') : { perfect: 'Perfect!', great: 'Great!', good: 'Good!', miss: 'Oops!' }[j];
     const color = { perfect: '#d9a23a', great: '#3f8a44', good: '#3f5a8a', miss: '#8a7f78' }[j];
     if (text) {
+      // (split lanes: over the thumb pair that was hit, clear of the dancer)
+      if (pl.split) pl.pop.setX(lane === 'left' || lane === 'down' ? (pl.laneX[0] + pl.laneX[1]) / 2 : (pl.laneX[2] + pl.laneX[3]) / 2);
       pl.pop.setText(text).setColor(color).setAlpha(1).setScale(1.2);
       this.tweens.killTweensOf(pl.pop);
       this.tweens.add({ targets: pl.pop, scale: 1, duration: 140, ease: 'Back.easeOut' });
@@ -699,7 +752,17 @@ export class DanceScene extends Phaser.Scene {
     for (const pl of this.lanes) for (const nv of pl.notes) nv.img?.destroy();
     audio.sfx(won ? 'cheer' : 'chime');
     const outcome: DanceOutcome = { finished: true, scores: this.lanes.map((pl) => pl.score), acc, stars: acc.map((a) => (this.setup.relaxed ? 3 : starsFor(a))), rival, won, notes: total };
-    this.time.delayedCall(900, () => this.done(outcome));
+    // (a moment of cheering before the results card — kept as pending, so stopping the floor in that
+    // moment still hands the story its result instead of leaving everyone waiting)
+    this.pending = outcome;
+    this.time.delayedCall(900, () => this.deliver());
+  }
+
+  private pending: DanceOutcome | null = null;
+  private deliver(): void {
+    const o = this.pending;
+    this.pending = null;
+    if (o) this.done(o);
   }
 
   /** Quit early (Pip's break, back to the title): the story treats it as "not yet". */

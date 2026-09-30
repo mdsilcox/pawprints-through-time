@@ -32,6 +32,8 @@ export interface BowlInvite {
   guide?: boolean;
   /** the story's payoff, run once, the moment the rival is beaten — before the results card, so a break over the card can't lose it */
   settle?: (o: BowlOutcome) => void;
+  /** after a lost game against the rival: how the next one goes ("Play again" included) */
+  onLoss?: () => { skill?: number; guide?: boolean } | void;
 }
 
 interface BowlPick {
@@ -279,16 +281,19 @@ export async function bowl(inv: BowlInvite = {}): Promise<BowlOutcome | null> {
   const session = sessionEpoch();
   let trick = pick.trick;
   let won: BowlOutcome | null = null;
+  // (a story rival can ease off, and the guide can appear, from one game to the next)
+  let rival = inv.rival ?? null;
+  let guide = !!inv.guide;
   try {
     for (;;) {
       const o = await runBowl({
         players: input.twoPlayer ? [0, 1] : [0],
-        rival: trick ? null : (inv.rival ?? null),
+        rival: trick ? null : rival,
         bumpers: pick.bumpers,
         alley: inv.alley ?? 'starlight',
         seed: (app.data!.day * 7919 + Math.floor(Math.random() * 1e6)) >>> 0,
         trick,
-        guide: !trick && !!inv.guide,
+        guide: !trick && guide,
       });
       if (session !== sessionEpoch()) return null;
       if (!o.finished) return won ?? o;
@@ -304,6 +309,11 @@ export async function bowl(inv: BowlInvite = {}): Promise<BowlOutcome | null> {
       if (o.won && !won) {
         won = o;
         if (inv.rival) inv.settle?.(o);
+      }
+      if (!o.won && rival && inv.onLoss) {
+        const next = inv.onLoss();
+        if (next?.skill !== undefined) rival = { ...rival, skill: next.skill };
+        if (next?.guide) guide = true;
       }
       // (a story challenge won is settled: no "Play again" — friendly games always offer one)
       const next = await openBowlResults(o, inv.rival ? character(inv.rival.id).name : null, !(inv.settle && inv.rival && o.won), inv.tip);

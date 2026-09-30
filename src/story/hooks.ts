@@ -4,6 +4,7 @@ import { iconUrl } from '../art/icons';
 import { ITEM_BY_ID } from '../data/items';
 import { BISCUIT_BY_ID, CLOTHES_BY_ID } from '../data/clothes';
 import { NOTE_BY_ID } from '../data/notes';
+import { SOUP_BY_ID } from '../soup/recipes';
 import { grant } from '../core/wardrobe';
 import { h } from '../ui/dom';
 import { toast, ui } from '../ui/ui';
@@ -174,6 +175,7 @@ export type Reward =
   | { tockens: number }
   | { note: string }
   | { friend: string; pts: number }
+  | { clue: string; from?: string }
   | { icon: string; line: string };
 
 interface RewardRow {
@@ -217,6 +219,12 @@ export function payout(flags: string[], rewards: Reward[], opts: { title?: strin
       if (!NOTE_BY_ID.has(r.note) || d.notes.includes(r.note)) continue;
       d.notes.push(r.note);
       rows.push({ icon: '📜', text: `History Note: ${NOTE_BY_ID.get(r.note)!.title}` });
+    } else if ('clue' in r) {
+      if (!SOUP_BY_ID[r.clue] || d.clues.includes(r.clue)) continue;
+      d.clues.push(r.clue);
+      // (the Recipe Book credits whoever told you)
+      if (r.from) d.flags[`cluefrom:${r.clue}`] = r.from;
+      rows.push({ icon: '📜', text: `A recipe clue: ${d.recipes.includes(r.clue) ? SOUP_BY_ID[r.clue].name : 'a mystery soup'} (Recipe Book)` });
     } else if ('friend' in r) {
       const before = hearts(r.friend);
       d.friendship[r.friend] = Math.min(MAX_HEARTS * HEART, (d.friendship[r.friend] ?? 0) + r.pts);

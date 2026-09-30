@@ -1,5 +1,6 @@
 import type { SaveData } from './state';
 import { HOPKINS } from '../data/bunnies';
+import { NOTE_BY_ID } from '../data/notes';
 
 /**
  * Save repair, run on every load. Earlier versions could save a story payoff's "done" flag
@@ -57,6 +58,14 @@ export function repairStory(d: SaveData): void {
     add('ship-wheel');
   }
   if (f['mabel:milk']) f['dot:told'] = true;
+  // treasures for the museum that newer versions hand out along the way
+  const owned = (id: string) => (d.inventory[id] ?? 0) > 0 || d.museum.includes(id);
+  if (f['pirate:party'] && !owned('half-hour-glass')) add('half-hour-glass');
+  if (f['mabel:milk'] && !owned('soda-glass')) add('soda-glass');
+  if (f['lion:awake'] && !owned('flying-model')) add('flying-model');
+  // History Notes that were merged or replaced in newer versions
+  d.notes = d.notes.filter((id) => NOTE_BY_ID.has(id));
+  if (f['met:beppe']) note('florence-food');
   // the Great Hourglass whole always means the party is on
   if (f.hourglassRestored) f['finale:party'] = true;
 

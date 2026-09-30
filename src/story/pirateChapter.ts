@@ -25,7 +25,7 @@ const SCRAP_SOURCE: Record<string, { map: string; x: number; y: number }> = {
 import { HOPKINS_BY_ID, BUNNY_REWARDS } from '../data/bunnies';
 import { hasEffect } from '../soup/effects';
 import { learnClue } from '../soup/kitchen';
-import { count, cutscene, flag, give, giveTockens, befriend, oncePerDay, onEnterMap, onTalk, onUse, setFlag, take, wait, payout } from './hooks';
+import { count, cutscene, flag, give, giveTockens, befriend, oncePerDay, onEnterMap, onTalk, onUse, setFlag, take, wait, payout, type Reward } from './hooks';
 import { registerQuest } from './quests';
 import type { WorldScene } from '../scenes/WorldScene';
 import { registerNpcName } from './hooks';
@@ -83,51 +83,59 @@ async function goHome(world: WorldScene): Promise<void> {
 }
 
 // ------------------------------------------------------------------ lost Hopkins cousins
-async function applyBunnyReward(n: number): Promise<void> {
-  const d = app.data!;
+/** The family's thank-you when the n-th cousin gets home (see BUNNY_REWARDS). */
+function bunnyMilestone(n: number): Reward[] {
+  const out: Reward[] = [];
   for (const r of BUNNY_REWARDS.filter((x) => x.count === n)) {
-    if (r.reward === 'recipe:hopscotch') learnClue('hopscotch-chowder', 'clover');
-    else if (r.reward === 'recipe:sparkle') learnClue('sparkle-stew', 'grandma');
-    else if (r.reward === 'wardrobe:bunny-ears') grant(d, 'bunny-ears');
-    else if (r.reward === 'biscuit:bunny-ear-hat') grant(d, 'bunny-ear-hat');
-    else if (r.reward.startsWith('furniture:')) d.inventory[r.reward.slice(10)] = (d.inventory[r.reward.slice(10)] ?? 0) + 1;
-    toast(r.text, { icon: '🐰', cls: 'quest', ms: 3600 });
+    if (r.reward === 'recipe:hopscotch') out.push({ clue: 'hopscotch-chowder', from: 'clover' });
+    else if (r.reward === 'recipe:sparkle') out.push({ clue: 'sparkle-stew', from: 'grandma' });
+    else if (r.reward === 'wardrobe:bunny-ears') out.push({ clothes: 'bunny-ears' });
+    else if (r.reward === 'biscuit:bunny-ear-hat') out.push({ clothes: 'bunny-ear-hat' });
+    else if (r.reward.startsWith('furniture:')) out.push({ item: r.reward.slice(10) });
+    out.push({ icon: '🐰', line: r.text });
   }
+  return out;
 }
 
-/** A lost cousin is found: they hop home to the warren through Pip's portal. */
+/**
+ * A lost cousin is found: they hop home to the warren through Pip's portal. The cousin, the
+ * family's thank-you and — with an era's last cousin — the cousins' Time Sand are all saved in
+ * one step, before the little scene, and summed up in one card afterwards.
+ */
 export async function rescueBunny(id: string, world?: WorldScene): Promise<void> {
   const d = app.data!;
   if (d.bunnies.includes(id)) return;
   d.bunnies.push(id);
-  setFlag(`rescued:${id}`);
   world?.sendBunnyHome(id);
   audio.sfx('fanfare');
   const hb = HOPKINS_BY_ID.get(id);
-  toast(`${hb?.name ?? id} is hopping home to the warren! (${d.bunnies.length} of 12)`, { icon: '🐰', cls: 'quest', ms: 3400 });
-  await applyBunnyReward(d.bunnies.length);
-  await cousinsSand(id);
-  app.autosave.request();
+  const sand = cousinsSand(id);
+  const show = payout(
+    [`rescued:${id}`],
+    [{ icon: '🐰', line: `${hb?.name ?? id} is hopping home to the warren! (${d.bunnies.length} of 12)` }, ...bunnyMilestone(d.bunnies.length), ...(sand ? [{ sand }] : [])],
+    { title: sand ? '⏳ The cousins’ Time Sand!' : '🐰 A cousin is safe!' },
+  );
+  if (sand)
+    await cutscene(async () => {
+      await talk(`hop-${id}`, ['Wait! Before I go — we cousins found this while we were lost. It was glowing, so we kept it safe for you!']);
+      await talk('pip', ['A TIME SAND! The cousins found one all by themselves!', 'When we’re home, it goes straight into the Great Hourglass.']);
+      audio.sfx('chime');
+    });
+  show();
 }
 
 /**
  * The eight Time Sands: one in each era's story, and one more found by that era's three lost
- * cousins — they hand it over when the last of them is found.
+ * cousins — they hand it over when the last of them is found. (The sand's id, if this cousin
+ * was the last one and it isn't yours yet.)
  */
-async function cousinsSand(id: string): Promise<void> {
+function cousinsSand(id: string): string | null {
   const d = app.data!;
   const era = HOPKINS_BY_ID.get(id)?.era;
-  if (!era) return;
+  if (!era) return null;
   const sand = `${era}-cousins`;
   const all = [...HOPKINS_BY_ID.values()].filter((b) => b.era === era);
-  if (d.sands.includes(sand) || !all.every((b) => d.bunnies.includes(b.id))) return;
-  await cutscene(async () => {
-    await talk(`hop-${id}`, ['Wait! Before I go — we cousins found this while we were lost. It was glowing, so we kept it safe for you!']);
-    await talk('pip', ['A TIME SAND! The cousins found one all by themselves!', 'When we’re home, it goes straight into the Great Hourglass.']);
-  });
-  d.sands.push(sand);
-  audio.sfx('chime');
-  toast(`The cousins’ Time Sand! (${d.sands.length} of 8)`, { icon: '⏳', cls: 'quest', ms: 3600 });
+  return d.sands.includes(sand) || !all.every((b) => d.bunnies.includes(b.id)) ? null : sand;
 }
 
 async function lostBunnyChat(id: string, world: WorldScene, extra?: () => Promise<void>): Promise<void> {
@@ -171,7 +179,7 @@ onEnterMap('cove', async ({ world }) => {
   }
   // after the treasure: the crew throws a party (and two captains make friends)
   if (app.data!.sands.includes('pirate') && !flag('pirate:party')) {
-    const show = payout(['pirate:party', 'marigold:friend'], [{ item: 'ship-wheel' }, { clothes: 'captain-coat' }, { friend: 'marigold', pts: 40 }, { friend: 'saltwhistle', pts: 20 }], {
+    const show = payout(['pirate:party', 'marigold:friend'], [{ item: 'ship-wheel' }, { item: 'half-hour-glass' }, { clothes: 'captain-coat' }, { friend: 'marigold', pts: 40 }, { friend: 'saltwhistle', pts: 20 }], {
       title: '🎉 From the crew of the Sunny Marigold',
       world,
     });
@@ -184,7 +192,7 @@ onEnterMap('cove', async ({ world }) => {
     audio.music('hornpipe');
     await cutscene(async () => {
       await talk('marigold', ['THE TREASURE! And a glowing sand that hums like a lullaby! Crew — this calls for a party!']);
-      await talk('saltwhistle', ['Ahem. Congratulations, Captain. I... may have been a bit grumpy about the map.']);
+      await talk('saltwhistle', ['Ahem. Congratulations, Captain. I... may have been a bit grumpy about the map.', 'Here — the half-hour glass from the Merry Mackerel, for that museum of yours. Turn it every half hour and ring the bell!']);
       await talk('marigold', ['And I may have shouted “THIEF” a teeny bit too loudly. Friends, Saltwhistle?', 'Friends! And friends of the future too — {players}, you’ll always have a place aboard the Sunny Marigold.']);
       await talk('marigold', ['I’d love to see this Tockwood of yours someday. Save me a spot on your dock!', 'And take this — the wheel from my very first ship. Hang it in your cottage and think of us!']);
     });

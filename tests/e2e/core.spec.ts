@@ -348,14 +348,20 @@ test.describe('Pip never breaks the story (M2 review)', () => {
     await hook(page, 'startWorld');
     await expect.poll(() => hook<boolean>(page, 'dialogueOpen'), { timeout: 10000 }).toBe(true);
     // (a card that shows up over a story line, e.g. after a minute of nobody pressing anything)
-    await hook(page, 'triggerLateNight');
-    await expect(page.getByTestId('reminder')).toBeVisible();
     const lines = (await hook<any[]>(page, 'dialogueLines')).length;
-    await page.keyboard.press('KeyE'); // too soon: the card ignores presses for a second
+    // the card appears, and a press lands at once — too soon: the card ignores presses for a moment
+    // (done inside the page, so a busy test machine can't make the press arrive late)
+    await page.evaluate(() => {
+      (window as any).__game.triggerLateNight();
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE', key: 'e', bubbles: true }));
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyE', key: 'e', bubbles: true }));
+    });
+    await expect(page.getByTestId('reminder')).toBeVisible();
     await page.waitForTimeout(250);
     await expect(page.getByTestId('reminder')).toBeVisible();
-    await page.waitForTimeout(1000);
-    await page.keyboard.press('KeyE'); // goes to the card ("Say goodnight"), not the hidden dialogue
+    await expect(page.getByTestId('goodbye')).toHaveCount(0);
+    // once the moment has passed, a press goes to the card ("Say goodnight"), not the hidden dialogue
+    await pressUntil(page, 'KeyE', async () => (await page.getByTestId('goodbye').count()) > 0, 6);
     await expect(page.getByTestId('goodbye')).toBeVisible();
     expect((await hook<any[]>(page, 'dialogueLines')).length).toBe(lines);
     await pressPip(page, 'goodbye-ok');

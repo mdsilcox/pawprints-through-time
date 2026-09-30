@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { advanceDialogue, hook, playThrough, press, pressUntil, startGame, talkTo, watchErrors } from './helpers';
 import { parseLevel, solve as solveSlide } from '../../src/puzzles/logic/sliding';
 import { BOSUN_BARRELS } from '../../src/puzzles/content/pirates';
-import { pirateChapter } from './flows';
+import { openPortal } from './flows';
 
 const ARROW: Record<string, string> = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
 const inv = async (page: Page, id: string) => (await hook<Record<string, number>>(page, 'inventory'))[id] ?? 0;
@@ -68,17 +68,7 @@ async function solveJigsaw(page: Page) {
 }
 
 test.describe('the Golden Age of Piracy', () => {
-  test('a full chapter: portal → the four map pieces → the torn map → Pirate’s Gumbo → the Shoals → the stone door → the treasure → home', async ({ page }, info) => {
-    test.setTimeout(480_000);
-    const two = info.project.name === 'phone'; // the desktop plays it solo, the phone as a pair
-    const errors = watchErrors(page);
-    await startGame(page, [30.5, 24]);
-    if (two) await hook(page, 'joinP2');
-    await hook(page, 'setFlag', 'portal:ready', true);
-    await pirateChapter(page, two);
-    expect(errors).toEqual([]);
-  });
-
+  // (the whole chapter is played in journey.spec: title → opening → this chapter → the 1950s)
   test('three lost cousins come home: a sniff in the hold, a barrel jam on the pier, a shell collector on the island', async ({ page }) => {
     test.setTimeout(240_000);
     const errors = watchErrors(page);
@@ -233,7 +223,7 @@ test.describe('the Golden Age of Piracy', () => {
     await hook(page, 'setFlag', 'portal:ready', true);
     await hook(page, 'goTo', 'clocktower', 'in');
     await toMap(page, 'clocktower');
-    await useAt(page, 10.5, 7.6, 'Portal');
+    await openPortal(page);
     await press(page, '[data-testid="wm-go-pirate"]');
     // mash the action button through Pip's travel lines and on into the cove
     for (let i = 0; i < 14; i++) {

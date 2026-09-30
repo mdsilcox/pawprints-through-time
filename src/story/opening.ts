@@ -227,9 +227,10 @@ onUse('portal', async ({ world }) => {
   await useTimePortal(world);
 });
 
-// Pip's first gift: a welcome snack for Biscuit
+// Pip's first gift: a welcome snack for Biscuit (on a quiet visit — not over a Time Sand's ceremony)
 onEnterMap('clocktower', async () => {
-  if (flag('met:pip') && !flag('gift:welcome')) {
+  const sandWaiting = app.data!.sands.some((s) => !flag(`sand:${s}:placed`));
+  if (flag('met:pip') && !flag('gift:welcome') && !sandWaiting) {
     setFlag('gift:welcome');
     give('carrot', 2, { from: 'Pip found these in her pocket' });
   }

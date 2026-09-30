@@ -4,7 +4,7 @@ import type { PropArt } from './props';
 
 /**
  * Renaissance Florence (~1500) in the house style: the cathedral's great dome, Maestra Lucia's
- * workshop, Fiorella's studio, the Duchess's palazzo, tall townhouses with terracotta roofs,
+ * workshop, Fiorella's studio, Lady Orsola's palazzo, tall townhouses with terracotta roofs,
  * cypress trees, a well, the grocer's stall, a copper cooking pot, the court dance floor and a
  * bunny stuck on a high column — plus the furniture inside the workshop and the studio.
  */
@@ -241,7 +241,7 @@ function palazzo(): PropArt {
     box(c, 20, 96, 700, 26, 8, '#c9b894');
     // arched windows upstairs
     for (let x = 90; x < 680; x += 120) shutterWindow(c, x, 160, 50, 90, '#6f3fa0', true);
-    // banners and the Duchess's crest
+    // banners and the family crest
     for (const x of [200, 540]) {
       c.fillStyle = '#6f3fa0';
       c.beginPath();

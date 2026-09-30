@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { bootToTitle, hook, watchErrors } from './helpers';
-import { fiftiesChapter, openingToPortal, pirateChapter } from './flows';
+import { bootToTitle, hook, press, watchErrors } from './helpers';
+import { enter, fiftiesChapter, openingToPortal, pirateChapter, toMap, useAt } from './flows';
 
 /**
  * The checkpoint playthrough: a brand-new family game from the title screen, through the opening,
@@ -22,5 +22,13 @@ test('the whole journey so far: title → opening → the Golden Age of Piracy �
   expect(st.flags['bowling:open']).toBe(true);
   const quests = await hook<any>(page, 'quests');
   expect(quests.finished).toEqual(expect.arrayContaining(['crack-in-time', 'pirate-sand', 'fifties-sand']));
+  // back home, Tockwood Lanes is open, with Rollo
+  await hook(page, 'goTo', 'tockwood', 'bowling-out');
+  await toMap(page, 'tockwood');
+  await enter(page, 47.5, 22.9, 'bowling');
+  expect((await hook<{ id: string }[]>(page, 'npcs')).map((n) => n.id)).toContain('rollo');
+  await useAt(page, 6.5, 8.1, 'Bowl!');
+  await expect(page.getByTestId('choice-2')).toBeVisible();
+  await press(page, '[data-testid="choice-2"]'); // "Not now"
   expect(errors).toEqual([]);
 });

@@ -383,7 +383,7 @@ S.florence = () => {
   };
 };
 
-// ---------------------------------------------------------------- the Duchess's court dance: a stately-then-merry tune on lute and recorder
+// ---------------------------------------------------------------- Lady Orsola's court dance: a stately-then-merry tune on lute and recorder
 S.court = () => {
   const bars = ['F', 'C', 'Dm', 'C', 'F', 'Bb', 'C', 'F'];
   return {

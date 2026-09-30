@@ -311,6 +311,103 @@ export const FURNITURE_ART: Record<string, () => PropArt> = {
       c.ellipse(46, 50, 6, 22, -0.2, 0, Math.PI * 2);
       c.fill();
     }, 184),
+  // the diner's roller rink: an oval of polished boards with a candy-striped rail (a floor decal)
+  rink: () =>
+    art(540, 270, (c) => {
+      const cx = 270;
+      const cy = 132;
+      const oval = (rx: number, ry: number) => {
+        c.beginPath();
+        c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      };
+      oval(262, 126);
+      c.fillStyle = '#f7c9d9';
+      c.fill();
+      c.lineWidth = 5;
+      c.strokeStyle = PAL.ink;
+      c.stroke();
+      oval(246, 112);
+      const wood = c.createLinearGradient(0, 20, 0, 250);
+      wood.addColorStop(0, '#e8b77a');
+      wood.addColorStop(1, '#d59b5c');
+      c.fillStyle = wood;
+      c.fill();
+      // the boards
+      c.save();
+      oval(246, 112);
+      c.clip();
+      c.strokeStyle = 'rgba(122, 72, 40, 0.28)';
+      c.lineWidth = 2;
+      for (let y = 26; y < 250; y += 18) {
+        c.beginPath();
+        c.moveTo(0, y);
+        c.lineTo(540, y);
+        c.stroke();
+      }
+      c.restore();
+      // a painted loop to skate around, and stars
+      c.setLineDash([16, 12]);
+      c.strokeStyle = 'rgba(255, 250, 240, 0.85)';
+      c.lineWidth = 4;
+      oval(170, 66);
+      c.stroke();
+      c.setLineDash([]);
+      c.fillStyle = '#fff4e0';
+      c.font = '700 26px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('★ ROLLER RINK ★', cx, cy);
+      // candy stripes on the rail
+      for (let i = 0; i < 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        c.beginPath();
+        c.arc(cx + Math.cos(a) * 254, cy + Math.sin(a) * 119, 5, 0, Math.PI * 2);
+        c.fillStyle = i % 2 ? '#6ec9c0' : '#ffffff';
+        c.fill();
+      }
+    }, 264),
+  noteboard: () =>
+    art(210, 190, (c) => {
+      // two legs and a cork board with Pip's History Notes pinned all over it
+      box(c, 34, 120, 14, 66, 5, PAL.woodDark);
+      box(c, 162, 120, 14, 66, 5, PAL.woodDark);
+      box(c, 8, 12, 194, 132, 12, PAL.wood);
+      rrPath(c, 20, 38, 170, 96, 8);
+      paint(c, '#c9955e', 3);
+      c.fillStyle = '#fff4e0';
+      c.font = '700 17px Fredoka, sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText('HISTORY NOTES', 105, 26);
+      const notes: [number, number, number, string][] = [
+        [30, 46, -0.08, '#fffaf0'],
+        [78, 50, 0.06, '#fdf1d6'],
+        [128, 44, -0.04, '#fffaf0'],
+        [44, 88, 0.07, '#fdf1d6'],
+        [96, 92, -0.06, '#fffaf0'],
+        [142, 86, 0.05, '#fdf1d6'],
+      ];
+      for (const [x, y, a, col] of notes) {
+        c.save();
+        c.translate(x + 20, y + 16);
+        c.rotate(a);
+        rrPath(c, -20, -16, 40, 34, 3);
+        paint(c, col, 2);
+        c.strokeStyle = 'rgba(74,59,53,0.45)';
+        c.lineWidth = 2;
+        for (let i = 0; i < 3; i++) {
+          c.beginPath();
+          c.moveTo(-13, -4 + i * 7);
+          c.lineTo(13 - (i === 2 ? 8 : 0), -4 + i * 7);
+          c.stroke();
+        }
+        c.fillStyle = PAL.red;
+        c.beginPath();
+        c.arc(0, -12, 3.5, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+      }
+    }, 184),
   pedestal: () =>
     art(110, 140, (c) => {
       box(c, 26, 40, 58, 90, 6, '#efe6d4');

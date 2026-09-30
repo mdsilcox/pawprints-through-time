@@ -57,13 +57,18 @@ export default defineConfig({
       stdout: 'ignore',
       stderr: 'pipe',
     },
-    {
-      command: `npx vite build --outDir dist-e2e --emptyOutDir && npx vite preview --outDir dist-e2e --port ${PREVIEW_PORT} --strictPort`,
-      url: `http://localhost:${PREVIEW_PORT}`,
-      reuseExistingServer: false,
-      timeout: 240_000,
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
+    // the production build for the offline (PWA) test — PW_NO_PREVIEW=1 skips it for quick targeted runs
+    ...(process.env.PW_NO_PREVIEW
+      ? []
+      : [
+          {
+            command: `npx vite build --outDir dist-e2e --emptyOutDir && npx vite preview --outDir dist-e2e --port ${PREVIEW_PORT} --strictPort`,
+            url: `http://localhost:${PREVIEW_PORT}`,
+            reuseExistingServer: false,
+            timeout: 240_000,
+            stdout: 'ignore' as const,
+            stderr: 'pipe' as const,
+          },
+        ]),
   ],
 });

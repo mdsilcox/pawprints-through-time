@@ -101,9 +101,19 @@ onTalk('neb', async ({ world }) => {
 
 // ------------------------------------------------------------------ the Great Sphinx and its riddle gauntlet
 onUse('sphinx', async ({ world }) => {
+  // (its great face stays in the picture while it talks — on a phone too)
+  world.frameAlso(GIZA.sphinx.x - 1.6, GIZA.sphinx.y - 4.2);
+  try {
+    await sphinxChat(world);
+  } finally {
+    world.frameAlso(null);
+  }
+});
+
+async function sphinxChat(world: WorldScene): Promise<void> {
   if (!flag('met:sphinx')) {
     await conversation(async () => {
-      await talk('sphinx', ['WHO WANDERS BEFORE THE GREAT SPHINX?', '...Oh! Small ones. Hello! Forgive my big voice — I have been stone for a very, very long time.', 'The time-storm woke me up, you see. I rather like talking. And I LOVE riddles.']);
+      await talk('sphinx', ['WHO WANDERS BEFORE THE GREAT SPHINX?', '...Oh! Small ones. Hello! Forgive my big voice. The builders only finished carving me a little while ago, and sitting still is SO boring.', 'Then the time-storm woke me up, you see. I rather like talking. And I LOVE riddles.']);
     });
     setFlag('met:sphinx');
     learnNote('egypt-sphinx');
@@ -115,7 +125,7 @@ onUse('sphinx', async ({ world }) => {
   const pick = await ask('sphinx', 'Answer THREE riddles in a row, and I will open the way to the old tomb. Ready?', ['Ready!', 'Not yet']);
   if (pick !== 0) return;
   await sphinxGauntlet(world);
-});
+}
 
 async function sphinxGauntlet(world: WorldScene): Promise<void> {
   const d = app.data!;
@@ -211,17 +221,33 @@ onUse('ramp', async ({ world }) => {
   if (!r.solved) return;
   const show = payout(['capstone:placed'], [{ sand: 'egypt' }, { tockens: 40 }, { friend: 'neb', pts: 20 }], { title: '🔺 The pyramid is finished!', world });
   world.celebrate(6500);
+  // (the top of the pyramid stays in the picture while the capstone goes up and the sand rises)
+  world.frameAlso(GIZA.pyramid.x, GIZA.pyramid.y - 7.6);
+  try {
+    await capstoneScene(world);
+  } finally {
+    world.frameAlso(null);
+  }
+  show();
+});
+
+async function capstoneScene(world: WorldScene): Promise<void> {
   await cutscene(async () => {
     audio.sfx('fanfare');
-    await talk('neb', ['The ramp is clear! Everyone — HEAVE! ...HEAVE!', 'The capstone is at the top! Our pyramid is FINISHED!']);
+    await talk('neb', 'The ramp is clear! Everyone — HEAVE! ...HEAVE!');
+    // up the ramp it goes, right to the very top — and the pyramid is whole
+    audio.sfx('roll');
+    const { x, y } = GIZA.pyramid;
+    await world.moveProp('ramp', [[x - 4.3, y + 0.3], [x - 1.7, y - 4.5], [x, y - 4.6]], 3000);
     world.setPropTexture('pyramid', 'bld-pyramid-done');
     world.removeObject('ramp');
+    audio.sfx('fanfare');
+    await talk('neb', 'The capstone is at the top! Our pyramid is FINISHED!');
     await world.raiseTimeSand(GIZA.pyramid.x, GIZA.pyramid.y - 6.5);
     await talk('narrator', 'As the capstone settles into place, a swirl of glowing sand lifts off it... and floats down into your hands!');
     await talk('pip', ['A Time Sand! Hooray!', 'And listen — drums! Neb says there’s a festival in the village tonight. Egyptians LOVED festivals, with music and dancing!']);
   });
-  show();
-});
+}
 
 // ------------------------------------------------------------------ the village: Ankhi the scribe, Sesi the baker, the festival
 onTalk('ankhi', async ({ world }) => {

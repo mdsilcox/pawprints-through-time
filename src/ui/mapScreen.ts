@@ -1,6 +1,6 @@
 import { app } from '../app';
 import { audio } from '../audio/audio';
-import { getMap, type MapDef } from '../world/mapdef';
+import { getMap, type MapDef, regionOfMap } from '../world/mapdef';
 import { TILE } from '../world/collision';
 import { currentObjective } from '../story/quests';
 import { makeCanvas } from '../art/draw';
@@ -81,7 +81,7 @@ export function openMap(): void {
     for (const s of active.digSpots()) if (s.revealed) marks.push(s.x ? mark('dig xmark', s.cx + 0.5, s.cy + 0.5, w, hgt, '✖') : mark('dig', s.cx + 0.5, s.cy + 0.5, w, hgt, '✦'));
   }
   const d = app.data;
-  const obj = d ? currentObjective(d) : null;
+  const obj = d ? currentObjective(d, regionOfMap(d.location.map)) : null;
   const where = obj?.step.where?.(d!);
   if (where && where.map === def.id) marks.push(mark('goal', where.x + 1.3, where.y - 0.9, w, hgt, '★'));
   if (sameMap) {

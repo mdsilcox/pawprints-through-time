@@ -87,6 +87,15 @@ export function registerMap(def: MapDef): void {
   registry.set(def.id, def);
 }
 
+/** The region (tockwood, pirate, egypt...) a map belongs to, or undefined for an unknown map. */
+export function regionOfMap(id: string): string | undefined {
+  try {
+    return getMap(id).region;
+  } catch {
+    return undefined;
+  }
+}
+
 export function getMap(id: string): MapDef {
   const m = registry.get(id);
   if (!m) throw new Error(`Unknown map ${id}`);

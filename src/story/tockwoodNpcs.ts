@@ -8,6 +8,7 @@ import { registerQuest, flagDone } from './quests';
 import { TW } from '../world/maps/tockwood';
 import { openWardrobe } from '../ui/wardrobe';
 import { openSellScreen, sellable } from '../ui/sellScreen';
+import { openNotes } from '../ui/notesScreen';
 import { cookWithClover, juniperStall, offerSoupGift } from './soupStory';
 import { grandmaPuzzle, juniperPuzzle, puzzleSolved } from './brainBuilders';
 import { CLOTHES_BY_ID } from '../data/clothes';
@@ -56,7 +57,7 @@ async function chat(id: string, first: string[], daily: string[], opts: { nightL
 }
 
 // ------------------------------------------------------------------ Dr. Quill (hedgehog, time historian)
-onTalk('quill', async () => {
+onTalk('quill', async ({ world }) => {
   const first = await chat(
     'quill',
     [
@@ -89,7 +90,10 @@ onTalk('quill', async () => {
   if (sellable().length) {
     const pick = await ask('quill', 'Have you brought any finds for my trading table? I pay in shiny Tockens — and the best pieces go in the museum!', ['Let’s trade!', 'Not today']);
     if (pick === 0) {
+      const before = app.data!.museum.length;
       await openSellScreen();
+      // (a new piece for the museum goes straight into its case)
+      if (app.data!.museum.length !== before && world.def.id === 'museum') world.reloadRoom();
       if (oncePerDay('trade:quill')) befriend('quill', 5);
     }
   }
@@ -375,6 +379,10 @@ onUse('rocco-shop', async () => {
     'Handmade furniture for your cottage! Arrange it with the planner by your cottage door.',
   );
 });
+onUse('museum-notes', async () => {
+  openNotes();
+});
+
 onUse('exhibit', async () => {
   const n = app.data?.museum.length ?? 0;
   await talk(

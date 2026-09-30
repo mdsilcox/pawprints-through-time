@@ -46,8 +46,9 @@ function gizaObjects(): MapObject[] {
   const o: MapObject[] = [];
   const add = (kind: MapObject['kind'], id: string, x: number, y: number, extra: Partial<MapObject> = {}) => o.push({ id, kind, x, y, ...extra });
   // the great pyramid (finished once the capstone is up)
-  add('building', 'pyramid', GIZA.pyramid.x, GIZA.pyramid.y, { texture: 'bld-pyramid', foot: { dx: -5, dy: -6, w: 10, h: 6 }, when: '!capstone:placed' });
-  add('building', 'pyramid-done', GIZA.pyramid.x, GIZA.pyramid.y, { texture: 'bld-pyramid-done', foot: { dx: -5, dy: -6, w: 10, h: 6 }, when: 'capstone:placed' });
+  // (solid along its wide base only: higher up the sides slope in, and you can walk round behind it)
+  add('building', 'pyramid', GIZA.pyramid.x, GIZA.pyramid.y, { texture: 'bld-pyramid', foot: { dx: -5, dy: -3, w: 10, h: 3 }, when: '!capstone:placed' });
+  add('building', 'pyramid-done', GIZA.pyramid.x, GIZA.pyramid.y, { texture: 'bld-pyramid-done', foot: { dx: -5, dy: -3, w: 10, h: 3 }, when: 'capstone:placed' });
   // the ramp: the capstone waits on its sled at the bottom, stuck behind fallen blocks
   add('use', 'ramp', GIZA.ramp.x, GIZA.ramp.y, { texture: 'prop-capstone', foot: { dx: -1, dy: -1, w: 2, h: 1 }, when: '!capstone:placed', p: { action: 'ramp', label: 'Ramp', range: 1.4 } });
   add('prop', 'blocks-1', 28.2, 17.2, { texture: 'prop-blockpile', foot: { dx: -1, dy: -1, w: 2, h: 1 } });

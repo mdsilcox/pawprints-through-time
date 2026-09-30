@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
+import { ITEM_BY_ID } from '../data/items';
 import { app } from '../app';
 import { input } from '../input/input';
 import { TERRAIN_LAYERS, DECOR_SIZE, type DecorFrame } from '../art/decor';
-import { TEXTURE_ORIGIN, addCanvasTexture, ensureBiscuitTexture, ensureBunnyTexture, ensurePropTexture } from '../art/textures';
+import { TEXTURE_ORIGIN, addCanvasTexture, ensureBiscuitTexture, ensureBunnyTexture, ensurePropTexture, releaseCharacterSheets, releasePropTextures } from '../art/textures';
 import { rng } from '../art/draw';
 import { WILD_FURS } from '../art/bunny';
 import { layerVariants, cullCovered, type TerrainGrid } from '../world/terrain';
@@ -87,10 +88,12 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   private occluders: { img: Phaser.GameObjects.Image; baseY: number }[] = [];
   private camZoom = 1;
   /** a spot the camera keeps in frame with the players (e.g. the Great Hourglass's sockets in its ceremony) */
-  private camLook: { x: number; y: number } | null = null;
+  private camLook: { x: number; y: number }[] | null = null;
   private camCenter: Pt = { x: 0, y: 0 };
   private tetherLine!: Phaser.GameObjects.Graphics;
   focusTarget: Interactable | null = null;
+  /** the pictures in the museum's display cases (tests) */
+  exhibits: string[] = [];
   /** somewhere Pip should keep clear of for a moment (a Time Sand rising out of a chest) */
   private pipAvoid: { x: number; y: number } | null = null;
   mapW = 0;
@@ -123,6 +126,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.bunnyInteract = [];
     this.lostBunnies = [];
     this.focusTarget = null;
+    this.exhibits = [];
     this.pipAvoid = null;
     this.camLook = null;
     this.spots = [];
@@ -301,20 +305,29 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   visible(o: MapObject): boolean {
     if (!o.when) return true;
     const f = app.data?.flags ?? {};
-    return o.when.split(',').every((term) => {
-      const t = term.trim();
-      return t.startsWith('!') ? !f[t.slice(1)] : !!f[t];
-    });
+    // "a,b" = a and b; "a|b" = a or b (either group will do)
+    return o.when.split('|').some((group) =>
+      group.split(',').every((term) => {
+        const t = term.trim();
+        return t.startsWith('!') ? !f[t.slice(1)] : !!f[t];
+      }),
+    );
   }
 
   private buildObjects(): void {
+    const inUse = new Set<string>();
     for (const o of this.objects) {
+      // (every picture this map could show, hidden or not, stays — only other places' big ones go)
+      if (o.texture) inUse.add(o.texture);
       if (!this.visible(o)) continue;
       let texture = o.texture;
       if (o.kind === 'building' && o.id === 'bowling') texture = app.data?.flags['bowling:open'] ? 'bld-bowling-open' : 'bld-bowling';
       if (o.kind === 'building' && o.id === 'clocktower' && app.data?.flags.hourglassRestored) texture = 'clocktower-fixed';
       if (o.id === 'hourglass') texture = this.hourglassTexture();
-      if (texture) ensurePropTexture(this, texture);
+      if (texture) {
+        inUse.add(texture);
+        ensurePropTexture(this, texture);
+      }
       if (texture && this.textures.exists(texture)) {
         const org = TEXTURE_ORIGIN[texture] ?? { ox: 0.5, oy: 1 };
         const opened = o.texture === 'prop-chest' && app.data?.flags[`${o.id === 'grotto-chest' ? 'grotto:chest' : `chest:${o.id}`}`];
@@ -331,10 +344,14 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
         }
         if (o.id === 'cauldron') this.bubbleCauldron(o);
         if (o.kind === 'exhibit') {
-          const item = app.data?.museum[Number(o.p?.slot ?? 0)];
+          // (the eight cases show the latest finds)
+          const shown = (app.data?.museum ?? []).slice(-8);
+          const item = shown[Number(o.p?.slot ?? 0)];
           if (item) {
-            const tex = `icon-${item}`;
-            if (!this.textures.exists(tex)) addCanvasTexture(this, tex, iconCanvas(item, 64));
+            const key = ITEM_BY_ID.get(item)?.icon ?? item;
+            const tex = `icon-${key}`;
+            if (!this.textures.exists(tex)) addCanvasTexture(this, tex, iconCanvas(key, 64));
+            this.exhibits.push(tex);
             const icon = this.add.image(o.x * TILE, o.y * TILE - TILE * 0.95, tex).setScale(0.8).setDepth(o.y * TILE + 1);
             this.tweens.add({ targets: icon, y: icon.y - 6, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
           }
@@ -410,6 +427,8 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
           break;
       }
     }
+    releasePropTextures(this, inUse);
+    releaseCharacterSheets(this, new Set([...this.npcs.values()].map((n) => n.textureKey)));
   }
 
   private bubbleCauldron(o: MapObject): void {
@@ -501,6 +520,7 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
       if (!hb) return;
       const key = ensureBunnyTexture(this, `bunny-${id}`, hb.look);
       const b = new BunnyActor(this, area.x + r() * area.w, area.y + r() * area.h, key, 'warren', area);
+      if (o.p?.party) b.naps = false;
       this.actors.push(b);
       this.bunnies.push(b);
       const it: Interactable = {
@@ -562,6 +582,36 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
   setPropTexture(id: string, key: string): void {
     const img = this.propImages.get(id);
     if (img && ensurePropTexture(this, key)) img.setTexture(key);
+  }
+
+  /**
+   * Slide a prop's picture along a path (in tiles) — the capstone's sled hauled up the ramp. It
+   * keeps its depth, so it stays in front of whatever it climbs.
+   */
+  moveProp(id: string, path: [number, number][], ms: number): Promise<void> {
+    const img = this.propImages.get(id);
+    if (!img || !path.length) return Promise.resolve();
+    this.occluders = this.occluders.filter((o) => o.img !== img);
+    img.setAlpha(1);
+    // each leg takes its share of the time, by length
+    const pts = [[img.x / TILE, img.y / TILE] as [number, number], ...path];
+    const lens = path.map((p, i) => Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]));
+    const total = lens.reduce((a, b) => a + b, 0) || 1;
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      this.tweens.chain({
+        targets: img,
+        tweens: path.map(([x, y], i) => ({ x: x * TILE, y: y * TILE, duration: Math.max(1, (ms * lens[i]) / total), ease: 'Sine.easeInOut' })),
+        onComplete: finish,
+      });
+      // (a stopped scene never finishes its tweens)
+      setTimeout(finish, ms + 1000);
+    });
   }
 
   /** Skaters glide round their loop (and their talk spot goes with them). */
@@ -1363,15 +1413,18 @@ export class WorldScene extends Phaser.Scene implements ActorHost {
     this.applyCamera(true);
   }
 
-  /** Keep a spot (in tiles) in the camera's frame along with the players — or let it go (null). */
-  frameAlso(x: number | null, y = 0): void {
-    this.camLook = x === null ? null : { x: x * TILE, y: y * TILE };
+  /**
+   * Keep a spot (in tiles) in the camera's frame along with the players — plus any `more` spots
+   * (a whole crowd: its corners) — or let them go (null).
+   */
+  frameAlso(x: number | null, y = 0, more: [number, number][] = []): void {
+    this.camLook = x === null ? null : [[x, y] as [number, number], ...more].map(([px, py]) => ({ x: px * TILE, y: py * TILE }));
   }
 
   private applyCamera(snap = false, dt = 1 / 60): void {
     const cam = this.cameras.main;
     const pts = this.players.map((p) => ({ x: p.x, y: p.y - TILE * 0.5 }));
-    if (this.camLook) pts.push(this.camLook);
+    if (this.camLook) pts.push(...this.camLook);
     const target = midpoint(pts);
     const zTarget = frameZoom(pts, this.frameOpts());
     // Smoothing that feels the same at any frame rate (tuned at 60 fps).

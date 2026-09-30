@@ -146,6 +146,22 @@
   width: min(100%, 50rem);
   margin-bottom: 0.6rem;
 }
+.dlg-choices.many {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  align-items: stretch;
+}
+.dlg-choices.many .dlg-choice {
+  min-width: 0;
+}
+@media (max-height: 460px) {
+  .dlg-choices.many {
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    max-height: 52vh;
+    overflow-y: auto;
+    gap: 0.35rem;
+  }
+}
 .dlg-choice {
   min-width: 12rem;
   justify-content: flex-start;
@@ -697,4 +713,21 @@ table.keys td {
   place-items: center;
   font-weight: 700;
   font-size: 1.3rem;
+}
+
+/* a short phone mid-game: the pause menu's buttons sit in fewer, slimmer rows so Save & quit stays in view */
+@media (max-height: 460px) {
+  .pause-tiles {
+    grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+    gap: 0.4rem;
+    margin: 0.25rem 0 0.5rem;
+  }
+  .pause-actions {
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: 0.35rem;
+  }
+  .pause-actions .btn {
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+  }
 }

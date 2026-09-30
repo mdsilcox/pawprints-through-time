@@ -450,6 +450,130 @@ function pantryDoor(): PropArt {
   });
 }
 
+// ------------------------------------------------------------------ the alleys' back walls (hung on the wall)
+/** The big sign over the pins: Starlight's glows neon, Tockwood's has clock gears. */
+function laneSign(starlight: boolean): () => PropArt {
+  return () =>
+    art(470, 118, (ctx) => {
+      box(ctx, 8, 8, 454, 98, 18, starlight ? '#e46a6a' : '#a58bd6');
+      rrPath(ctx, 20, 20, 430, 74, 12);
+      paint(ctx, 'rgba(0,0,0,0)', 2);
+      ctx.fillStyle = '#fff4e0';
+      ctx.font = '700 38px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (starlight) {
+        ctx.shadowColor = '#7ff0ff';
+        ctx.shadowBlur = 16;
+      }
+      ctx.fillText(starlight ? '★ STARLIGHT LANES ★' : '⚙ TOCKWOOD LANES ⚙', 235, 59);
+      ctx.shadowBlur = 0;
+    }, 110);
+}
+
+/** A glowing scoreboard: a strike, a spare, and so on. */
+function scoreboard(): PropArt {
+  return art(250, 104, (ctx) => {
+    box(ctx, 6, 6, 238, 90, 10, '#1d1834');
+    const marks = ['X', '9', '/', 'X', '7', '-'];
+    const cw = 222 / marks.length;
+    ctx.font = '700 22px Fredoka, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    marks.forEach((m, i) => {
+      const bx = 14 + cw * i;
+      ctx.strokeStyle = 'rgba(247, 198, 90, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx + 2, 16, cw - 4, 40);
+      ctx.fillStyle = '#ffd76a';
+      ctx.shadowColor = '#ffb13b';
+      ctx.shadowBlur = 10;
+      ctx.fillText(m, bx + cw / 2, 37);
+      ctx.beginPath();
+      ctx.arc(bx + cw / 2, 74, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+  }, 100);
+}
+
+/** Starlight's neon star: pink outside, blue inside. */
+function neonStar(): PropArt {
+  return art(140, 140, (ctx) => {
+    const star = (r: number) => {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5;
+        const rad = i % 2 === 0 ? r : r * 0.45;
+        ctx.lineTo(70 + Math.cos(a) * rad, 72 + Math.sin(a) * rad);
+      }
+      ctx.closePath();
+    };
+    ctx.lineWidth = 7;
+    ctx.strokeStyle = '#ff8fd1';
+    ctx.shadowColor = '#ff8fd1';
+    ctx.shadowBlur = 18;
+    star(58);
+    ctx.stroke();
+    ctx.strokeStyle = '#7ff0ff';
+    ctx.shadowColor = '#7ff0ff';
+    star(32);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }, 132);
+}
+
+/** Tockwood's big alley clock (every clock on the island ticks the right way here). */
+function alleyClock(): PropArt {
+  return art(132, 132, (ctx) => {
+    circlePath(ctx, 66, 66, 56);
+    paint(ctx, '#f7c65a', L);
+    circlePath(ctx, 66, 66, 44);
+    paint(ctx, '#fff4e0', 3);
+    ctx.strokeStyle = PAL.ink;
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      ctx.beginPath();
+      ctx.moveTo(66 + Math.cos(a) * 34, 66 + Math.sin(a) * 34);
+      ctx.lineTo(66 + Math.cos(a) * 40, 66 + Math.sin(a) * 40);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(66, 66);
+    ctx.lineTo(86, 57);
+    ctx.moveTo(66, 66);
+    ctx.lineTo(62, 36);
+    ctx.stroke();
+  }, 126);
+}
+
+/** A string of pennants. */
+function pennants(): PropArt {
+  return art(300, 64, (ctx) => {
+    const cols = ['#e46a6a', '#f7c65a', '#6fb3e0', '#7cc47f', '#f4a3b4'];
+    ctx.strokeStyle = 'rgba(255, 244, 224, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(6, 10);
+    ctx.quadraticCurveTo(150, 26, 294, 10);
+    ctx.stroke();
+    for (let i = 0; i < 9; i++) {
+      const px = 22 + i * 32;
+      const t = px / 300;
+      const py = 10 + 4 * t * (1 - t) * 8;
+      ctx.beginPath();
+      ctx.moveTo(px - 11, py);
+      ctx.lineTo(px + 11, py);
+      ctx.lineTo(px, py + 30);
+      ctx.closePath();
+      paint(ctx, cols[i % cols.length], 2);
+    }
+  }, 60);
+}
+
 export const FIFTIES_PROPS: Record<string, () => PropArt> = {
   'bld-lanes': starlightLanes,
   'bld-diner': diner,
@@ -472,4 +596,10 @@ export const FIFTIES_FURNITURE: Record<string, () => PropArt> = {
   booth,
   dinercounter: dinerCounter,
   pantry: pantryDoor,
+  'lanesign-starlight': laneSign(true),
+  'lanesign-tockwood': laneSign(false),
+  scoreboard,
+  neonstar: neonStar,
+  alleyclock: alleyClock,
+  pennants,
 };

@@ -5,7 +5,7 @@ import { defineRoom, fur } from './interiors';
 
 /**
  * Renaissance Florence, around 1500: the great piazza under the cathedral's dome, Maestra
- * Lucia's workshop, Fiorella's studio, the Duchess's palazzo with its court dance floor, the
+ * Lucia's workshop, Fiorella's studio, Lady Orsola's palazzo with its court dance floor, the
  * grocer's herb garden, and the river with its old bridge.
  */
 export const FLOR = {
@@ -41,7 +41,7 @@ function florenceObjects(): MapObject[] {
   const add = (kind: MapObject['kind'], id: string, x: number, y: number, extra: Partial<MapObject> = {}) => o.push({ id, kind, x, y, ...extra });
   // the cathedral and its great dome, over the top of the piazza
   add('building', 'duomo', FLOR.duomo.x, FLOR.duomo.y, { texture: 'bld-duomo', foot: { dx: -5, dy: -4, w: 10, h: 4 } });
-  // Maestra Lucia's workshop, Fiorella's studio, the Duchess's palazzo
+  // Maestra Lucia's workshop, Fiorella's studio, Lady Orsola's palazzo
   add('building', 'workshop', FLOR.workshop.x, FLOR.workshop.y, { texture: 'bld-workshop', foot: { dx: -3, dy: -3, w: 6, h: 3 }, p: { door: 'workshop-in', label: 'Lucia’s workshop' } });
   add('building', 'studio', FLOR.studio.x, FLOR.studio.y, { texture: 'bld-studio', foot: { dx: -2, dy: -3, w: 5, h: 3 }, p: { door: 'studio-in', label: 'Fiorella’s studio' } });
   add('building', 'palazzo', FLOR.palazzo.x, FLOR.palazzo.y, { texture: 'bld-palazzo', foot: { dx: -4, dy: -3, w: 8, h: 3 } });
@@ -90,7 +90,7 @@ function florenceObjects(): MapObject[] {
   ])
     add('tree', `cypress-${x}-${y}`, x + (r() - 0.5) * 0.3, y, { texture: 'tree-cypress', foot: { dx: 0, dy: -1, w: 1, h: 1 } });
   add('prop', 'bridge', 38, 28.6, { texture: 'prop-bridge' });
-  add('sign', 'flor-sign', 19.8, 23.2, { texture: 'prop-sign', p: { text: ['FLORENCE — the city of artists and inventors.', 'West: Maestra Lucia’s workshop. East: Fiorella’s studio. South-east: the Duchess’s palazzo.'] } });
+  add('sign', 'flor-sign', 19.8, 23.2, { texture: 'prop-sign', p: { text: ['FLORENCE — the city of artists and inventors.', 'West: Maestra Lucia’s workshop. East: Fiorella’s studio. South-east: Lady Orsola’s palazzo.'] } });
   // the way home
   add('use', 'portal-home', FLOR.portal.x, FLOR.portal.y - 0.6, { texture: 'fur-portalring', p: { action: 'portal-home', label: 'Portal home', range: 1.3 } });
   return o;

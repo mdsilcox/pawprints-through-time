@@ -3,7 +3,7 @@ import { h } from './dom';
 import { button, ui } from './ui';
 
 /** A page-turning storybook overlay: illustrated panels with captions. Resolves when finished. */
-export function storybook(panels: { draw: () => HTMLCanvasElement; text: string }[], opts: { id?: string } = {}): Promise<void> {
+export function storybook(panels: { draw: () => HTMLCanvasElement; text: string }[], opts: { id?: string; lastLabel?: string } = {}): Promise<void> {
   const id = opts.id ?? 'storybook';
   if (ui.has(id)) return Promise.resolve();
   return new Promise((resolve) => {
@@ -35,7 +35,7 @@ export function storybook(panels: { draw: () => HTMLCanvasElement; text: string 
       art.appendChild(c);
       text.textContent = panels[i].text;
       [...dots.children].forEach((d, k) => d.classList.toggle('on', k === i));
-      next.textContent = i === panels.length - 1 ? 'Begin! ✦' : 'Next ▶';
+      next.textContent = i === panels.length - 1 ? (opts.lastLabel ?? 'Begin! ✦') : 'Next ▶';
       art.classList.remove('turn');
       void art.offsetWidth;
       art.classList.add('turn');
