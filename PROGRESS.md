@@ -1,25 +1,12 @@
 # Progress log
 
-## ⏸ Paused here — resume notes (29 Sep 2026)
-**Where things stand**
-- `main` = `bdb6f55` — the last commit that passed the full test suite (pushed).
-- `wip` = the commit that adds these notes (pushed) — everything since: the fixes for the M8 re-review, the M9 and M10 reviews (next section) plus the 1950s brain-builder. **Not yet green on the full suite.** The working tree matches `wip` (only the local `.claude/launch.json` is left out).
-- The first snapshot of this round (`317ac31`) went through the full suite: typecheck and all unit tests passed; the browser tests had three real failures, all in tests that this round's own changes made out of date. All three are fixed in `wip` but not yet re-run:
-  1. `puzzles.spec` "adaptive difficulty" raised the difficulty with a riddle — riddles no longer count (M9). The test now checks that a riddle leaves it alone and a clean logic grid raises it.
-  2. `wardrobe.spec` "Player 2 pauses": Escape was pressed inside the short anti-double-press pause after closing the wardrobe. The test now waits and checks the pause menu really closed.
-  3. `wardrobe.spec` "Tocken loop": leaving the museum straight after trading was ignored while the display cases rebuild. New debug hook `transitioning`; the test waits for it.
-  - The run's other failures were browsers crashing under machine load (worker exit 0xC0000142, "Target crashed") and then the manual stop — not code failures.
-- Added after that snapshot, checked by typecheck and the unit tests (197 pass) but **not yet by the browser tests**: Mabel's Mixed-up Orders (the 1950s brain-builder: puzzle, story, quest step, updated chapter flow and payoff test, a screenshot scenario), the split-phone dance's "Perfect!" shown over the thumb pair instead of the dancer's face, the reward card moved below the HUD's pills on short screens, and the `transitioning` hook.
+## Status — finished (1 Oct 2026)
+The game is complete and playable from the title screen through the pirates, Egypt, the 1950s and Florence to the finale party, the ending storybook and the credits — alone or as a pair, on a desktop-sized screen and a phone-sized one. All 14 required features are in. `npm test` (unit tests, then the browser playthroughs at both sizes) and the typecheck pass on the final commit.
 
-**Resumed (29 Sep, later): making the checks cheaper first** — the full suite took ~55 minutes and every reviewer re-ran it. Story playthroughs now dance fast-forwarded (4×) on the autopilot, the dance tests fast-forward the rest of a song once their real-time part is done, and the pirate and 1950s full-chapter tests are gone (the journey plays exactly the same flows). The three due reviews go to one critic session with one suite run, and only the screenshots this round changed are retaken.
-
-**What's left, in order**
-1. Browser tests for the new work: `PW_NO_PREVIEW=1 npx playwright test tests/e2e/fifties.spec.ts tests/e2e/payoffs.spec.ts tests/e2e/objective.spec.ts tests/e2e/journey.spec.ts tests/e2e/puzzles.spec.ts tests/e2e/wardrobe.spec.ts tests/e2e/dance.spec.ts`. (Don't edit `src/` while a dev-server test run is going — Vite reloads the test pages; give extra ad-hoc runs their own `--output` folder.)
-2. The full suite (`npm test`, about 55 minutes) on a clean checkout of the commit — the CI worktree `../pawprints-ci` — with nothing else heavy running.
-3. When it's green: fast-forward `main` to that commit and push.
-4. Recapture the review screenshots: `node scripts/shots.mjs M8`, then `M9` and `M10` (the staged shots now use real story states; new `museum-cases` and `orders-grid`; `museum-catalogue` fixed) and commit them.
-5. Send M8 (re-review 2, its last), M9 (re-review 1) and M10 (re-review 1) back to the critic.
-6. Then the remaining polish from the reviews: stirring the celebration soup together at the giant pot (M10), the ending storybook's friends drawn as themselves (M10), outfit reactions, a look picker on the names screen.
+- **Reviews:** M0–M5 and M7 passed their independent reviews. M6 used both re-reviews (its last blocker was fixed afterwards). M8 (re-review 2), M9 and M10 (re-review 1) were **not** re-run — the family asked to finish instead, and the combined review hit a usage limit. Every blocker those reviewers raised was fixed and is covered by a test or a screenshot (see "Review fixes" below), but no reviewer has looked at the result.
+- **Added at the end:** the family stirs the celebration soup together at the giant pot; the ending storybook draws the real friends, the twelve cousins and Biscuit; quest news waits for menus and collapses a burst of steps into one line; a test that walks into all 20 maps; and a sturdier key-timing test.
+- **Making the checks cheaper:** story playthroughs dance fast-forwarded 4× on the autopilot, the dance tests fast-forward the rest of a song after their real-time part, and the pirate and 1950s full-chapter tests were folded into the journey test (it plays exactly the same flows). The full suite went from ~52 to ~35 minutes.
+- **If you come back to this:** the optional polish left is outfit reactions beyond Bramble's and the pirate/1950s gates (Egyptian and Florentine characters don't comment on period clothes), and a look picker on the names screen.
 
 ## Review fixes: M7 re-review 2 (PASS), M8 re-review 1, M9 and M10 checkpoints (REVISE)
 - **The objective follows the chapter you're in** (the M8 and M9 blocker — one bug): once the first Time Sand was home, the finale's "bring all eight sands home" step took over the HUD and the local map's ★ for the rest of the game. Now the chapter of the era you're in wins; elsewhere, the chapters go in story order (Tockwood, the pirates, Egypt, the 1950s, Florence, then the finale). New tests: the objective and the map's ★ on Maple Street and in Giza after a real pirate chapter, desktop and phone; unit tests for the order.
@@ -68,7 +55,7 @@
 - **Phones**: props, buildings and furniture are drawn the first time a map needs them instead of all at boot (far less canvas memory).
 - Tests: new browser tests for a break during each kind of payoff (the treasure scene, the Cup's win card, Cookie's win card, the sock hop, the hourglass scene), the galley-pot route to the recipe, Player 2 leaving mid-game and leaving the lane from the pause menu, the phone's split dance lanes with real taps, and the Shoals chart on a phone in rough seas, calm seas and at the wheel; unit tests for save repair, every era outfit being obtainable, and the gutter-then-ten spare; the timing test now asks for Perfect/Great hits.
 
-## M10 — The finale and polish ✅ (critic: REVISE → fixed above, awaiting re-review 1)
+## M10 — The finale and polish ✅ (critic: REVISE → fixed above; re-review skipped, see Status)
 - **The ending**: when the eighth Time Sand goes into the Great Hourglass, it's whole again (the crack disappears, the clocktower is mended, every clock ticks the right way) and Pip calls everyone to celebrate. On the plaza: friends from every era — Cookie, Pepper, Duke, Mabel, Neb, Ankhi, Sesi, Fiorella, Lady Orsola, Beppe, plus the ones who already moved in (Captain Marigold, Rollo, Rosita, Maestra Lucia) — each with their own party line, a giant pot of soup, and Grandma Hopkins calls for **the Bunny Hop**: the finale dance (hop left, hop right, kick, the big bunny jump) to its own bouncy marimba tune, with the rescued cousins dancing along. Then Clover's celebration soup (a little something from every era), party hats for everyone, a four-page ending storybook in the style of the opening, and the credits. Afterwards Tockwood carries on: every era stays open on the Map of Time.
 - A finale quest tracks the eight sands; the party re-offers the bunny hop at the dance floor if you leave it for later.
 - **The museum**: History Notes now also holds the Museum of Time's catalogue — every artifact you've given Dr. Quill, by name and picture, and "?" cards hinting at the ones still out there in each era (the cases in the museum show the latest finds).
@@ -78,7 +65,7 @@
 - **Performance pass (phones)**: props, buildings and furniture are drawn the first time a map needs them instead of all at boot, so a phone only holds what the places you've visited use (the biggest pictures are about a megapixel each). Measured at the phone size (667×375 at 2×, headless Chromium on the build PC — not a real phone): the title screen holds 41 textures (2.7 megapixels), Tockwood 84 (5.6 MP); the frame rate stays at 54–60 fps on every big map (Tockwood 60, Sandy Cove 57, Maple Street 56, Giza 59, Florence 55, the clocktower 59). Visiting every era grows the textures to about 16 MP, since drawn props stay cached — letting an era's pictures go when you leave it is a possible next step. (Measured with `window.__game.fps()` and `texStats()`.)
 - Tests: the finale end to end (the eighth sand → the hourglass whole → the party → the bunny hop → soup → the ending → the credits → free play).
 
-## M9 — Ancient Egypt and Renaissance Florence ✅ (critic: REVISE → fixed above, awaiting re-review 1)
+## M9 — Ancient Egypt and Renaissance Florence ✅ (critic: REVISE → fixed above; re-review skipped, see Status)
 - **The eight Time Sands**: every era hides two — one at the end of its story, and one found by its three lost Hopkins cousins, who hand it over when the last of them is rescued (a little cutscene, "Time Sand 5 of 8!"). Both go into the Great Hourglass when you get home. (4 eras × 2 = 8.)
 - **Ancient Egypt — "The Pyramid Plans"** (Giza, ~2500 BCE): the time-storm blew master builder Neb's plans away and the golden capstone started glowing by itself. Get past the Great Sphinx's riddle gauntlet (three right answers in a row; a fresh set each try; eight original riddles), light up the pitch-dark old builders' tomb with Glowbroth (brewed right there in Sesi's cooking pot from black cumin, sea salt and radishes — all sold at her stall), find the plans, clear the stone blocks jammed on the ramp (a sliding-block puzzle with limestone blocks and the golden capstone sled — easy/medium/tricky, solver-proven) and raise the capstone: the Time Sand rises out of it and the pyramid is finished. Then dance at the builders' festival (a new dance: walk like a builder, tap the drum, reach for the sun, spin like the Nile — to a new song on ney flute, oud and hand drums in the Hijaz mode).
   - Giza in the house style: the pyramid under construction (and finished, with its golden tip), the Great Sphinx, the old tomb (dark inside, hieroglyph walls, cat statues), mud-brick houses, the master builder's tent, stone sleds, baskets, an obelisk, a bread oven, the market, papyrus along the Nile, a reed boat, the festival floor.
@@ -91,7 +78,7 @@
 - Also: the pirate era's History Notes trimmed to five (spec: 3–5 per era); the 12-bunny reward, a Golden Carrot Lamp, now exists as cottage furniture; new ingredients (black cumin, lettuce) and finds (faience beads, gold florins).
 - Tests: unit (the new riddles, ramp levels, fresco patterns and lion grids all validated); browser: the whole Egypt chapter from the Map of Time to home (1P desktop, 2P phone) and the whole Florence chapter.
 
-## M8 — 1950s America and bowling ✅ (critic: REVISE; re-review 1: REVISE → fixed above, awaiting re-review 2, the last) — the all-features checkpoint
+## M8 — 1950s America and bowling ✅ (critic: REVISE; re-review 1: REVISE → fixed above; re-review 2 skipped, see Status) — the all-features checkpoint
 - Bowling, seen from behind the bowler: step left or right, aim, pick the power on a swinging meter, and roll — then hold left or right while it rolls to curve it (the camera follows the ball down to the pins). On a touchscreen: drag to step, swipe up to bowl — the swipe's direction aims, its speed is the power, and a curved swipe spins the ball. Gamepads work like the keyboard.
 - Real ten-pin scoring on a crisp scorecard: strikes (X) wait for two bonus balls, spares (/) for one, and the tenth frame gives bonus balls and fresh racks; running totals appear as soon as a frame can be scored. Pins that stay standing stay where they are for the second ball.
 - The lane is a small deterministic physics simulation (real lane and pin sizes): the pocket makes strikes, a head-on hit leaves splits, the edge takes a few pins, and what you see is exactly what's scored. Bumpers (on by default, remembered) keep young bowlers out of the gutter.
@@ -241,9 +228,7 @@
 - `window.__game` debug hooks (dev builds or `?debug`): ready, scenes, state, newGame/load/save/slots, flags, settings, startWorld, toTitle.
 - `node scripts/shots.mjs <milestone>` captures review screenshots.
 
-## Next
-- See "Paused here — resume notes" at the top: finish the test runs, move `main`, recapture the screenshots, then M8 (re-review 2, its last), M9 and M10 (re-review 1) go back to the critic.
-- Polish queued (from the reviews): stirring the celebration soup together at the giant pot (M10), the ending storybook's friends drawn as themselves (M10); outfit reactions (Bramble / Biscuit), a look picker on the names screen.
-
 ## Known issues
+- **No reviewer has seen the last round.** M8's second re-review and the M9/M10 re-reviews were skipped (see Status). The fixes are tested, but an independent playtester might still find rough edges there — most likely in the finale staging on a phone and the 1950s chapter's new puzzle.
+- Never tried on a physical phone, iPad or real gamepad (headless Chromium with emulated touch and simulated pads only).
 - **M6 (after its second and last re-review):** the reviewer's remaining blocker — on a 667×375 phone the *calm* Swirling Shoals chart (after the gumbo) was cut off at the bottom by the calm-seas note — was fixed afterwards (Pip says the calm-seas line on short screens; the phone test now drinks the gumbo and checks every level in calm and rough seas, plus the first look from the ship's wheel), but under the review rules there is no third re-review to confirm it. Below the spec's smallest screen (e.g. 740×360) the Medium chart can still be tight.

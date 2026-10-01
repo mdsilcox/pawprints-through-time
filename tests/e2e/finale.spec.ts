@@ -36,7 +36,17 @@ test.describe('the finale', () => {
     await advanceDialogue(page); // "Three cheers for the time travellers!" ... "A BUNNY HOP!"
     await danceItOut(page, two);
 
-    // the celebration soup, then the ending storybook and the credits
+    // the celebration soup: the family stirs the giant pot together (both spoons in 2P) and serves it
+    await playThrough(page, 60_000);
+    await expect(page.getByTestId('party-stir')).toBeVisible();
+    for (let i = 0; i < 4; i++) {
+      await page.getByTestId('ps-stir-0').click();
+      if (two) await page.getByTestId('ps-stir-1').click();
+      await page.waitForTimeout(150);
+    }
+    await expect(page.getByTestId('ps-count-0')).toHaveText(two ? 'P1: 🥄🥄🥄🥄' : '🥄🥄🥄🥄');
+    await press(page, '[data-testid="ps-serve"]');
+    // ...party hats, then the ending storybook and the credits
     await playThrough(page, 60_000);
     await expect(page.locator('[data-screen="ending"]')).toBeVisible();
     await expect(page.getByTestId('story-text')).toContainText('Hourglass');

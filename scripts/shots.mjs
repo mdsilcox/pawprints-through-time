@@ -71,6 +71,7 @@ const CHAPTER_FLAGS = {
 const ERA_COUSINS = { pirate: ['skipper', 'shelly', 'bosun'], fifties: ['poppy', 'zippy', 'dot'], egypt: ['nibbles', 'sandy', 'lotus'], florence: ['pesto', 'sketch', 'twirl'] };
 const PARTY_GUESTS = ['marigold', 'cookie', 'pepper', 'rollo', 'duke', 'mabel', 'rosita', 'neb', 'ankhi', 'sesi', 'lucia', 'fiorella', 'orsola', 'beppe'];
 async function storyDone(page, eras) {
+  await g(page, 'quietQuestNews');
   for (const f of CHAPTER_FLAGS.opening) await g(page, 'setFlag', f, true);
   for (const era of eras) {
     for (const f of CHAPTER_FLAGS[era]) await g(page, 'setFlag', f, true);
@@ -84,6 +85,8 @@ async function storyDone(page, eras) {
     }
   }
   if (eras.includes('pirate')) await g(page, 'discoverSoup', 'pirates-gumbo');
+  // (a real family finished these one at a time: nothing to announce now)
+  await g(page, 'quietQuestNews');
 }
 
 /** Scenario list — grows with each milestone. Each returns after the page shows what to capture. */
@@ -245,6 +248,9 @@ const SCENARIOS = [
     run: async (page) => {
       await play(page, 1);
       await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      // (after the ending: free play, the museum filling up)
+      for (const f of ['hourglassRestored', 'finale:party', 'finale:done']) await g(page, 'setFlag', f, true);
+      await g(page, 'quietQuestNews');
       const finds = ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'spyglass', 'doubloon', 'shell-conch', 'fossil-fern'];
       for (const id of finds) await g(page, 'give', id, 1);
       await g(page, 'goTo', 'museum', 'in');
@@ -256,7 +262,10 @@ const SCENARIOS = [
         await wait(250);
       }
       await page.click('[data-testid="sell-done"]');
-      await wait(1200);
+      // (trading through Dr. Quill rebuilds the room; the debug hook doesn't, so step back in)
+      await wait(600);
+      await g(page, 'goTo', 'museum', 'in');
+      await wait(1800);
       await g(page, 'teleport', 7, 6.4, 0);
       await wait(900);
     },
@@ -706,11 +715,12 @@ const SCENARIOS = [
     players: [1, 2],
     run: async (page, players) => {
       await play(page, players);
+      await storyDone(page, ['pirate']);
       for (const f of ['pip:companion', 'maple:arrived']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'fifties', 'lanes-out');
       await wait(1800);
-      await g(page, 'teleport', 27, 12, 0);
-      if (players === 2) await g(page, 'teleport', 28.2, 12.3, 1);
+      await g(page, 'teleport', 28.3, 12, 0);
+      if (players === 2) await g(page, 'teleport', 29.5, 12.3, 1);
       await wait(1200);
     },
   },
@@ -1085,6 +1095,25 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'party-stir',
+    players: [1, 2],
+    run: async (page, players) => {
+      await play(page, players);
+      await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      for (const f of ['finale:party', 'finale:welcomed', 'hourglassRestored', 'finale:danced']) await g(page, 'setFlag', f, true);
+      await g(page, 'quietQuestNews');
+      await g(page, 'goTo', 'tockwood', 'plaza');
+      await wait(2200);
+      await g(page, 'teleport', 27.4, 20.2, 0);
+      if (players === 2) await g(page, 'teleport', 28.6, 20.4, 1);
+      await wait(800);
+      await g(page, 'openPartyStir');
+      await wait(900);
+      await page.click('[data-testid="ps-stir-0"]');
+      await wait(500);
+    },
+  },
+  {
     name: 'ending',
     players: [1],
     run: async (page) => {
@@ -1117,6 +1146,9 @@ const SCENARIOS = [
     run: async (page) => {
       await play(page, 1);
       await storyDone(page, ['pirate', 'fifties', 'egypt', 'florence']);
+      // (after the ending: free play, the museum filling up)
+      for (const f of ['hourglassRestored', 'finale:party', 'finale:done']) await g(page, 'setFlag', f, true);
+      await g(page, 'quietQuestNews');
       const finds = ['scarab', 'papyrus', 'flying-model', 'paintbrush', 'spyglass', 'doubloon', 'shell-conch', 'fossil-fern'];
       for (const id of finds) await g(page, 'give', id, 1);
       await g(page, 'goTo', 'museum', 'in');
@@ -1132,6 +1164,7 @@ const SCENARIOS = [
       }
       await page.keyboard.press('Escape');
       await wait(500);
+      await g(page, 'quietQuestNews'); // (the trade's own pop-ups have had their moment)
       await g(page, 'openNotes');
       await wait(500);
       await page.locator('[data-testid="museum-catalogue"]').scrollIntoViewIfNeeded();
@@ -1184,7 +1217,9 @@ const SCENARIOS = [
     players: [1],
     run: async (page) => {
       await play(page, 1);
-      for (const f of ['pip:companion', 'giza:arrived', 'capstone:placed']) await g(page, 'setFlag', f, true);
+      await storyDone(page, ['pirate', 'fifties']);
+      // (the chapter so far: the builder met, the riddles, the plans, the capstone up)
+      for (const f of ['pip:companion', 'giza:arrived', 'met:neb', 'sphinx:passed', 'plans:found', 'plans:given', 'capstone:placed']) await g(page, 'setFlag', f, true);
       await g(page, 'goTo', 'egypt', 'portal');
       await wait(1800);
       await g(page, 'teleport', 33, 16.4, 0);

@@ -12,11 +12,14 @@ export function installQuestRuntime(): void {
   let primed = false;
   const news: { text: string; icon: string; cls: string; ms: number; sfx: 'success' | 'fanfare' }[] = [];
   let nextNews = 0;
-  app.events.on('data-loaded', () => {
+  const quiet = () => {
     seen.clear();
     primed = false;
     news.length = 0;
-  });
+  };
+  app.events.on('data-loaded', quiet);
+  // (debug: a staged save for screenshots — its progress counts as already announced)
+  app.events.on('quests-quiet', quiet);
   const tick = () => {
     const d = app.data;
     if (!d || !app.playing) return;
@@ -27,9 +30,15 @@ export function installQuestRuntime(): void {
       if (res.steps.length || res.quests.length) app.autosave.request();
     }
     primed = true;
-    // (quest news waits until a story scene is over, then comes one at a time)
-    if (news.length && !ui.has('cutscene') && !ui.has('dialogue') && performance.now() >= nextNews) {
-      const n = news.shift()!;
+    // (quest news waits until a story scene or a menu is over, then comes one at a time —
+    //  and a pile of steps finished all at once becomes one line)
+    if (news.length && !ui.has('cutscene') && !ui.has('dialogue') && !ui.menuOpen && performance.now() >= nextNews) {
+      const steps = news.filter((x) => x.cls === 'step');
+      let n = news[0];
+      if (steps.length > 3) {
+        for (const s of steps) news.splice(news.indexOf(s), 1);
+        n = { text: `${steps.length} steps done — see the Adventure Log`, icon: '✔', cls: 'step', ms: 2600, sfx: 'success' };
+      } else news.shift();
       toast(n.text, { icon: n.icon, cls: n.cls, ms: n.ms });
       audio.sfx(n.sfx);
       nextNews = performance.now() + 900;

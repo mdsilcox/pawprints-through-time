@@ -122,6 +122,10 @@ export const danceDebug = {
     testSpeed = Math.max(1, k);
     current?.retime(testSpeed);
   },
+  /** seconds into the song as heard (cheap: for tests that time key presses precisely) */
+  pos(): number | null {
+    return current ? current.debugPos() : null;
+  },
   state(): { running: boolean; pos: number; notes: DanceNote[]; players: { player: number; points: number; combo: number; counts: Record<Judgement, number>; frame: string; moves: number; tex: string }[]; rival: number | null } | null {
     return current ? current.debugState() : null;
   },
@@ -771,6 +775,10 @@ export class DanceScene extends Phaser.Scene {
     this.finished = true;
     const total = this.chart.length;
     this.done({ finished: false, scores: this.lanes.map((pl) => pl.score), acc: this.lanes.map((pl) => accuracy(pl.score, total)), stars: this.lanes.map(() => 1), rival: null, won: false, notes: total });
+  }
+
+  debugPos(): number {
+    return this.songPos();
   }
 
   debugState(): ReturnType<typeof danceDebug.state> {

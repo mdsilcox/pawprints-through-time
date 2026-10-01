@@ -104,7 +104,12 @@ test.describe('dancing', () => {
       const g = (window as any).__game;
       const frame = () => new Promise((r) => requestAnimationFrame(r));
       for (const note of g.danceState().notes.slice(0, 10)) {
-        while (g.danceState().pos < note.t - 0.004) await frame();
+        // frame by frame until just before the note, then to its very moment (so a busy machine's
+        // slow frames can't make the key itself late)
+        while (g.dancePos() < note.t - 0.05) await frame();
+        while (g.dancePos() < note.t - 0.004) {
+          /* the last few milliseconds */
+        }
         const code = (keys as Record<string, string>)[note.lane];
         window.dispatchEvent(new KeyboardEvent('keydown', { code, key: code, bubbles: true }));
         const t0 = performance.now();

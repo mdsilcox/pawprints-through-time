@@ -64,6 +64,14 @@ Pip gently suggests a break after 45 minutes of play by default. Change it in **
 - Time only counts while the game is on screen. Putting the phone down for 10+ minutes counts as a real break and starts fresh.
 - After 9 PM (by the device clock) Pip also gives one gentle "it's getting late" nudge per session (can be turned off in Settings).
 
+## How it was tested, and what to expect
+
+- The whole game can be played from the title screen through all four eras to the finale party, the ending storybook and the credits — alone or as a pair, on a desktop-sized screen and on a phone-sized one. `npm test` plays it that way (unit tests, then browser playthroughs at 1280×720 and an emulated 667×375 phone).
+- It has been run in desktop Chromium (headless) only. It hasn't been tried on a physical phone, an iPad or a real gamepad yet (touch and gamepad input are tested with emulated touches and simulated pads), so there may be rough edges there.
+- Sound is made in the browser as you play (there are no audio files). Browsers only allow sound after the first tap or key press.
+- Saves live in the browser on that device (three slots); there's no cloud save. Clearing the browser's site data clears them.
+- Known limits are listed under *Known issues* in `PROGRESS.md` — for example, the Swirling Shoals sailing chart is tight on screens smaller than the 667×375 phone size, and the last independent reviews of milestones 8–10 were skipped at the end.
+
 ## Project docs
 
 - `SPEC.md` — the build spec.

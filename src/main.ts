@@ -1,5 +1,5 @@
 import '@fontsource/fredoka/400.css';
-import { regionOfMap } from './world/mapdef';
+import { allMaps, regionOfMap } from './world/mapdef';
 import '@fontsource/fredoka/500.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
@@ -81,6 +81,7 @@ import './puzzles/content/fifties';
 import './puzzles/content/florence';
 import './story/florenceChapter';
 import { ending as finaleEnding } from './story/finale';
+import { openPartyStir } from './ui/partyStir';
 import { payout, type Reward } from './story/hooks';
 import { EGYPT_PROPS } from './art/egyptProps';
 import { learnNote, openNotes } from './ui/notesScreen';
@@ -220,6 +221,8 @@ registerDebug({
   // world & story (M3)
   goTo: (map: string, spawn = 'in') => world().goTo(map, spawn),
   mapId: () => world().def.id,
+  /** every map and one of its spawn points (a tour of the whole world) */
+  mapTour: () => allMaps().map((m) => ({ id: m.id, spawn: Object.keys(m.spawns)[0] })),
   /** a map change or room reload is under way (goTo is ignored until it's done) */
   transitioning: () => world().transitioning,
   setTime: (hours: number) => {
@@ -262,7 +265,14 @@ registerDebug({
   // M7: dancing
   openDance: (style = 'jig', rival: string | null = null, audience: string[] = [], bunnies: string[] = []) => void dance({ style, rival, audience, bunnies }),
   danceState: () => danceDebug.state(),
+  dancePos: () => danceDebug.pos(),
   danceAuto: (on = true) => danceDebug.setAuto(on),
+  /** staged saves (screenshots): no quest news for progress set by hooks, and no leftover pop-ups */
+  quietQuestNews: () => {
+    app.events.emit('quests-quiet', undefined);
+    ui.clearToasts();
+    ui.toastLayer?.querySelectorAll('.toast, .reward-card').forEach((el) => el.remove());
+  },
   /** fast-forward the next dance (tests on the autopilot; like bowlSpeed) */
   danceSpeed: (k = 1) => danceDebug.setSpeed(k),
   // M8: bowling
@@ -293,6 +303,8 @@ registerDebug({
   textureKeys: (prefix = '') => app.phaser.textures.getTextureKeys().filter((k) => k.startsWith(prefix)),
   // M10: the ending storybook and the credits
   playEnding: () => void finaleEnding(),
+  /** the finale's giant pot, stirred together (screenshots) */
+  openPartyStir: () => void openPartyStir(),
   // M8 checkpoint: home decorating
   openPlanner: () => void openPlanner(() => world().reloadRoom()),
   plannerState: () => plannerState(),

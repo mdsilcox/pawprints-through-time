@@ -3,6 +3,11 @@ import { makeCanvas, sparkle, rng } from './draw';
 import { drawClocktower } from './clocktower';
 import { drawPip } from './fairy';
 import { FURNITURE_ART } from './furniture';
+import { FEET_Y, FH, FRAMES, FW, renderCharacterSheet } from './character';
+import { BH, BUNNY_FRAMES, BW, renderBunnySheet } from './bunny';
+import { CH, CORGI_FRAMES, CW, renderCorgiSheet } from './corgi';
+import { character } from '../data/characters';
+import { HOPKINS } from '../data/bunnies';
 
 /** The ending storybook: four illustrated pages (960×540), in the same style as the opening. */
 const W = 960;
@@ -30,65 +35,25 @@ function ground(ctx: CanvasRenderingContext2D, y: number) {
   ctx.fill();
 }
 
-/** A little round-headed friend (simple, so a whole crowd fits on a page). */
-function friend(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, fur: string, outfit: string, ears: 'round' | 'pointy' | 'bunny' = 'round') {
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = PAL.ink;
-  // body
-  ctx.fillStyle = outfit;
-  ctx.beginPath();
-  ctx.roundRect(x - 16 * s, y - 34 * s, 32 * s, 36 * s, 12 * s);
-  ctx.fill();
-  ctx.stroke();
-  // ears
-  ctx.fillStyle = fur;
-  if (ears === 'bunny') {
-    for (const dx of [-8, 8]) {
-      ctx.beginPath();
-      ctx.ellipse(x + dx * s, y - 72 * s, 6 * s, 16 * s, dx * 0.02, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-  } else if (ears === 'pointy') {
-    for (const dx of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(x + dx * 18 * s, y - 56 * s);
-      ctx.lineTo(x + dx * 12 * s, y - 80 * s);
-      ctx.lineTo(x + dx * 4 * s, y - 62 * s);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    }
-  } else {
-    for (const dx of [-14, 14]) {
-      ctx.beginPath();
-      ctx.arc(x + dx * s, y - 66 * s, 7 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    }
-  }
-  // head
-  ctx.beginPath();
-  ctx.arc(x, y - 52 * s, 20 * s, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = PAL.ink;
-  for (const dx of [-7, 7]) {
-    ctx.beginPath();
-    ctx.arc(x + dx * s, y - 54 * s, 2.6 * s, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = PAL.blush;
-  for (const dx of [-12, 12]) {
-    ctx.beginPath();
-    ctx.ellipse(x + dx * s, y - 46 * s, 4 * s, 2.6 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.strokeStyle = PAL.ink;
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.arc(x, y - 47 * s, 5 * s, 0.15 * Math.PI, 0.85 * Math.PI);
-  ctx.stroke();
+/** A friend from the adventure, drawn as themselves (feet at x, y), in one of their poses. */
+function realFriend(ctx: CanvasRenderingContext2D, id: string, x: number, y: number, s: number, pose: string, flip = false) {
+  const spec = character(id).spec;
+  if (!spec) return;
+  const sheet = renderCharacterSheet(spec);
+  const fi = Math.max(0, FRAMES.findIndex((f) => f.name === pose));
+  ctx.save();
+  ctx.translate(x, y);
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(sheet, fi * FW, 0, FW, FH, (-FW / 2) * s, -FEET_Y * s, FW * s, FH * s);
+  ctx.restore();
+}
+
+/** A Hopkins cousin (feet at x, y). */
+function realBunny(ctx: CanvasRenderingContext2D, i: number, x: number, y: number, s: number, frame: (typeof BUNNY_FRAMES)[number]) {
+  const hb = HOPKINS[i % HOPKINS.length];
+  const sheet = renderBunnySheet(hb.look);
+  const fi = BUNNY_FRAMES.indexOf(frame);
+  ctx.drawImage(sheet, fi * BW, 0, BW, BH, x - 36 * s, y - 66 * s, BW * s, BH * s);
 }
 
 function bunting(ctx: CanvasRenderingContext2D, y: number) {
@@ -148,11 +113,16 @@ export const ENDING_PANELS: ((ctx: CanvasRenderingContext2D) => void)[] = [
     ctx.ellipse(170, H * 0.62, 70, 100, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    friend(ctx, 260, H * 0.8, 1.1, '#f29e4c', '#c0464b', 'pointy'); // the captain
-    friend(ctx, 330, H * 0.84, 1, '#b98a5e', '#fbf6ea'); // the master builder
-    friend(ctx, 640, H * 0.84, 1, '#8a7a9e', '#e0555f'); // the bowling champion
-    friend(ctx, 720, H * 0.8, 1.1, '#6d6a74', '#e9e2d0'); // the inventor
-    friend(ctx, 800, H * 0.84, 1, '#f4a3b4', '#cfe3f0'); // the painter
+    // on the grass, as themselves: the captain and the cook out of the portal first, then the
+    // builder; on the other side the bowling champion, the diner's owner, the inventor, the painter
+    const g = H * 0.6 + 44;
+    realFriend(ctx, 'cookie', 205, g - 6, 0.82, 'wave');
+    realFriend(ctx, 'marigold', 272, g, 0.86, 'wave');
+    realFriend(ctx, 'neb', 345, g + 4, 0.84, 'dance-cheer');
+    realFriend(ctx, 'duke', 628, g + 4, 0.84, 'wave', true);
+    realFriend(ctx, 'mabel', 698, g, 0.84, 'dance-cheer');
+    realFriend(ctx, 'lucia', 768, g + 2, 0.86, 'wave', true);
+    realFriend(ctx, 'fiorella', 838, g - 2, 0.84, 'dance-clap');
   },
   // 3. the big party: the bunny hop and a giant pot of soup
   (ctx) => {
@@ -175,13 +145,14 @@ export const ENDING_PANELS: ((ctx: CanvasRenderingContext2D) => void)[] = [
     ctx.fill();
     ctx.stroke();
     for (let i = 0; i < 5; i++) sparkle(ctx, W / 2 - 80 + i * 40, H * 0.52 - (i % 2) * 20, 8, '#ffffff');
-    // a line of hopping bunnies
-    for (let i = 0; i < 9; i++) {
-      const x = 90 + i * 95;
-      const hop = i % 2 ? -18 : 0;
-      if (Math.abs(x - W / 2) < 150) continue;
-      friend(ctx, x, H * 0.92 + hop, 0.8, ['#f4ede4', '#c9a27e', '#e8cfa9', '#9c8f86'][i % 4], ['#f4a3b4', '#6fb3e0', '#f7c65a', '#7cc47f'][i % 4], 'bunny');
-    }
+    // all twelve Hopkins cousins hopping in two rows either side of the pot — and Biscuit, bouncing highest
+    const back = [70, 170, 270, 690, 790, 890];
+    const front = [115, 215, 315, 645, 745, 845];
+    back.forEach((x, i) => realBunny(ctx, i * 2 + 1, x, H * 0.8 + (i % 2 ? -10 : 0), 1.35, i % 2 ? 'danceB' : 'danceA'));
+    front.forEach((x, i) => realBunny(ctx, i * 2, x, H * 0.95 + (i % 2 ? 0 : -14), 1.5, i % 2 ? 'hopB' : 'hopA'));
+    const corgi = renderCorgiSheet({});
+    const cf = CORGI_FRAMES.indexOf('dance-A');
+    ctx.drawImage(corgi, cf * CW, 0, CW, CH, W / 2 + 118, H * 0.66 - 88 * 1.2, CW * 1.2, CH * 1.2);
   },
   // 4. the end: evening on the island, the clock ticking the right way
   (ctx) => {

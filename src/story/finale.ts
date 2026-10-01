@@ -4,9 +4,10 @@ import { talk } from '../ui/dialogue';
 import { button, toast, ui } from '../ui/ui';
 import { h } from '../ui/dom';
 import { storybook } from '../ui/storybook';
+import { openPartyStir } from '../ui/partyStir';
 import { equip, grant } from '../core/wardrobe';
 import { input } from '../input/input';
-import { sessionEpoch } from '../core/session';
+import { Cancelled, sessionEpoch } from '../core/session';
 import { dance } from '../dance/openDance';
 import { renderEndingPanel, ENDING_TEXT } from '../art/endingPanels';
 import { cutscene, flag, onEnterMap, onTalkWhen, onUse, payout, setFlag, wait } from './hooks';
@@ -133,17 +134,24 @@ async function soupAndEnding(world: WorldScene, show?: () => void): Promise<void
   // (everyone around the giant pot, in the picture)
   world.frameAlso(...PARTY_FRAME);
   try {
-    await soup();
+    await soup(world);
   } finally {
     world.frameAlso(null);
   }
   await ending(show);
 }
 
-async function soup(): Promise<void> {
+async function soup(world: WorldScene): Promise<void> {
   await cutscene(async () => {
     await talk('clover', ['What dancing! And now... the CELEBRATION SOUP! A little something from every time you visited:', 'Coconut from the Caribbean, dates from Egypt, sweet corn from Maple Street, basil from Florence — and a carrot from my garden, of course.']);
-    await talk('narrator', 'Everyone takes a turn stirring the giant pot. Round and round, round and round... Biscuit supervises very closely.');
+    await talk('narrator', 'Everyone takes a turn stirring the giant pot — and now it’s your turn! Biscuit supervises very closely.');
+  });
+  // the family stirs it together, with the whole party watching
+  await openPartyStir();
+  // (a break in the middle of the stirring ends the scene here — the giant pot offers it again)
+  if (!app.playing) throw new Cancelled();
+  world.celebrate(3500);
+  await cutscene(async () => {
     audio.sfx('bubble');
     await talk('clover', 'A bowl for everyone! And a party hat to go with it!');
     wearPartyHats();

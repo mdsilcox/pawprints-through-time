@@ -16,6 +16,8 @@ export interface AppEvents extends Record<string, unknown> {
   reminder: boolean;
   'map-changed': string;
   'outfit-changed': number;
+  /** (debug) take the current quest progress as already announced */
+  'quests-quiet': undefined;
   'new-day': number;
   'open-portal-map': unknown;
   /** a soup effect started or ended */
